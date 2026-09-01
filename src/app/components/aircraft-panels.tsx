@@ -545,6 +545,246 @@ export function CabinAltitudeControlPanel() {
   );
 }
 
+export function PointerKnob({ angle = 0 }: { angle?: number }) {
+  return (
+    <svg viewBox="0 0 90 90" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+      <filter id="knob-shadow-standalone" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#222" />
+      </filter>
+      <g filter="url(#knob-shadow-standalone)" style={{ transform: `translate(45px, 45px) rotate(${angle}deg)` }}>
+        <circle cx="0" cy="0" r="34" fill="#a3a7a8" stroke="#6b7173" strokeWidth="2" />
+        <path d="M -20 26 L -20 -10 L -8 -32 L 8 -32 L 20 -10 L 20 26 A 14 14 0 0 1 6 40 L -6 40 A 14 14 0 0 1 -20 26 Z" fill="#a3a7a8" stroke="#6b7173" strokeWidth="2" />
+        <rect x="-2" y="-30" width="4" height="68" fill="white" stroke="#6b7173" strokeWidth="0.5" />
+      </g>
+    </svg>
+  );
+}
+
+function TempSourceLabels() {
+  return (
+    <svg viewBox="-150 -120 280 230" style={{ position: "absolute", left: "-150px", top: "-120px", width: "280px", height: "230px", overflow: "visible", zIndex: 0 }}>
+      {/* Radial lines and Outer Arcs */}
+      <g stroke="white" strokeWidth="2" fill="none">
+        {/* Inner lines from knob to labels (r: 35 to 42) - excludes -90 (FWD) */}
+        {[-135, -45, 0, 45, 90, 135].map(a => {
+          const rad = (a - 90) * Math.PI / 180;
+          return <line key={`in-${a}`} x1={35 * Math.cos(rad)} y1={35 * Math.sin(rad)} x2={42 * Math.cos(rad)} y2={42 * Math.sin(rad)} />;
+        })}
+
+        {/* Outer radial lines beyond labels (r: 76 to 88) - excludes -90 (FWD) */}
+        {[-135, -45, 0, 45, 90, 135].map(a => {
+          const rad = (a - 90) * Math.PI / 180;
+          return <line key={`out-${a}`} x1={76 * Math.cos(rad)} y1={76 * Math.sin(rad)} x2={88 * Math.cos(rad)} y2={88 * Math.sin(rad)} />;
+        })}
+
+        {/* Outer connecting arcs (r = 88) */}
+        {/* SUPPLY DUCT arc: -135° to -45° */}
+        <path d="M -62.2 62.2 A 88 88 0 0 1 -62.2 -62.2" />
+        {/* PASS CAB arc: 0° to 45° */}
+        <path d="M 0 -88 A 88 88 0 0 1 62.2 -62.2" />
+        {/* PACK arc: 90° to 135° */}
+        <path d="M 88 0 A 88 88 0 0 1 62.2 62.2" />
+      </g>
+      
+      {/* Position labels around knob */}
+      <g fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        {/* CONT CAB at -135° */}
+        <text x="-44" y="38">CONT</text>
+        <text x="-44" y="52">CAB</text>
+        {/* AFT (SUPPLY DUCT) at -45° */}
+        <text x="-41" y="-36">AFT</text>
+        {/* FWD (PASS CAB) at 0° */}
+        <text x="0" y="-53">FWD</text>
+        {/* AFT (PASS CAB) at 45° */}
+        <text x="41" y="-36">AFT</text>
+        {/* R (PACK) at 90° */}
+        <text x="58" y="4">R</text>
+        {/* L (PACK) at 135° */}
+        <text x="41" y="46">L</text>
+      </g>
+
+      {/* Vertical text: FWD (inside SUPPLY DUCT arc) */}
+      <g fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        {['F','W','D'].map((char, i) => (
+          <text key={`fwd-${i}`} x="-68" y={-14 + i * 15}>{char}</text>
+        ))}
+      </g>
+
+      {/* Group text: SUPPLY DUCT */}
+      <g fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        {['S','U','P','P','L','Y'].map((char, i) => <text key={`s-${i}`} x="-120" y={-50 + i * 16}>{char}</text>)}
+        {['D','U','C','T'].map((char, i) => <text key={`d-${i}`} x="-98" y={-34 + i * 16}>{char}</text>)}
+      </g>
+
+      {/* Group text: PACK */}
+      <g fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        {['P','A','C','K'].map((char, i) => <text key={`p-${i}`} x="105" y={10 + i * 16}>{char}</text>)}
+      </g>
+
+      {/* Group texts: AIR TEMP and PASS CAB */}
+      <text x="-15" y="-102" fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">AIR TEMP</text>
+      <text x="64" y="-102" fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">PASS</text>
+      <text x="64" y="-88" fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">CAB</text>
+    </svg>
+  );
+}
+
+export function RoundHeadToggle({ position = "OFF" }: { position?: "ON" | "OFF" }) {
+  const isOff = position === "OFF";
+  return (
+    <svg viewBox="0 0 60 60" style={{ width: "50px", height: "50px", overflow: "visible" }}>
+      <defs>
+        <radialGradient id="bezel-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="60%" stopColor="#4a5053" />
+          <stop offset="90%" stopColor="#25282a" />
+          <stop offset="100%" stopColor="#151718" />
+        </radialGradient>
+        <radialGradient id="cavity-grad" cx="50%" cy="40%" r="50%">
+          <stop offset="0%" stopColor="#1a1d1e" />
+          <stop offset="70%" stopColor="#2c3033" />
+          <stop offset="100%" stopColor="#111314" />
+        </radialGradient>
+        <radialGradient id="ball-grad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="30%" stopColor="#ede7d5" />
+          <stop offset="75%" stopColor="#c5bea8" />
+          <stop offset="100%" stopColor="#968f7a" />
+        </radialGradient>
+        <filter id="ball-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#0a0a0a" floodOpacity="0.8" />
+        </filter>
+      </defs>
+
+      {/* Base Bezel */}
+      <circle cx="30" cy="30" r="22" fill="url(#bezel-grad)" stroke="#606669" strokeWidth="1.5" />
+      <circle cx="30" cy="30" r="16" fill="url(#cavity-grad)" stroke="#111314" strokeWidth="1" />
+
+      {/* Crescent / arc track underneath */}
+      <path d="M 17 34 A 14 14 0 0 0 43 34" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+
+      {/* Stem & Round Head */}
+      <g filter="url(#ball-shadow)" transform={isOff ? "translate(0, -6)" : "translate(0, 8)"}>
+        {/* Metal stem */}
+        <path d="M 28 32 L 28 26 L 32 26 L 32 32 Z" fill="#b0b5b8" stroke="#505558" strokeWidth="0.5" />
+        {/* Round Head Ball */}
+        <circle cx="30" cy="24" r="11" fill="url(#ball-grad)" stroke="#8c8573" strokeWidth="0.8" />
+      </g>
+    </svg>
+  );
+}
+
+export function TemperatureGauge({ value = 24 }: { value?: number }) {
+  const needleDeg = 220 + (Math.max(0, Math.min(100, value)) / 100) * 255;
+  const numbers = [0, 20, 40, 60, 80, 100];
+  const allTicks = Array.from({ length: 51 }, (_, i) => i * 2);
+
+  return (
+    <svg viewBox="0 0 200 200" style={{ width: "150px", height: "150px", overflow: "visible" }}>
+      {/* Outer grey border / bezel */}
+      <circle cx="100" cy="100" r="98" fill="#52585c" stroke="#25282a" strokeWidth="2.5" />
+      <circle cx="100" cy="100" r="91" fill="#1b1d1e" stroke="#70767a" strokeWidth="2" />
+      <circle cx="100" cy="100" r="86" fill="#08090a" />
+
+      {/* Scale Ticks */}
+      <g stroke="white" strokeLinecap="round">
+        {allTicks.map((v) => {
+          const isMajor = v % 10 === 0;
+          const deg = 220 + (v / 100) * 255;
+          const rad = ((deg - 90) * Math.PI) / 180;
+          const innerR = isMajor ? 67 : 75;
+          const outerR = 83;
+          return (
+            <line
+              key={`t-${v}`}
+              x1={100 + innerR * Math.cos(rad)}
+              y1={100 + innerR * Math.sin(rad)}
+              x2={100 + outerR * Math.cos(rad)}
+              y2={100 + outerR * Math.sin(rad)}
+              strokeWidth={isMajor ? 2.5 : 1.2}
+            />
+          );
+        })}
+      </g>
+
+      {/* Numbers */}
+      <g fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        {numbers.map((v) => {
+          const deg = 220 + (v / 100) * 255;
+          const rad = ((deg - 90) * Math.PI) / 180;
+          const r = 53;
+          const x = 100 + r * Math.cos(rad);
+          const y = 100 + r * Math.sin(rad) + 4;
+          return (
+            <text key={`num-${v}`} x={x} y={y}>
+              {v}
+            </text>
+          );
+        })}
+      </g>
+
+      {/* Center Dial Labels */}
+      <text x="100" y="68" fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        TEMP
+      </text>
+      <text x="100" y="134" fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        °C
+      </text>
+
+      {/* Needle (Acute sharp triangle) */}
+      <g transform={`rotate(${needleDeg}, 100, 100)`}>
+        <polygon points="97,100 100,18 103,100 100,108" fill="white" />
+      </g>
+
+      {/* Central Hub Circle (single circle with grey border) */}
+      <circle cx="100" cy="100" r="20" fill="#121415" stroke="#70767a" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+export function TemperatureSelector({ angle = 0 }: { angle?: number }) {
+  return (
+    <div style={{ position: "relative", width: "120px", height: "125px", margin: "0 auto" }}>
+      <svg viewBox="0 0 120 125" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+        <filter id="knob-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#222" />
+        </filter>
+        
+        <g transform="translate(15, 12)">
+          {/* AUTO label in the gap */}
+          <text x="45" y="6" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">AUTO</text>
+          
+          {/* Left Arc: -115 to -32 degrees */}
+          <path d="M 4.2 64 A 45 45 0 0 1 21 6.8" fill="none" stroke="white" strokeWidth="2.5" />
+          
+          {/* Right Arc: 32 to 115 degrees */}
+          <path d="M 69 6.8 A 45 45 0 0 1 85.8 64" fill="none" stroke="white" strokeWidth="2.5" />
+          
+          {/* 4 Dots (inside the arc, radius 40 instead of 45) */}
+          {[-90, -45, 45, 90].map((a, i) => {
+            const rad = (a - 90) * Math.PI / 180;
+            const r = 40;
+            const x = 45 + r * Math.cos(rad);
+            const y = 45 + r * Math.sin(rad);
+            return <circle key={i} cx={x} cy={y} r="2" fill="white" />;
+          })}
+          
+          {/* Knob */}
+          <g filter="url(#knob-shadow)" style={{ transform: `translate(45px, 45px) rotate(${angle}deg)` }}>
+            <circle cx="0" cy="0" r="34" fill="#a3a7a8" stroke="#6b7173" strokeWidth="2" />
+            <path d="M -20 26 L -20 -10 L -8 -32 L 8 -32 L 20 -10 L 20 26 A 14 14 0 0 1 6 40 L -6 40 A 14 14 0 0 1 -20 26 Z" fill="#a3a7a8" stroke="#6b7173" strokeWidth="2" />
+            <rect x="-2" y="-30" width="4" height="68" fill="white" stroke="#6b7173" strokeWidth="0.5" />
+          </g>
+
+          {/* Labels C, W, OFF */}
+          <text x="4" y="86" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">C</text>
+          <text x="86" y="86" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">W</text>
+          <text x="37" y="106" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">OFF</text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 export function TemperaturePanel() {
   return (
     <section
@@ -552,75 +792,64 @@ export function TemperaturePanel() {
       aria-label="Air temperature panel"
     >
       <div className="temp-gauge">
-        <RoundGauge variant="temperature" />
+        <TemperatureGauge />
       </div>
-      <div className="temp-source">
-        <span className="supply">SUPPLY</span>
-        <div className="source-labels">
-          FWD&nbsp;&nbsp;&nbsp;AFT&nbsp;&nbsp;&nbsp;FWD
-          <br />
-          CONT&nbsp;&nbsp;&nbsp;AFT
-          <br />
-          CAB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAB
+      
+      {/* Temp-source component overlay */}
+      <div style={{ position: "absolute", left: "320px", top: "126px" }}>
+        <TempSourceLabels />
+        <div style={{ position: "absolute", left: "-45px", top: "-45px", width: "90px", height: "90px" }}>
+          <PointerKnob />
         </div>
-        <Selector />
       </div>
-      <div className="trim-air">
-        <span>
+      <div
+        className="trim-air"
+        style={{
+          position: "absolute",
+          left: "175px",
+          top: "195px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          fontFamily: "monospace",
+          color: "white",
+        }}
+      >
+        <span style={{ marginBottom: "6px", fontSize: "16px", fontWeight: "bold", whiteSpace: "nowrap" }}>
           TRIM AIR
-          <br />
-          OFF
         </span>
-        <Toggle angle={90} />
-        <small>ON</small>
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <RoundHeadToggle position="OFF" />
+          {/* OFF and ON labels stacked on the right */}
+          <div
+            style={{
+              position: "absolute",
+              left: "54px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              fontSize: "14px",
+              fontWeight: "bold",
+              color: "white",
+            }}
+          >
+            <span>OFF</span>
+            <span>ON</span>
+          </div>
+        </div>
       </div>
-      <div className="zone-lights">
-        <Placard>
-          ZONE
-          <br />
-          TEMP
-        </Placard>
-        <Placard>
-          ZONE
-          <br />
-          TEMP
-        </Placard>
-        <Placard>
-          ZONE
-          <br />
-          TEMP
-        </Placard>
-      </div>
-      <div className="zone-controls">
+      <div className="zone-controls" style={{ top: "290px" }}>
         {["CONT CAB", "FWD CAB", "AFT CAB"].map((label) => (
-          <div key={label}>
-            <b>{label}</b>
-            <span>AUTO</span>
-            <Selector />
-            <small>
-              C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;W
+          <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Placard>
+              ZONE
               <br />
-              OFF
-            </small>
+              TEMP
+            </Placard>
+            <b style={{ marginBottom: "-6px", marginTop: "2px", zIndex: 10 }}>{label}</b>
+            <TemperatureSelector />
           </div>
         ))}
-      </div>
-      <div className="temperature-annunciators">
-        <Placard>
-          DUAL
-          <br />
-          BLEED
-        </Placard>
-        <Placard color="blue">
-          RAM DOOR
-          <br />
-          FULL OPEN
-        </Placard>
-        <Placard color="blue">
-          RAM DOOR
-          <br />
-          FULL OPEN
-        </Placard>
       </div>
       <Screw className="s1" />
       <Screw className="s2" />

@@ -1005,7 +1005,7 @@ select {
 }
 .temperature-panel {
   width: 467px;
-  height: 565px;
+  height: 485px;
 }
 .temp-gauge {
   position: absolute;
