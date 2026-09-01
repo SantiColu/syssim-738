@@ -1,0 +1,622 @@
+/* Complex cockpit instrumentation only. Prefer Tailwind everywhere else. */
+.aircraft-panel {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: #f4f4f2;
+  background: #858585;
+  border: 3px solid #343434;
+  box-shadow:
+    inset 0 0 0 1px #aaa,
+    0 12px 18px #000;
+  font-family: Arial, sans-serif;
+  letter-spacing: 0.02em;
+}
+.ap-screw {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #525252;
+  box-shadow: inset 1px 1px 2px #111;
+}
+.ap-screw.s1 {
+  left: 8px;
+  top: 8px;
+}
+.ap-screw.s2 {
+  right: 8px;
+  top: 8px;
+}
+.ap-screw.s3 {
+  left: 8px;
+  bottom: 8px;
+}
+.ap-screw.s4 {
+  right: 8px;
+  bottom: 8px;
+}
+.ap-rule {
+  position: absolute;
+  height: 2px;
+  background: #eee;
+  left: 8%;
+  right: 8%;
+}
+.ap-placard {
+  min-width: 74px;
+  padding: 5px 7px 4px;
+  text-align: center;
+  color: #ffc400;
+  background: #080808;
+  border: 2px solid #e3aa00;
+  font: 700 13px/1.05 monospace;
+}
+.ap-placard.ap-green {
+  color: #00fa37;
+  border-color: #00cf2e;
+}
+.ap-placard.ap-blue {
+  color: #4d6dff;
+  border-color: #183cff;
+}
+.ap-toggle {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #4b4b4b;
+  border-radius: 50%;
+  background: #6f6f6f;
+  box-shadow: inset 0 0 0 7px #818181;
+}
+.ap-toggle i {
+  --toggle-angle: 0deg;
+  position: absolute;
+  width: 17px;
+  height: 43px;
+  left: 14px;
+  top: -6px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #aaa, #eee 48%, #aaa 52%);
+  border: 1px solid #555;
+  transform: rotate(var(--toggle-angle));
+}
+.ap-selector {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border: 2px solid #555;
+  border-radius: 50%;
+  background: #ddd;
+  box-shadow: 0 2px 2px #444;
+}
+.ap-selector.large {
+  width: 68px;
+  height: 68px;
+}
+.ap-selector i {
+  position: absolute;
+  width: 5px;
+  height: 42px;
+  left: 20px;
+  top: -5px;
+  background: #ddd;
+  border: 1px solid #555;
+  transform-origin: 50% 29px;
+}
+.ap-selector.large i {
+  height: 61px;
+  left: 29px;
+  transform-origin: 50% 42px;
+}
+.flight-display,
+.landing-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ap-gauge {
+  position: relative;
+  border-radius: 50%;
+  background: #050505;
+  border: 9px solid #171717;
+  color: white;
+}
+.ap-gauge-ticks {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+}
+.ap-gauge-ticks i {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 9px;
+  background: white;
+  transform-origin: 50% calc(var(--gauge-size, 142px) / 2 - 6px);
+}
+.ap-gauge > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font: 700 10px monospace;
+  transform: rotate(var(--label-angle)) translateY(-62px)
+    rotate(calc(-1 * var(--label-angle)));
+}
+.ap-gauge b {
+  position: absolute;
+  inset: 41% 20% auto;
+  text-align: center;
+  font: 700 10px/1 monospace;
+  text-decoration: none;
+}
+.ap-gauge b small {
+  color: #3767ff;
+  font-size: 8px;
+}
+.ap-gauge-needle {
+  position: absolute;
+  width: 3px;
+  height: 57px;
+  left: 50%;
+  top: 15px;
+  background: #eee;
+  transform: rotate(235deg);
+  transform-origin: 50% 60px;
+}
+.ap-gauge u {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: calc(50% - 9px);
+  top: calc(50% - 9px);
+  border-radius: 50%;
+  background: #090909;
+  border: 2px solid #aaa;
+}
+.equipment-cooling-panel {
+  width: 345px;
+  height: 369px;
+  padding-top: 38px;
+}
+.equipment-cooling-panel h2 {
+  margin: 0;
+  text-align: center;
+  font: 28px monospace;
+}
+.equipment-cooling-panel .top-rule {
+  top: 32px;
+}
+.equipment-cooling-panel .bottom-rule {
+  bottom: 20px;
+}
+.cooling-head {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 12px;
+  font: 25px monospace;
+}
+.cooling-norm,
+.cooling-alt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font: 22px monospace;
+}
+.cooling-norm {
+  top: 138px;
+}
+.cooling-alt {
+  top: 207px;
+}
+.cooling-controls {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 44px;
+}
+.cooling-lights {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 55px;
+}
+.cooling-lights .ap-placard {
+  width: 122px;
+  height: 63px;
+  padding-top: 17px;
+  font-size: 25px;
+}
+.ap-chamfer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: #858585;
+}
+.ap-chamfer.top {
+  top: 0;
+  clip-path: polygon(0 0, 48% 45%, 100% 0, 100% 100%, 0 100%);
+}
+.ap-chamfer.bottom {
+  bottom: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 55% 55%, 45% 100%, 0 70%);
+}
+.cabin-altitude-panel {
+  background: #aaa;
+}
+.cabin-gauges {
+  position: absolute;
+  width: 305px;
+  height: 450px;
+  padding: 18px 28px;
+  background: #858585;
+  border: 2px solid #4a4a4a;
+}
+.cabin-main-bezel {
+  position: absolute;
+  z-index: 0;
+  left: 71px;
+  top: 13px;
+  width: 216px;
+  height: 216px;
+  background: #585d60;
+  clip-path: polygon(
+    20% 0,
+    80% 0,
+    100% 20%,
+    100% 80%,
+    80% 100%,
+    20% 100%,
+    0 80%,
+    0 20%
+  );
+}
+.cabin-climb-bezel {
+  position: absolute;
+  z-index: 0;
+  left: 102px;
+  top: 286px;
+  width: 154px;
+  height: 154px;
+  background: #585d60;
+  border-radius: 50% 50% 50% 18px;
+}
+.cabin-pressure-gauge {
+  position: absolute;
+  z-index: 1;
+  left: 78px;
+  top: 20px;
+  width: 202px;
+  height: 202px;
+}
+.cabin-climb-gauge {
+  position: absolute;
+  z-index: 1;
+  left: 110px;
+  top: 294px;
+  width: 138px;
+  height: 138px;
+}
+.ap-gauge-altitude {
+  --gauge-size: 190px;
+  width: 190px;
+  height: 190px;
+  margin: auto;
+}
+.ap-gauge-altitude .ap-gauge-ticks i {
+  transform-origin: 50% 81px;
+}
+.ap-gauge-altitude > span {
+  transform: rotate(var(--label-angle)) translateY(-73px)
+    rotate(calc(-1 * var(--label-angle)));
+}
+.ap-gauge-climb {
+  --gauge-size: 140px;
+  width: 140px;
+  height: 140px;
+  margin: 30px auto 0;
+}
+.ap-gauge-climb .ap-gauge-ticks i {
+  transform-origin: 50% 56px;
+}
+.ap-gauge-climb > span {
+  transform: rotate(var(--label-angle)) translateY(-51px)
+    rotate(calc(-1 * var(--label-angle)));
+  font-size: 8px;
+}
+.pressure-note {
+  position: absolute;
+  z-index: 2;
+  left: 4px;
+  top: 258px;
+  padding: 8px;
+  border-radius: 16px;
+  color: white;
+  background: #090909;
+  font: 700 12px/1.05 monospace;
+}
+.horn-column {
+  position: absolute;
+  right: 0px;
+  width: 98px;
+  height: 450px;
+  padding-top: 22px;
+  text-align: center;
+  border: 2px solid #4a4a4a;
+  background: #858585;
+  font: 24px/1.05 monospace;
+}
+.horn-cutout {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 15px auto 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  appearance: none;
+  background-color: #000;
+  border: 5px solid #a3a3a3;
+  box-shadow:
+    inset 0 0 0 2px #4a4a4a,
+    inset 6px 0 0 0 #262626,
+    0 0 0 2px #4a4a4a;
+  transition:
+    box-shadow 0.1s,
+    transform 0.1s;
+}
+.horn-cutout:active {
+  box-shadow:
+    inset 0 0 0 2px #4a4a4a,
+    inset 2px 0 0 0 #262626,
+    0 0 0 2px #4a4a4a;
+  transform: scale(0.97);
+}
+.cabin-panel-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  text-align: center;
+  font: 700 23px Arial;
+}
+.cabin-control-panel {
+  width: 395px;
+  height: 481px;
+}
+.mode-lights {
+  display: flex;
+  position: absolute;
+  top: 10px;
+  left: 39px;
+}
+.mode-lights .ap-placard {
+  min-width: 76px;
+  height: 38px;
+  padding: 4px 5px;
+  font-size: 11px;
+}
+.mode-lights .ap-placard:nth-child(4) {
+  margin-left: 14px;
+}
+.control-divider {
+  position: absolute;
+  top: 57px;
+  bottom: 64px;
+  left: 222px;
+  width: 2px;
+  background: #ddd;
+}
+.control-horizontal {
+  position: absolute;
+  left: 222px;
+  right: 8px;
+  top: 251px;
+  height: 2px;
+  background: #ddd;
+}
+.auto-title,
+.manual-title {
+  position: absolute;
+  top: 63px;
+  font: 16px monospace;
+}
+.auto-title {
+  left: 108px;
+}
+.manual-title {
+  right: 59px;
+}
+.flight-display,
+.landing-display {
+  position: absolute;
+  left: 49px;
+  text-align: center;
+}
+.flight-display {
+  top: 93px;
+}
+.landing-display {
+  top: 229px;
+}
+.flight-display label,
+.landing-display label {
+  display: block;
+  margin: 8px;
+  font: 14px monospace;
+}
+.valve-meter {
+  position: absolute;
+  z-index: 3;
+  top: 108px;
+  right: 30px;
+  width: 112px;
+  text-align: center;
+  font: 13px monospace;
+}
+.valve-position-indicator {
+  position: relative;
+  z-index: 3;
+  display: block;
+  width: 112px;
+  height: 70px;
+  overflow: visible;
+}
+.valve-meter > span {
+  position: absolute;
+  right: -24px;
+  top: 16px;
+  writing-mode: vertical-rl;
+}
+.valve-meter small {
+  position: absolute;
+  top: 66px;
+  left: -5px;
+  right: -5px;
+  display: flex;
+  justify-content: space-between;
+  font: 12px/1 monospace;
+}
+.valve-meter small b {
+  font-weight: 400;
+}
+.valve-switch {
+  position: absolute;
+  z-index: 4;
+  top: 82px;
+  left: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.alt-mode {
+  position: absolute;
+  top: 257px;
+  right: 35px;
+  text-align: center;
+  font: 15px monospace;
+}
+.alt-mode .ap-selector {
+  margin: 4px auto;
+}
+.landing-scale {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 8px;
+  height: 48px;
+}
+.temperature-panel {
+  width: 467px;
+  height: 485px;
+}
+.temp-gauge {
+  position: absolute;
+  left: 10px;
+  top: 14px;
+}
+.ap-gauge-temperature {
+  --gauge-size: 150px;
+  width: 150px;
+  height: 150px;
+}
+.ap-gauge-temperature .ap-gauge-ticks i {
+  transform-origin: 50% 61px;
+}
+.ap-gauge-temperature > span {
+  transform: rotate(var(--label-angle)) translateY(-54px)
+    rotate(calc(-1 * var(--label-angle)));
+}
+.temp-source {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 268px;
+  height: 180px;
+  text-align: center;
+}
+.temp-source .supply {
+  position: absolute;
+  left: 45px;
+  top: 47px;
+  writing-mode: vertical-rl;
+  font: 21px monospace;
+}
+.source-labels {
+  margin-left: 70px;
+  font: 18px/2.4 monospace;
+}
+.temp-source .ap-selector {
+  position: absolute;
+  left: 135px;
+  top: 72px;
+}
+.trim-air {
+  position: absolute;
+  left: 195px;
+  top: 168px;
+  text-align: center;
+  font: 18px monospace;
+}
+.trim-air .ap-toggle {
+  margin-top: 8px;
+}
+.trim-air small {
+  position: absolute;
+  left: 54px;
+  bottom: -7px;
+}
+.zone-lights {
+  position: absolute;
+  left: 58px;
+  right: 50px;
+  top: 276px;
+  display: flex;
+  justify-content: space-between;
+}
+.zone-lights .ap-placard {
+  font-size: 12px;
+}
+.zone-controls {
+  position: absolute;
+  left: 30px;
+  right: 25px;
+  top: 346px;
+  display: flex;
+  justify-content: space-between;
+}
+.zone-controls > div {
+  width: 125px;
+  text-align: center;
+  font: 17px monospace;
+}
+.zone-controls b,
+.zone-controls span,
+.zone-controls small {
+  display: block;
+}
+.zone-controls .ap-selector {
+  margin: 8px auto;
+}
+.zone-controls small {
+  line-height: 1.7;
+}
+.temperature-annunciators {
+  position: absolute;
+  left: 67px;
+  right: 55px;
+  bottom: 8px;
+  display: flex;
+}
+.temperature-annunciators .ap-placard {
+  font-size: 9px;
+  min-width: 74px;
+}
+.temperature-annunciators .ap-placard:last-child {
+  margin-left: auto;
+}

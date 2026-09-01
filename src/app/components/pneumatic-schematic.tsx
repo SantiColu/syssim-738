@@ -1,10 +1,14 @@
 export function PneumaticSchematic() {
   return (
-    <section className="schematic" aria-label="Vista superior del avión">
-      <div className="schematic-head">
+    <section
+      className="relative overflow-hidden max-[900px]:h-[550px] max-[900px]:border-t max-[900px]:border-[#303633]"
+      aria-label="Vista superior del avión"
+    >
+      <div className="flex h-6 justify-between px-2.5 py-2 text-[7px] text-[#505753]">
         <span>TOP VIEW / SCHEMATIC</span>
       </div>
       <svg
+        className="block h-[calc(100%_-_24px)] w-full max-[560px]:w-[720px] max-[560px]:-translate-x-[105px]"
         viewBox="0 0 760 580"
         role="img"
         aria-label="Vista técnica del Boeing 737-800 desde arriba"
@@ -18,22 +22,36 @@ export function PneumaticSchematic() {
             <use href="#boeing-737-800-outline" />
           </clipPath>
         </defs>
-        <use className="aircraft-body" href="#boeing-737-800-outline" />
+        <use
+          className="fill-[rgba(19,19,19,0.958)]"
+          href="#boeing-737-800-outline"
+        />
         <image
-          className="aircraft-dwg-details"
+          className="opacity-[0.68]"
           href="/boeing-737-800-details.svg"
           width="760"
           height="580"
           clipPath="url(#boeing-737-800-clip)"
           aria-hidden="true"
         />
-        <use className="aircraft-outline" href="#boeing-737-800-outline" />
+        <use
+          className="fill-none stroke-[#59625d] [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1]"
+          href="#boeing-737-800-outline"
+        />
       </svg>
-      <div className="legend">
-        <span className="line-swatch" /> ACTIVE FLOW{" "}
-        <span className="dash-swatch" /> ISOLATED{" "}
-        <span className="valve-swatch">⌀</span> OPEN{" "}
-        <span className="closed-swatch">◉</span> CLOSED
+      <div className="absolute right-2.5 bottom-[7px] left-2.5 h-7 border border-[#343c38] bg-[#0d120f] px-3 py-2 text-[#747d78]">
+        <span className="mr-2 ml-[13px] inline-block w-[22px] border-t-2 border-[#55c9d6] align-middle" />{" "}
+        ACTIVE FLOW{" "}
+        <span className="mr-2 ml-[13px] inline-block w-[22px] border-t border-dashed border-[#69716d] align-middle" />{" "}
+        ISOLATED{" "}
+        <span className="mr-2 ml-[13px] inline-block text-[15px] leading-[4px] text-[#50d16f] align-middle">
+          ⌀
+        </span>{" "}
+        OPEN{" "}
+        <span className="mr-2 ml-[13px] inline-block text-[13px] leading-[4px] text-[#89918d] align-middle">
+          ◉
+        </span>{" "}
+        CLOSED
       </div>
     </section>
   );
