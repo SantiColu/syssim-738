@@ -1,17 +1,214 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+
+const ARTBOARD_WIDTH = 760;
+const ARTBOARD_HEIGHT = 580;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+const BUTTON_ZOOM_STEP = 0.5;
+const WHEEL_ZOOM_STEP = 0.25;
+
+type ViewState = {
+  scale: number;
+  x: number;
+  y: number;
+};
+
+type DragState = {
+  pointerId: number;
+  originX: number;
+  originY: number;
+  viewX: number;
+  viewY: number;
+};
+
+const INITIAL_VIEW: ViewState = { scale: 1, x: 0, y: 0 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function constrainView(view: ViewState): ViewState {
+  return {
+    scale: view.scale,
+    x: clamp(view.x, ARTBOARD_WIDTH * (1 - view.scale), 0),
+    y: clamp(view.y, ARTBOARD_HEIGHT * (1 - view.scale), 0),
+  };
+}
+
+function getSvgPoint(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+) {
+  const point = svg.createSVGPoint();
+  point.x = clientX;
+  point.y = clientY;
+  const matrix = svg.getScreenCTM();
+
+  if (!matrix) return { x: ARTBOARD_WIDTH / 2, y: ARTBOARD_HEIGHT / 2 };
+
+  const transformed = point.matrixTransform(matrix.inverse());
+  return { x: transformed.x, y: transformed.y };
+}
+
 export function PneumaticSchematic() {
+  const [view, setView] = useState<ViewState>(INITIAL_VIEW);
+  const [isDragging, setIsDragging] = useState(false);
+  const mainSvgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const minimapPointerRef = useRef<number | null>(null);
+
+  const changeZoom = useCallback(
+    (amount: number, anchor?: { x: number; y: number }) => {
+      setView((current) => {
+        const scale = clamp(current.scale + amount, MIN_ZOOM, MAX_ZOOM);
+        if (scale === current.scale) return current;
+
+        const zoomAnchor = anchor ?? {
+          x: ARTBOARD_WIDTH / 2,
+          y: ARTBOARD_HEIGHT / 2,
+        };
+        const ratio = scale / current.scale;
+
+        return constrainView({
+          scale,
+          x: zoomAnchor.x - (zoomAnchor.x - current.x) * ratio,
+          y: zoomAnchor.y - (zoomAnchor.y - current.y) * ratio,
+        });
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const svg = mainSvgRef.current;
+    if (!svg) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const anchor = getSvgPoint(svg, event.clientX, event.clientY);
+      changeZoom(
+        event.deltaY < 0 ? WHEEL_ZOOM_STEP : -WHEEL_ZOOM_STEP,
+        anchor,
+      );
+    };
+
+    svg.addEventListener("wheel", handleWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", handleWheel);
+  }, [changeZoom]);
+
+  const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0) return;
+
+    const point = getSvgPoint(
+      event.currentTarget,
+      event.clientX,
+      event.clientY,
+    );
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      originX: point.x,
+      originY: point.y,
+      viewX: view.x,
+      viewY: view.y,
+    };
+    setIsDragging(true);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const point = getSvgPoint(
+      event.currentTarget,
+      event.clientX,
+      event.clientY,
+    );
+    setView((current) =>
+      constrainView({
+        scale: current.scale,
+        x: drag.viewX + point.x - drag.originX,
+        y: drag.viewY + point.y - drag.originY,
+      }),
+    );
+  };
+
+  const finishDragging = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setIsDragging(false);
+  };
+
+  const navigateFromMinimap = (
+    event: ReactPointerEvent<SVGSVGElement>,
+  ) => {
+    const point = getSvgPoint(
+      event.currentTarget,
+      event.clientX,
+      event.clientY,
+    );
+    setView((current) =>
+      constrainView({
+        ...current,
+        x: ARTBOARD_WIDTH / 2 - point.x * current.scale,
+        y: ARTBOARD_HEIGHT / 2 - point.y * current.scale,
+      }),
+    );
+  };
+
+  const handleMinimapPointerDown = (
+    event: ReactPointerEvent<SVGSVGElement>,
+  ) => {
+    if (event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    minimapPointerRef.current = event.pointerId;
+    navigateFromMinimap(event);
+  };
+
+  const handleMinimapPointerMove = (
+    event: ReactPointerEvent<SVGSVGElement>,
+  ) => {
+    if (minimapPointerRef.current !== event.pointerId) return;
+    navigateFromMinimap(event);
+  };
+
+  const finishMinimapDragging = (
+    event: ReactPointerEvent<SVGSVGElement>,
+  ) => {
+    if (minimapPointerRef.current === event.pointerId) {
+      minimapPointerRef.current = null;
+    }
+  };
+
+  const visibleArea = {
+    x: -view.x / view.scale,
+    y: -view.y / view.scale,
+    width: ARTBOARD_WIDTH / view.scale,
+    height: ARTBOARD_HEIGHT / view.scale,
+  };
+
   return (
     <section
       className="relative overflow-hidden max-[900px]:h-137.5 max-[900px]:border-t max-[900px]:border-[#303633]"
       aria-label="Vista superior del avión"
     >
-      <div className="flex h-6 justify-between px-2.5 py-2 text-[7px] text-[#505753]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-6 justify-between px-2.5 py-2 text-[7px] text-[#505753]">
         <span>TOP VIEW / SCHEMATIC</span>
       </div>
       <svg
-        className="block h-[calc(100%-24px)] w-full max-[560px]:w-180 max-[560px]:-translate-x-26.25"
+        ref={mainSvgRef}
+        className={`block h-full w-full touch-none select-none pb-9 max-[560px]:w-180 max-[560px]:-translate-x-26.25 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
         viewBox="0 0 760 580"
         role="img"
         aria-label="Vista técnica del Boeing 737-800 desde arriba"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishDragging}
+        onPointerCancel={finishDragging}
       >
         <defs>
           <path
@@ -22,24 +219,98 @@ export function PneumaticSchematic() {
             <use href="#boeing-737-800-outline" />
           </clipPath>
         </defs>
-        <use
-          className="fill-[rgba(19,19,19,0.958)]"
-          href="#boeing-737-800-outline"
-        />
-        <image
-          className="opacity-[0.68]"
-          href="/boeing-737-800-details.svg"
-          width="760"
-          height="580"
-          clipPath="url(#boeing-737-800-clip)"
-          aria-hidden="true"
-        />
-        <use
-          className="fill-none stroke-[#59625d] [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
-          href="#boeing-737-800-outline"
-        />
+        <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
+          <use
+            className="fill-[rgba(19,19,19,0.958)]"
+            href="#boeing-737-800-outline"
+          />
+          <image
+            className="opacity-[0.68]"
+            href="/boeing-737-800-details.svg"
+            width="760"
+            height="580"
+            clipPath="url(#boeing-737-800-clip)"
+            aria-hidden="true"
+          />
+          <use
+            className="fill-none stroke-[#59625d] [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
+            href="#boeing-737-800-outline"
+          />
+        </g>
       </svg>
-      <div className="absolute right-2.5 bottom-1.75 left-2.5 h-7 border border-[#343c38] bg-[#0d120f] px-3 py-2 text-[#747d78]">
+
+      <div className="absolute bottom-11 left-2.5 z-20 w-36 border border-[#343c38] bg-[#0a0e0c]/95 shadow-xl max-[560px]:w-28">
+        <div className="p-1.5">
+          <svg
+            className="block aspect-38/29 w-full touch-none cursor-crosshair bg-[#0d120f]"
+            viewBox="0 0 760 580"
+            role="img"
+            aria-label="Minimapa interactivo de la vista del avión"
+            onPointerDown={handleMinimapPointerDown}
+            onPointerMove={handleMinimapPointerMove}
+            onPointerUp={finishMinimapDragging}
+            onPointerCancel={finishMinimapDragging}
+          >
+            <use
+              className="fill-[#171c19] stroke-[#59625d]"
+              href="#boeing-737-800-outline"
+              strokeWidth="5"
+            />
+            <rect
+              className="fill-sim-cyan/10 stroke-sim-cyan"
+              x={visibleArea.x}
+              y={visibleArea.y}
+              width={visibleArea.width}
+              height={visibleArea.height}
+              strokeWidth="5"
+            />
+          </svg>
+        </div>
+        <div
+          className="flex w-full items-center border-t border-[#343c38] text-[#89918d]"
+          aria-label="Controles de zoom"
+        >
+          <button
+            className="size-7 shrink-0 cursor-pointer border-r border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            type="button"
+            onClick={() => changeZoom(-BUTTON_ZOOM_STEP)}
+            disabled={view.scale === MIN_ZOOM}
+            aria-label="Alejar"
+          >
+            −
+          </button>
+          <output
+            className="min-w-0 flex-1 text-center text-[8px] tabular-nums"
+            aria-live="polite"
+          >
+            {Math.round(view.scale * 100)}%
+          </output>
+          <button
+            className="size-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            type="button"
+            onClick={() => changeZoom(BUTTON_ZOOM_STEP)}
+            disabled={view.scale === MAX_ZOOM}
+            aria-label="Acercar"
+          >
+            +
+          </button>
+          <button
+            className="h-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent px-1.5 text-[7px] tracking-wider hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            type="button"
+            onClick={() => setView(INITIAL_VIEW)}
+            disabled={
+              view.scale === INITIAL_VIEW.scale &&
+              view.x === INITIAL_VIEW.x &&
+              view.y === INITIAL_VIEW.y
+            }
+            aria-label="Restablecer vista completa"
+          >
+            FIT
+          </button>
+        </div>
+      </div>
+
+      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 h-7 border border-[#343c38] bg-[#0d120f] px-3 py-2 text-[#747d78]">
         <span className="mr-2 ml-3.25 inline-block w-5.5 border-t-2 border-sim-cyan align-middle" />{" "}
         ACTIVE FLOW{" "}
         <span className="mr-2 ml-3.25 inline-block w-5.5 border-t border-dashed border-[#69716d] align-middle" />{" "}
