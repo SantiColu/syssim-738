@@ -672,14 +672,16 @@ select {
   appearance: none;
   background-color: #000;
   border: 5px solid #a3a3a3;
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 2px #4a4a4a,
     inset 6px 0 0 0 #262626,
     0 0 0 2px #4a4a4a;
-  transition: box-shadow 0.1s, transform 0.1s;
+  transition:
+    box-shadow 0.1s,
+    transform 0.1s;
 }
 .horn-cutout:active {
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 2px #4a4a4a,
     inset 2px 0 0 0 #262626,
     0 0 0 2px #4a4a4a;
@@ -1189,95 +1191,18 @@ select {
   width: 100%;
   height: calc(100% - 24px);
 }
-.aircraft {
-  fill: rgba(25, 31, 28, 0.38);
+.aircraft-body {
+  fill: rgba(19, 19, 19, 0.958);
+}
+.aircraft-outline {
+  fill: none;
   stroke: #59625d;
   stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.aircraft path + path {
-  stroke: #323a36;
-}
-.flow {
-  fill: none;
-  stroke: var(--cyan);
-  stroke-width: 3;
-  filter: drop-shadow(0 0 3px #2b7680);
-}
-.flow-arrows {
-  fill: none;
-  stroke: var(--cyan);
-  stroke-width: 3;
-}
-.diagram-box rect {
-  fill: #1b211e;
-  stroke: #78817c;
-}
-.diagram-box text {
-  fill: #bdc3bf;
-  font-size: 8px;
-  text-anchor: middle;
-  font-family: monospace;
-}
-.valve circle {
-  fill: #101512;
-  stroke: #88928d;
-  stroke-width: 2;
-}
-.valve path {
-  stroke: #7c8781;
-  stroke-width: 2;
-}
-.valve.open circle,
-.valve.open path {
-  stroke: var(--green);
-}
-.pressure rect {
-  fill: #13201e;
-  stroke: #28585a;
-}
-.pressure text {
-  fill: #59c6d0;
-  font-size: 8px;
-  text-anchor: middle;
-}
-.engine-labels {
-  fill: #6b746f;
-  font-size: 7px;
-  font-family: monospace;
-}
-.legend {
-  position: absolute;
-  height: 28px;
-  bottom: 7px;
-  left: 10px;
-  right: 10px;
-  border: 1px solid #343c38;
-  background: #0d120f;
-  padding: 8px 12px;
-  color: #747d78;
-}
-.legend span {
-  display: inline-block;
-  margin: 0 8px 0 13px;
-  vertical-align: middle;
-}
-.line-swatch {
-  width: 22px;
-  border-top: 2px solid var(--cyan);
-}
-.dash-swatch {
-  width: 22px;
-  border-top: 1px dashed #69716d;
-}
-.valve-swatch {
-  color: var(--green);
-  font-size: 15px;
-  line-height: 4px;
-}
-.closed-swatch {
-  color: #89918d;
-  font-size: 13px;
-  line-height: 4px;
+.aircraft-dwg-details {
+  opacity: 0.68;
 }
 @media (max-width: 900px) {
   .topbar {
@@ -1373,4 +1298,38 @@ select {
     width: 720px;
     transform: translateX(-105px);
   }
+}
+.legend {
+  position: absolute;
+  height: 28px;
+  bottom: 7px;
+  left: 10px;
+  right: 10px;
+  border: 1px solid #343c38;
+  background: #0d120f;
+  padding: 8px 12px;
+  color: #747d78;
+}
+.legend span {
+  display: inline-block;
+  margin: 0 8px 0 13px;
+  vertical-align: middle;
+}
+.line-swatch {
+  width: 22px;
+  border-top: 2px solid var(--cyan);
+}
+.dash-swatch {
+  width: 22px;
+  border-top: 1px dashed #69716d;
+}
+.valve-swatch {
+  color: var(--green);
+  font-size: 15px;
+  line-height: 4px;
+}
+.closed-swatch {
+  color: #89918d;
+  font-size: 13px;
+  line-height: 4px;
 }

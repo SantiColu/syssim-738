@@ -1,146 +1,33 @@
-const Valve = ({
-  x,
-  y,
-  open = true,
-}: {
-  x: number;
-  y: number;
-  open?: boolean;
-}) => (
-  <g
-    transform={`translate(${x} ${y})`}
-    className={open ? "valve open" : "valve"}
-  >
-    <circle r="9" />
-    <path d="M-6 6 6-6" />
-  </g>
-);
-const Box = ({
-  x,
-  y,
-  w,
-  h,
-  children,
-}: {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  children: React.ReactNode;
-}) => (
-  <g className="diagram-box">
-    <rect x={x} y={y} width={w} height={h} />
-    <text x={x + w / 2} y={y + h / 2 - 2}>
-      {children}
-    </text>
-  </g>
-);
 export function PneumaticSchematic() {
   return (
-    <section className="schematic" aria-label="Esquema del sistema neumático">
+    <section className="schematic" aria-label="Vista superior del avión">
       <div className="schematic-head">
         <span>TOP VIEW / SCHEMATIC</span>
       </div>
       <svg
         viewBox="0 0 760 580"
         role="img"
-        aria-label="Vista esquemática del sistema neumático del Boeing 737"
+        aria-label="Vista técnica del Boeing 737-800 desde arriba"
       >
-        <g className="aircraft">
-          <path d="M380 30 354 150 349 245 246 288 112 285 110 326 316 339 306 444 278 510 281 526 372 479 380 555 388 479 479 526 482 510 454 444 444 339 650 326 648 285 514 288 411 245 406 150Z" />
-          <path d="M380 30V555M111 306H649" />
-        </g>
-        <g className="flow">
-          <path d="M380 270V187M380 302V270M380 302H300V348M380 302H460V348M300 348V410M460 348V410" />
-          <path d="M333 348H427" />
-          <path d="M300 348H224V397M460 348H536V397" />
-        </g>
-        <g className="flow-arrows">
-          <path d="M337 216v-60m0 0-8 14m8-14 8 14M423 216v-60m0 0-8 14m8-14 8 14" />
-        </g>
-        <Box x={350} y={100} w={60} h={40}>
-          CABIN
-          <tspan x="380" dy="12">
-            SUPPLY
-          </tspan>
-        </Box>
-        <Box x={344} y={174} w={72} h={40}>
-          MIX
-          <tspan x="380" dy="12">
-            MANIFOLD
-          </tspan>
-        </Box>
-        <Box x={270} y={270} w={58} h={42}>
-          L PACK
-          <tspan x="299" dy="12">
-            AUTO
-          </tspan>
-        </Box>
-        <Box x={432} y={270} w={58} h={42}>
-          R PACK
-          <tspan x="461" dy="12">
-            AUTO
-          </tspan>
-        </Box>
-        <Box x={270} y={397} w={60} h={49}>
-          PRE
-          <tspan x="300" dy="12">
-            COOLER
-          </tspan>
-        </Box>
-        <Box x={430} y={397} w={60} h={49}>
-          PRE
-          <tspan x="460" dy="12">
-            COOLER
-          </tspan>
-        </Box>
-        <Valve x={300} y={338} />
-        <Valve x={460} y={338} />
-        <Valve x={380} y={312} open={false} />
-        <Valve x={224} y={366} />
-        <Valve x={536} y={366} />
-        <g className="pressure">
-          <rect x="324" y="379" width="54" height="21" />
-          <text x="351" y="393">
-            36.4 PSI
-          </text>
-          <rect x="382" y="379" width="54" height="21" />
-          <text x="409" y="393">
-            35.9 PSI
-          </text>
-        </g>
-        <g className="engine-labels">
-          <text x="206" y="270">
-            9TH STAGE
-          </text>
-          <text x="505" y="270">
-            9TH STAGE
-          </text>
-          <text x="217" y="310">
-            5TH STAGE
-          </text>
-          <text x="498" y="310">
-            5TH STAGE
-          </text>
-          <text x="151" y="366">
-            GROUND
-          </text>
-          <text x="153" y="379">
-            AIR
-          </text>
-          <text x="180" y="430">
-            ENG 1 PRSOV
-          </text>
-          <text x="505" y="430">
-            ENG 2 PRSOV
-          </text>
-          <text x="362" y="470">
-            APU VLV
-          </text>
-          <text x="358" y="530">
-            APU BLEED
-          </text>
-        </g>
+        <defs>
+          <path
+            id="boeing-737-800-outline"
+            d="M380.7 30 L382.5 30.7 L383.9 32.1 L385.4 34.5 L388 40.7 L391.9 51.9 L395.6 64.4 L398.6 76.3 L401 87.8 L402.8 98.5 L404.1 110.8 L404.9 125.4 L405 221.5 L406.7 224 L409.5 227.6 L413.7 231.6 L431.6 244.6 L431.7 243.4 L429.9 231.9 L429.6 224.6 L430.5 214.3 L431.1 211.8 L432.3 209 L432.9 208.4 L433.9 208.1 L438.4 207.8 L450.6 207.6 L455 207.8 L456.6 208.2 L457.9 210.3 L459.6 217 L460.2 222.8 L460.2 231.3 L458.1 248 L456.1 258.3 L604.9 338.2 L602.9 337.3 L602.5 337.4 L602.5 337.9 L604.3 341.6 L605.8 346.8 L607.4 354.9 L608.3 361.7 L606.8 361.9 L606.7 360.7 L526.2 333.9 L518.4 331.3 L503.1 327.1 L502.3 327.3 L502.2 330.7 L501.2 335.5 L499.7 339.5 L499.1 339.5 L497.4 334 L496.5 326.4 L496.1 325.2 L469.4 317.9 L468.5 318.1 L468.2 321.8 L467.3 325.8 L465.8 330.1 L465.2 330.3 L463.3 323.7 L462.6 316.3 L447.7 311.9 L439 311.9 L438.3 316.4 L437.4 319.4 L436.9 319.8 L434.5 315.1 L433.5 311.9 L405.2 311.8 L405 405.2 L404.1 429.7 L402.8 445.3 L400.6 462.2 L398.3 474.5 L394.6 489.3 L474.8 544.6 L475.4 546.5 L475.2 555 L384.2 531.5 L383.1 531.8 L381.5 535 L381 542.8 L380 550.7 L379 543.7 L378.5 535.2 L376.7 531.6 L375.8 531.5 L284.8 555 L284.5 547.5 L284.8 545.2 L285.4 544.4 L365.2 489.4 L361.4 473.5 L358.8 458.7 L357.1 444.6 L355.6 425.9 L355 409.6 L355 311.9 L326.4 311.9 L325.3 315.2 L322.9 319.8 L322.6 319.7 L321.6 316.1 L320.8 311.9 L312.2 311.9 L297.4 316.1 L296.8 322.5 L295.7 327.6 L294.6 330.3 L293.9 329.5 L292.7 326.1 L291.6 321.3 L291.5 317.9 L291 317.8 L263.6 325.4 L262.9 332.1 L260.8 339.5 L260.2 339.4 L259.1 336.7 L258 332.1 L257.5 327.3 L256.8 327.1 L241 331.5 L153.6 360.4 L153.2 361.9 L151.7 361.7 L151.7 359.9 L154.2 346.5 L155.9 341 L157.5 337.7 L157.1 337.3 L154.8 338.3 L303.7 258.4 L301.2 243.4 L299.7 229.7 L299.8 221.8 L300.6 215.7 L301.8 210.9 L302.7 209 L303.6 208.1 L309.4 207.6 L321.4 207.8 L326.1 208.1 L327.2 208.5 L327.8 209.3 L329.3 213.9 L330.2 221.9 L330.1 231 L328.1 243.8 L328.3 244.6 L328.9 244.4 L345.9 231.9 L349.6 228.5 L353.5 223.7 L355 221.3 L355 128.9 L355.6 113.7 L356.9 100.2 L359 87.4 L361.8 74.1 L365.8 58.9 L370.5 44.6 L374 35.5 L375.8 32.4 L378.2 30.3 Z"
+          />
+          <clipPath id="boeing-737-800-clip">
+            <use href="#boeing-737-800-outline" />
+          </clipPath>
+        </defs>
+        <use className="aircraft-body" href="#boeing-737-800-outline" />
+        <image
+          className="aircraft-dwg-details"
+          href="/boeing-737-800-details.svg"
+          width="760"
+          height="580"
+          clipPath="url(#boeing-737-800-clip)"
+          aria-hidden="true"
+        />
+        <use className="aircraft-outline" href="#boeing-737-800-outline" />
       </svg>
       <div className="legend">
         <span className="line-swatch" /> ACTIVE FLOW{" "}
