@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type CSSProperties, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 
 function Screw({ className = "" }: { className?: string }) {
   return <i className={`ap-screw ${className}`} />;
@@ -14,28 +14,6 @@ function Placard({
   color?: "amber" | "green" | "blue";
 }) {
   return <div className={`ap-placard ap-${color}`}>{children}</div>;
-}
-
-function Toggle({ angle = 0 }: { angle?: number }) {
-  return (
-    <div className="ap-toggle">
-      <i style={{ "--toggle-angle": `${angle}deg` } as CSSProperties} />
-    </div>
-  );
-}
-
-function Selector({
-  angle = 0,
-  large = false,
-}: {
-  angle?: number;
-  large?: boolean;
-}) {
-  return (
-    <div className={`ap-selector ${large ? "large" : ""}`}>
-      <i style={{ transform: `rotate(${angle}deg)` }} />
-    </div>
-  );
 }
 
 const DIGIT_SEGMENTS: Record<string, number[]> = {
@@ -340,69 +318,6 @@ function ValvePositionIndicator({ position = 0 }: { position?: number }) {
       />
       <circle cx="75" cy="76" r="4.5" fill="#222" stroke="#fff" strokeWidth="1.5" />
     </svg>
-  );
-}
-
-function RoundGauge({
-  variant,
-}: {
-  variant: "altitude" | "climb" | "temperature";
-}) {
-  const temperature = variant === "temperature";
-  const labels = temperature
-    ? ["0", "20", "40", "60", "80", "100"]
-    : variant === "climb"
-      ? ["0", "1", "2", "3", "4", "3", "2", "1"]
-      : ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-  return (
-    <div className={`ap-gauge ap-gauge-${variant}`}>
-      <div className="ap-gauge-ticks">
-        {Array.from({ length: temperature ? 31 : 40 }).map((_, index) => (
-          <i
-            key={index}
-            style={{
-              transform: `rotate(${index * (360 / (temperature ? 31 : 40))}deg)`,
-            }}
-          />
-        ))}
-      </div>
-      {labels.map((label, index) => {
-        const angle = temperature
-          ? 220 + index * 44
-          : index * (360 / labels.length);
-        return (
-          <span
-            key={`${label}-${index}`}
-            style={{ "--label-angle": `${angle}deg` } as CSSProperties}
-          >
-            {label}
-          </span>
-        );
-      })}
-      <b>
-        {temperature ? (
-          <>
-            TEMP
-            <br />
-            <small>°C</small>
-          </>
-        ) : variant === "climb" ? (
-          <>
-            CABIN CLIMB
-            <br />
-            <small>1000 FEET PER MIN</small>
-          </>
-        ) : (
-          <>
-            CABIN
-            <br />
-            ALT
-          </>
-        )}
-      </b>
-      <em className="ap-gauge-needle" />
-      <u />
-    </div>
   );
 }
 
@@ -1221,9 +1136,9 @@ export function AircraftPushButton({
   const renderLabel = (label: string | string[] | undefined, marginClass: string) => {
     if (!label) return null;
     return (
-      <div className={`flex flex-col items-center gap-[2px] ${marginClass}`}>
+      <div className={`flex flex-col items-center gap-0.5 ${marginClass}`}>
         {(Array.isArray(label) ? label : [label]).map((line, i) => (
-          <span key={i} className="text-white bg-[#7a8183] px-1 py-[1px] leading-none text-[10px] whitespace-nowrap">
+          <span key={i} className="text-white bg-[#7a8183] px-1 py-px leading-none text-[10px] whitespace-nowrap">
             {line}
           </span>
         ))}
