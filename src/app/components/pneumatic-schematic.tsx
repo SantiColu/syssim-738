@@ -39,9 +39,7 @@ export function PneumaticSchematic() {
   return (
     <section className="schematic" aria-label="Esquema del sistema neumático">
       <div className="schematic-head">
-        <span>ATA 36 · PNEUMATIC</span>
         <span>TOP VIEW / SCHEMATIC</span>
-        <span>REV B1 · SIM DATA</span>
       </div>
       <svg
         viewBox="0 0 760 580"

@@ -8,13 +8,7 @@ export default function Home() {
       <SimulatorHeader />
       <div className="workspace-labels" aria-hidden="true">
         <span>COCKPIT</span>
-        <span>
-          <b>P5</b> FORWARD OVERHEAD
-        </span>
         <span>SYSTEM</span>
-        <span>
-          <b>NORMAL</b> FLIGHT OPERATION
-        </span>
       </div>
       <section className="simulator-workspace">
         <CockpitPanelSelector />

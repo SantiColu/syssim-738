@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
-import { CabinAltitudeControlPanel, CabinAltitudePanel, EquipmentCoolingPanel, TemperaturePanel } from "./aircraft-panels";
+import {
+  CabinAltitudeControlPanel,
+  CabinAltitudePanel,
+  EquipmentCoolingPanel,
+  TemperaturePanel,
+} from "./aircraft-panels";
 import { PneumaticPanel } from "./pneumatic-panel";
 
 type Panel = {
@@ -52,29 +57,36 @@ export function CockpitPanelSelector() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") setActive((value) => (value - 1 + panels.length) % panels.length);
-      if (event.key === "ArrowRight") setActive((value) => (value + 1) % panels.length);
+      if (event.key === "ArrowLeft")
+        setActive((value) => (value - 1 + panels.length) % panels.length);
+      if (event.key === "ArrowRight")
+        setActive((value) => (value + 1) % panels.length);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   return (
-    <section className="panel-selector" aria-label="Selector de paneles del cockpit">
+    <section
+      className="panel-selector"
+      aria-label="Selector de paneles del cockpit"
+    >
       <div className="panel-selector-heading" aria-live="polite">
         <span>{selected.code}</span>
         <strong>{selected.name}</strong>
-        <small>{String(active + 1).padStart(2, "0")} / {String(panels.length).padStart(2, "0")}</small>
+        <small>
+          {String(active + 1).padStart(2, "0")} /{" "}
+          {String(panels.length).padStart(2, "0")}
+        </small>
       </div>
 
       <div className="panel-stage">
-        <article className="panel-card panel-focus is-active" aria-label={`${selected.name}, panel activo`}>
+        <article
+          className="panel-card panel-focus is-active"
+          aria-label={`${selected.name}, panel activo`}
+        >
           <div className={`panel-visual panel-${selected.id}`}>
             <SelectedPanel />
-          </div>
-          <div className="panel-card-label">
-            <span>{String(active + 1).padStart(2, "0")}</span>
-            {selected.name}
           </div>
         </article>
 

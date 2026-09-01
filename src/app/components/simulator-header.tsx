@@ -6,7 +6,7 @@ export function SimulatorHeader() {
     <header className="sim-header">
       <div className="topbar">
         <div className="brand">
-          <span className="brand-number">36</span>
+          {/* <span className="brand-number">36</span> */}
           <span>
             <strong>AIRPLANE SYSTEM SIMULATOR</strong>
             <small>B737-800 NG · CFM56-7B26</small>
@@ -19,13 +19,13 @@ export function SimulatorHeader() {
         </nav>
       </div>
       <div className="toolbar">
-        <button className="pause">
+        {/* <button className="pause">
           <Icon>Ⅱ</Icon> PAUSE
         </button>
         <button>
           <Icon>↻</Icon> RESET
-        </button>
-        <label>
+        </button> */}
+        {/* <label>
           <span>CONDITION</span>
           <select defaultValue="cruise">
             <option value="cruise">CRUISE · FL350</option>
@@ -36,18 +36,18 @@ export function SimulatorHeader() {
           <select defaultValue="yc">
             <option value="yc">YC496–YW164</option>
           </select>
-        </label>
+        </label> */}
         <button className="failure">
           <Icon>△</Icon> INSERT FAILURE
         </button>
-        <button className="layers">
+        {/* <button className="layers">
           <Icon>▣</Icon> LAYERS
-        </button>
-        <div className="clock">
+        </button> */}
+        {/* <div className="clock">
           <span>SIM TIME</span>
           <strong>00:14:27.6</strong>
           <small>×1.0</small>
-        </div>
+        </div> */}
       </div>
     </header>
   );
