@@ -1,4 +1,4 @@
-import { CockpitPanelSelector } from "./components/cockpit-panel-selector";
+import { CockpitView } from "./components/cockpit-view";
 import { PneumaticSchematic } from "./components/pneumatic-schematic";
 import { SimulatorHeader } from "./components/simulator-header";
 
@@ -14,7 +14,7 @@ export default function Home() {
         <span>SYSTEM</span>
       </div>
       <section className="grid h-[calc(100vh-105px)] grid-cols-[44%_56%] border-b border-[#303633] max-[900px]:h-auto max-[900px]:grid-cols-1">
-        <CockpitPanelSelector />
+        <CockpitView />
         <PneumaticSchematic />
       </section>
     </main>
