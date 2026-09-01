@@ -1,10 +1,13 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
+import { AircraftToggleSwitch, AircraftPushButton } from "./aircraft-panels";
 
 function ToggleSwitch({
   labelTop,
   labelBottom,
   positions = [],
-  activePos = 0,
+  activePos: initialPos = 0,
   align = "right",
   circleColor = "black",
   positionsOffset = "",
@@ -17,6 +20,32 @@ function ToggleSwitch({
   circleColor?: "black" | "red";
   positionsOffset?: string;
 }) {
+  const [currentPos, setCurrentPos] = useState(initialPos);
+
+  const numPositions = positions.length > 0 ? positions.length : 2;
+
+  const handleClick = () => {
+    setCurrentPos((prev) => (prev + 1) % numPositions);
+  };
+
+  const handleWheel = (dir: number) => {
+    // dir < 0 is scroll up -> move towards 0 (UP)
+    // dir > 0 is scroll down -> move towards numPositions - 1 (DOWN)
+    setCurrentPos((prev) => {
+      if (dir < 0) {
+        return Math.max(0, prev - 1);
+      } else {
+        return Math.min(numPositions - 1, prev + 1);
+      }
+    });
+  };
+
+  const isUp = currentPos === 0;
+  const isCenter = numPositions === 3 && currentPos === 1;
+  const isDown = (numPositions === 3 && currentPos === 2) || (numPositions <= 2 && currentPos === 1);
+
+  const togglePos: "UP" | "CENTER" | "DOWN" = isUp ? "UP" : isCenter ? "CENTER" : "DOWN";
+
   const renderLabel = (label: string | string[] | undefined, marginClass: string) => {
     if (!label) return null;
     return (
@@ -34,21 +63,24 @@ function ToggleSwitch({
     <div className="flex flex-col items-center relative z-20 font-mono">
       {renderLabel(labelTop, "mb-1.5")}
       
-      <div className="relative w-8 h-8 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full border border-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] flex items-center justify-center z-10">
-        <div className={`absolute w-5 h-5 rounded-full ${circleColor === "red" ? "bg-[#801414] border border-[#a31a1a]" : "bg-black"}`} />
-        <div
-          className="w-2.5 h-6 bg-gradient-to-b from-gray-100 to-gray-300 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.7)] border border-gray-400 z-10"
-          style={{
-            transform: `translateY(${activePos === 0 ? -6 : activePos === 1 && positions.length > 2 ? 0 : 6}px)`,
-            transition: "transform 0.2s"
-          }}
+      <div className="relative flex items-center justify-center z-10">
+        <AircraftToggleSwitch
+          position={togglePos}
+          circleColor={circleColor}
+          onClick={handleClick}
+          onWheelStep={handleWheel}
+          size={38}
         />
 
         {positions.length > 0 && (
-          <div className={`absolute top-1/2 -translate-y-1/2 ${align === "left" ? "right-[36px] items-end" : "left-[36px] items-start"} flex flex-col justify-between h-[32px] z-10 min-w-[24px] ${positionsOffset}`}>
+          <div className={`absolute top-1/2 -translate-y-1/2 ${align === "left" ? "right-[40px] items-end" : "left-[40px] items-start"} flex flex-col justify-between h-[36px] z-10 min-w-[24px] ${positionsOffset}`}>
             {positions.map((p, i) => (
               p ? (
-                <span key={i} className="px-0.5 text-white bg-[#7a8183] text-[9px] font-bold leading-none whitespace-nowrap">
+                <span
+                  key={i}
+                  onClick={() => setCurrentPos(i)}
+                  className="px-0.5 text-white bg-[#7a8183] text-[9px] font-bold leading-none whitespace-nowrap cursor-pointer"
+                >
                   {p}
                 </span>
               ) : (
@@ -64,45 +96,24 @@ function ToggleSwitch({
   );
 }
 
-function PushButton({ labelTop, labelBottom }: { labelTop?: string | string[]; labelBottom?: string | string[] }) {
-  const renderLabel = (label: string | string[] | undefined, marginClass: string) => {
-    if (!label) return null;
-    return (
-      <div className={`flex flex-col items-center gap-[2px] ${marginClass}`}>
-        {(Array.isArray(label) ? label : [label]).map((line, i) => (
-          <span key={i} className="text-white bg-[#7a8183] px-1 py-[1px] leading-none text-[10px] whitespace-nowrap">
-            {line}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <div className="flex flex-col items-center relative z-20 font-mono">
-      {renderLabel(labelTop, "mb-1.5")}
-      <div className="relative w-8 h-8 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full border border-gray-400 flex items-center justify-center shadow-md z-10">
-        <div className="w-5 h-5 bg-[#111] rounded-full border border-gray-700 shadow-inner" />
-      </div>
-      {renderLabel(labelBottom, "mt-1.5")}
-    </div>
-  );
-}
-
 function Annunciator({
   color,
   children,
+  lit = true,
 }: {
   color: "amber" | "blue";
   children: React.ReactNode;
+  lit?: boolean;
 }) {
   const isAmber = color === "amber";
   return (
     <div
-      className={`border-2 flex items-center justify-center text-center px-1 font-mono text-[9px] leading-tight w-[74px] h-[30px] shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] ${
-        isAmber
-          ? "border-[#ffb300] text-[#ffb300] bg-black"
-          : "border-blue-600 text-blue-500 bg-black"
+      className={`border-2 flex items-center justify-center text-center px-1 font-mono text-[9px] leading-tight w-[74px] h-[30px] shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] transition-all duration-100 ${
+        lit
+          ? isAmber
+            ? "border-[#ffb300] text-[#ffb300] bg-black shadow-[0_0_8px_rgba(255,179,0,0.5),inset_0_0_8px_rgba(255,179,0,0.3)]"
+            : "border-blue-600 text-blue-500 bg-black shadow-[0_0_8px_rgba(37,99,235,0.5),inset_0_0_8px_rgba(37,99,235,0.3)]"
+          : "border-[#4a4e50] text-[#555a5c] bg-[#0c0d0e]"
       }`}
     >
       {children}
@@ -111,6 +122,9 @@ function Annunciator({
 }
 
 export function PneumaticPanel() {
+  const [isOvhtTest, setIsOvhtTest] = useState(false);
+  const [tripResetClicks, setTripResetClicks] = useState(0);
+
   const paths = `
     M 80 491 L 80 320
     M 80 375 L 55 375
@@ -229,7 +243,13 @@ export function PneumaticPanel() {
         
         {/* OVHT TEST */}
         <div className="absolute top-[175px] left-[320px] -translate-x-1/2">
-          <PushButton labelTop="OVHT" labelBottom="TEST" />
+          <AircraftPushButton
+            labelTop="OVHT"
+            labelBottom="TEST"
+            onPressStart={() => setIsOvhtTest(true)}
+            onPressEnd={() => setIsOvhtTest(false)}
+            size={36}
+          />
         </div>
 
         {/* Control Switches (L PACK, ISO, R PACK) */}
@@ -246,18 +266,23 @@ export function PneumaticPanel() {
         {/* Annunciators Grid */}
         <div className="absolute top-[360px] left-[140px] -translate-x-1/2 flex flex-col gap-[2px] z-10">
           <Annunciator color="amber">PACK</Annunciator>
-          <Annunciator color="amber">WING-BODY<br/>OVERHEAT</Annunciator>
+          <Annunciator color="amber" lit={isOvhtTest}>WING-BODY<br/>OVERHEAT</Annunciator>
           <Annunciator color="amber">BLEED<br/>TRIP OFF</Annunciator>
         </div>
         <div className="absolute top-[360px] left-[260px] -translate-x-1/2 flex flex-col gap-[2px] z-10">
           <Annunciator color="amber">PACK</Annunciator>
-          <Annunciator color="amber">WING-BODY<br/>OVERHEAT</Annunciator>
+          <Annunciator color="amber" lit={isOvhtTest}>WING-BODY<br/>OVERHEAT</Annunciator>
           <Annunciator color="amber">BLEED<br/>TRIP OFF</Annunciator>
         </div>
 
         {/* TRIP RESET Button */}
         <div className="absolute top-[407px] left-[200px] -translate-x-1/2">
-          <PushButton labelTop="TRIP" labelBottom="RESET" />
+          <AircraftPushButton
+            labelTop="TRIP"
+            labelBottom="RESET"
+            onClick={() => setTripResetClicks((c) => c + 1)}
+            size={36}
+          />
         </div>
 
         {/* Wing Anti Ice Labels */}
