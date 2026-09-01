@@ -1,5 +1,4 @@
-import { EventLog } from "./components/event-log";
-import { PneumaticPanel } from "./components/pneumatic-panel";
+import { CockpitPanelSelector } from "./components/cockpit-panel-selector";
 import { PneumaticSchematic } from "./components/pneumatic-schematic";
 import { SimulatorHeader } from "./components/simulator-header";
 
@@ -18,10 +17,9 @@ export default function Home() {
         </span>
       </div>
       <section className="simulator-workspace">
-        <PneumaticPanel />
+        <CockpitPanelSelector />
         <PneumaticSchematic />
       </section>
-      <EventLog />
     </main>
   );
 }

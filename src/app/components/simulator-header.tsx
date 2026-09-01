@@ -17,9 +17,6 @@ export function SimulatorHeader() {
           <button>FUEL</button>
           <button>NAVCOM</button>
         </nav>
-        <div className="online">
-          <i /> MODEL ONLINE
-        </div>
       </div>
       <div className="toolbar">
         <button className="pause">

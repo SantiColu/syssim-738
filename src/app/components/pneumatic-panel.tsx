@@ -124,7 +124,7 @@ export function PneumaticPanel() {
   `;
 
   return (
-    <div className="cockpit-area flex items-center justify-center bg-[#111]">
+    <div className="pneumatic-panel-content flex items-center justify-center">
       <section className="relative w-[400px] h-[550px] bg-[#9ba1a2] border-4 border-gray-700 mx-auto overflow-hidden font-mono select-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] scale-95 origin-center">
         
         {/* Top Dark Strip */}
