@@ -211,15 +211,15 @@ export function PneumaticSchematic() {
 
   return (
     <section
-      className="relative overflow-hidden max-[900px]:h-137.5 border-l border-[#303633]"
+      className="relative overflow-hidden max-[900px]:h-137.5 border-l border-sim-border-subtle"
       aria-label="Vista superior del avión"
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-6 justify-between px-2.5 py-2 text-[7px] text-[#505753]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-6 justify-between px-2.5 py-2 text-[7px] text-sim-text-label">
         <span>TOP VIEW / SCHEMATIC</span>
       </div>
-      <div className="absolute top-2 right-2.5 z-30 flex items-center border border-[#343c38] bg-[#0a0e0c]/95 text-[7px] tracking-wider text-[#89918d]">
+      <div className="absolute top-2 right-2.5 z-30 flex items-center border border-sim-border bg-sim-surface text-[7px] tracking-wider text-sim-text-muted">
         <button
-          className={`h-7 cursor-pointer px-2.5 hover:bg-[#18201c] hover:text-[#c7cfca] ${isEditingLines ? "bg-sim-cyan/15 text-sim-cyan" : ""}`}
+          className={`h-7 cursor-pointer px-2.5 hover:bg-sim-bg hover:text-sim-text-strong ${isEditingLines ? "bg-sim-cyan/15 text-sim-cyan" : ""}`}
           type="button"
           onClick={() => setIsEditingLines((current) => !current)}
         >
@@ -227,18 +227,18 @@ export function PneumaticSchematic() {
         </button>
         {isEditingLines && (
           <>
-            <span className="border-l border-[#343c38] px-2 text-[#59625d] max-[700px]:hidden">
+            <span className="border-l border-sim-border px-2 text-sim-text-muted max-[700px]:hidden">
               SHIFT+DRAG SELECT · ALT+DRAG BRANCH · RIGHT CLICK ACCESSORY
             </span>
             <button
-              className="h-7 cursor-pointer border-l border-[#343c38] px-2.5 hover:bg-[#18201c] hover:text-[#c7cfca]"
+              className="h-7 cursor-pointer border-l border-sim-border px-2.5 hover:bg-sim-bg hover:text-sim-text-strong"
               type="button"
               onClick={copyPneumaticLines}
             >
               {didCopyLines ? "COPIED" : "COPY"}
             </button>
             <button
-              className="h-7 cursor-pointer border-l border-[#343c38] px-2.5 hover:bg-[#18201c] hover:text-[#c7cfca]"
+              className="h-7 cursor-pointer border-l border-sim-border px-2.5 hover:bg-sim-bg hover:text-sim-text-strong"
               type="button"
               onClick={resetPneumaticLines}
             >
@@ -269,7 +269,7 @@ export function PneumaticSchematic() {
         </defs>
         <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
           <use
-            className="fill-[rgba(19,19,19,0.958)]"
+            className="fill-sim-surface"
             href="#boeing-737-800-outline"
           />
           <image
@@ -286,16 +286,16 @@ export function PneumaticSchematic() {
             onLinesChange={updatePneumaticLines}
           />
           <use
-            className="fill-none stroke-[#59625d] [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
+            className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
             href="#boeing-737-800-outline"
           />
         </g>
       </svg>
 
-      <div className="absolute bottom-11 left-2.5 z-20 w-36 border border-[#343c38] bg-[#0a0e0c]/95 shadow-xl max-[560px]:w-28">
+      <div className="absolute bottom-11 left-2.5 z-20 w-36 border border-sim-border bg-sim-surface shadow-xl max-[560px]:w-28">
         <div className="p-1.5">
           <svg
-            className="block aspect-38/29 w-full touch-none cursor-crosshair bg-[#0d120f]"
+            className="block aspect-38/29 w-full touch-none cursor-crosshair bg-sim-surface"
             viewBox="0 0 760 580"
             role="img"
             aria-label="Minimapa interactivo de la vista del avión"
@@ -305,12 +305,12 @@ export function PneumaticSchematic() {
             onPointerCancel={finishMinimapDragging}
           >
             <use
-              className="fill-[#171c19] stroke-[#59625d]"
+              className="fill-cockpit-fill-base stroke-cockpit-stroke"
               href="#boeing-737-800-outline"
               strokeWidth="5"
             />
             <rect
-              className="fill-sim-cyan/10 stroke-sim-cyan"
+              className="fill-sim-accent/10 stroke-sim-accent"
               x={visibleArea.x}
               y={visibleArea.y}
               width={visibleArea.width}
@@ -320,11 +320,11 @@ export function PneumaticSchematic() {
           </svg>
         </div>
         <div
-          className="flex w-full items-center border-t border-[#343c38] text-[#89918d]"
+          className="flex w-full items-center border-t border-sim-border text-sim-text-muted"
           aria-label="Controles de zoom"
         >
           <button
-            className="size-7 shrink-0 cursor-pointer border-r border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            className="size-7 shrink-0 cursor-pointer border-r border-sim-border bg-transparent text-sm hover:bg-sim-bg hover:text-sim-text-strong disabled:cursor-default disabled:opacity-30"
             type="button"
             onClick={() => changeZoom(-BUTTON_ZOOM_STEP)}
             disabled={view.scale === MIN_ZOOM}
@@ -339,7 +339,7 @@ export function PneumaticSchematic() {
             {Math.round(view.scale * 100)}%
           </output>
           <button
-            className="size-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            className="size-7 shrink-0 cursor-pointer border-l border-sim-border bg-transparent text-sm hover:bg-sim-bg hover:text-sim-text-strong disabled:cursor-default disabled:opacity-30"
             type="button"
             onClick={() => changeZoom(BUTTON_ZOOM_STEP)}
             disabled={view.scale === MAX_ZOOM}
@@ -348,7 +348,7 @@ export function PneumaticSchematic() {
             +
           </button>
           <button
-            className="h-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent px-1.5 text-[7px] tracking-wider hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            className="h-7 shrink-0 cursor-pointer border-l border-sim-border bg-transparent px-1.5 text-[7px] tracking-wider hover:bg-sim-bg hover:text-sim-text-strong disabled:cursor-default disabled:opacity-30"
             type="button"
             onClick={() => setView(INITIAL_VIEW)}
             disabled={
@@ -363,16 +363,16 @@ export function PneumaticSchematic() {
         </div>
       </div>
 
-      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 h-7 border border-[#343c38] bg-[#0d120f] px-3 py-2 text-[#747d78]">
+      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 h-7 border border-sim-border bg-sim-surface px-3 py-2 text-sim-text-muted">
         <span className="mr-2 ml-3.25 inline-block w-5.5 border-t-2 border-sim-cyan align-middle" />{" "}
         ACTIVE FLOW{" "}
-        <span className="mr-2 ml-3.25 inline-block w-5.5 border-t border-dashed border-[#69716d] align-middle" />{" "}
+        <span className="mr-2 ml-3.25 inline-block w-5.5 border-t border-dashed border-sim-line-isolated align-middle" />{" "}
         ISOLATED{" "}
         <span className="mr-2 ml-3.25 inline-block text-[15px] leading-1 text-sim-green align-middle">
           ⌀
         </span>{" "}
         OPEN{" "}
-        <span className="mr-2 ml-3.25 inline-block text-[13px] leading-1 text-[#89918d] align-middle">
+        <span className="mr-2 ml-3.25 inline-block text-[13px] leading-1 text-sim-text-muted align-middle">
           ◉
         </span>{" "}
         CLOSED

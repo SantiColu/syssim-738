@@ -1329,7 +1329,7 @@ export function AircraftPushButton({
 
   return (
     <div
-      className="flex flex-col items-center relative z-20 font-mono select-none cursor-pointer"
+      className="flex flex-col items-center relative z-20 font-sim-sans select-none cursor-pointer"
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}

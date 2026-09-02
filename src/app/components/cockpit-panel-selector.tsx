@@ -54,7 +54,7 @@ const panelCardClassName =
   "absolute top-1/2 left-1/2 z-[2] h-[460px] w-[400px] origin-center";
 
 const panelVisualClassName =
-  "absolute inset-0 flex items-center justify-center [&>img]:block [&>img]:h-auto [&>img]:max-h-full [&>img]:w-auto [&>img]:max-w-full [&>img]:object-contain [&>img]:drop-shadow-[0_12px_15px_#000]";
+  "absolute inset-0 flex items-center justify-center [&>img]:block [&>img]:h-auto [&>img]:max-h-full [&>img]:w-auto [&>img]:max-w-full [&>img]:object-contain [&>img]:drop-shadow-[0_12px_15px_var(--color-sim-shadow)]";
 
 const previewPositionClassNames = [
   "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_-_150px)] scale-[0.18] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_-_145px)] max-[900px]:scale-[0.23] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_-_150px)] max-[560px]:scale-[0.15]",
@@ -82,20 +82,20 @@ export function CockpitPanelSelector() {
 
   return (
     <section
-      className="relative h-full overflow-hidden border-r border-[#303633] bg-[radial-gradient(circle_at_50%_48%,#141a17_0,#0c100e_46%,#080b0a_80%)] max-[900px]:h-140 max-[900px]:border-r-0"
+      className="relative h-full overflow-hidden border-r border-sim-border-subtle bg-[radial-gradient(circle_at_50%_48%,var(--color-sim-bg)_0,var(--color-sim-bg)_46%,var(--color-sim-shadow)_80%)] max-[900px]:h-140 max-[900px]:border-r-0"
       aria-label="Selector de paneles del cockpit"
     >
       <div
-        className="pointer-events-none absolute top-2.75 left-1/2 z-20 grid w-82.5 -translate-x-1/2 grid-cols-[1fr_auto] text-[#59615d]"
+        className="pointer-events-none absolute top-2.75 left-1/2 z-20 grid w-82.5 -translate-x-1/2 grid-cols-[1fr_auto] text-sim-text-muted"
         aria-live="polite"
       >
-        <span className="col-span-full text-[7px] text-[#823b31]">
+        <span className="col-span-full text-[7px] text-sim-accent">
           {selected.code}
         </span>
-        <strong className="text-[11px] text-[#c8ccca] uppercase">
+        <strong className="text-[11px] text-sim-text-strong uppercase">
           {selected.name}
         </strong>
-        <small className="text-[#58605c]">
+        <small className="text-sim-text-muted">
           {String(active + 1).padStart(2, "0")} /{" "}
           {String(panels.length).padStart(2, "0")}
         </small>
@@ -138,8 +138,8 @@ export function CockpitPanelSelector() {
               >
                 <PreviewPanel />
               </div>
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] whitespace-nowrap text-[#747c78] uppercase">
-                <span className="mr-2 text-[#a74635]">
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] whitespace-nowrap text-sim-text-muted uppercase">
+                <span className="mr-2 text-sim-accent">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 {panel.name}

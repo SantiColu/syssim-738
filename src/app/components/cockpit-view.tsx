@@ -257,14 +257,14 @@ export function CockpitView() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full select-none overflow-hidden bg-[#0a0c0f] cursor-grab active:cursor-grabbing"
+      className="relative w-full h-full select-none overflow-hidden bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] cursor-grab active:cursor-grabbing"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
       <div
-        className="absolute cockpit-bg origin-top-left flex flex-col items-center contain-[layout_paint]"
+        className="absolute origin-top-left flex flex-col items-center contain-[layout_paint]"
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           width: "2400px",
@@ -275,7 +275,6 @@ export function CockpitView() {
           viewBox="750 0 1800 4500"
           width="2400"
           height="6000"
-          className="cockpit-bg"
           style={{ pointerEvents: "none" }}
         >
           {/* Main SVG Background Paths from OHP.svg */}
@@ -283,19 +282,19 @@ export function CockpitView() {
             <path
               id="svg_3"
               d="m2417.6464,15.29411l5.88235,2279.99938l-357.64696,79.99998c1.17605,1.17608 -765.88257,-1.17686 -767.05904,-1.17686c-1.17647,0 -356.47049,-76.47056 -357.64654,-77.64665l1.56293,-2280.59642l1474.90726,-0.57943z"
-              fill="#1b1f22"
+              fill="var(--color-cockpit-fill-base)"
               stroke="none"
             />
             <path
               id="svg_26"
               d="m946.66667,2218.33333"
-              fill="#1b1f22"
+              fill="var(--color-cockpit-fill-base)"
               stroke="none"
             />
             <path
               id="svg_27"
               d="m940,2298.33334l-1.66667,-85l1485,6.66667l-5,80l-356.66667,78.33333l-768.33333,-3.33333l-353.33333,-76.66667z"
-              fill="#1b1f22"
+              fill="var(--color-cockpit-fill-base)"
               stroke="none"
             />
 
@@ -306,8 +305,8 @@ export function CockpitView() {
               y="882"
               width="330"
               height="470"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -317,8 +316,8 @@ export function CockpitView() {
               y="882"
               width="140"
               height="212"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -328,8 +327,8 @@ export function CockpitView() {
               y="965"
               width="330"
               height="451"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -339,8 +338,8 @@ export function CockpitView() {
               y="1356"
               width="330"
               height="346"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -350,8 +349,8 @@ export function CockpitView() {
               y="1420"
               width="330"
               height="240"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -361,8 +360,8 @@ export function CockpitView() {
               y="1098"
               width="140"
               height="345"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -372,8 +371,8 @@ export function CockpitView() {
               y="882"
               width="330"
               height="339"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -383,8 +382,8 @@ export function CockpitView() {
               y="882"
               width="330"
               height="79"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -394,8 +393,8 @@ export function CockpitView() {
               y="965"
               width="330"
               height="342"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -405,8 +404,8 @@ export function CockpitView() {
               y="1225"
               width="330"
               height="191"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -416,8 +415,8 @@ export function CockpitView() {
               y="1311"
               width="330"
               height="467"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -427,8 +426,8 @@ export function CockpitView() {
               y="1447"
               width="140"
               height="160"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -438,8 +437,8 @@ export function CockpitView() {
               y="1420"
               width="330"
               height="187"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -449,8 +448,8 @@ export function CockpitView() {
               y="1706"
               width="330"
               height="512"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -460,8 +459,8 @@ export function CockpitView() {
               y="1706"
               width="330"
               height="512"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -471,8 +470,8 @@ export function CockpitView() {
               y="1611"
               width="140"
               height="142"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -482,8 +481,8 @@ export function CockpitView() {
               y="1757"
               width="140"
               height="461"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -493,8 +492,8 @@ export function CockpitView() {
               y="1611"
               width="330"
               height="130"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -504,8 +503,8 @@ export function CockpitView() {
               y="1745"
               width="330"
               height="131"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -515,8 +514,8 @@ export function CockpitView() {
               y="1782"
               width="330"
               height="436"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -526,8 +525,8 @@ export function CockpitView() {
               y="1880"
               width="330"
               height="338"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -537,8 +536,8 @@ export function CockpitView() {
               y="500"
               width="330"
               height="158"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -548,8 +547,8 @@ export function CockpitView() {
               y="662"
               width="1476"
               height="149"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -559,8 +558,8 @@ export function CockpitView() {
               y="444"
               width="330"
               height="214"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -570,8 +569,8 @@ export function CockpitView() {
               y="178"
               width="330"
               height="256"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -581,8 +580,8 @@ export function CockpitView() {
               y="80"
               width="330"
               height="253"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -592,8 +591,8 @@ export function CockpitView() {
               y="333"
               width="330"
               height="325"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -603,8 +602,8 @@ export function CockpitView() {
               y="396"
               width="140"
               height="113"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -614,8 +613,8 @@ export function CockpitView() {
               y="322"
               width="330"
               height="336"
-              fill="#363d42"
-              stroke="#505a61"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke)"
               strokeWidth="2"
               rx="4"
             />
@@ -623,8 +622,8 @@ export function CockpitView() {
             {/* Glareshield & Main Instrument Panel (Manually aligned below OHP) */}
             <path
               d="M 850 2450 L 2500 2450 L 2500 3200 L 850 3200 Z"
-              fill="#363d42"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="8"
             />
             <rect
@@ -632,7 +631,7 @@ export function CockpitView() {
               y="2480"
               width="1450"
               height="150"
-              fill="#1c2023"
+              fill="var(--color-cockpit-fill-shadow)"
               rx="20"
             />
             <rect
@@ -640,8 +639,8 @@ export function CockpitView() {
               y="2700"
               width="450"
               height="400"
-              fill="#465158"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-secondary)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="4"
               rx="8"
             />
@@ -650,8 +649,8 @@ export function CockpitView() {
               y="2700"
               width="350"
               height="400"
-              fill="#465158"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-secondary)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="4"
               rx="8"
             />
@@ -660,8 +659,8 @@ export function CockpitView() {
               y="2700"
               width="450"
               height="400"
-              fill="#465158"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-secondary)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="4"
               rx="8"
             />
@@ -669,8 +668,8 @@ export function CockpitView() {
             {/* Pedestal */}
             <path
               d="M 1350 3200 L 2000 3200 L 2000 4200 L 1350 4200 Z"
-              fill="#363d42"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-structure)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="8"
             />
             <rect
@@ -678,8 +677,8 @@ export function CockpitView() {
               y="3250"
               width="550"
               height="300"
-              fill="#465158"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-secondary)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="4"
               rx="8"
             />
@@ -688,8 +687,8 @@ export function CockpitView() {
               y="3600"
               width="250"
               height="400"
-              fill="#465158"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-secondary)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="4"
               rx="8"
             />
@@ -698,8 +697,8 @@ export function CockpitView() {
               y="3600"
               width="250"
               height="400"
-              fill="#465158"
-              stroke="#1f2427"
+              fill="var(--color-cockpit-fill-secondary)"
+              stroke="var(--color-cockpit-stroke-dark)"
               strokeWidth="4"
               rx="8"
             />
@@ -782,10 +781,10 @@ export function CockpitView() {
         </svg>
       </div>
 
-      <div className="absolute bottom-2.5 left-2.5 z-30 w-36 border border-[#343c38] bg-[#0a0e0c]/95 shadow-xl max-[560px]:w-28">
+      <div className="absolute bottom-2.5 left-2.5 z-30 w-36 border border-sim-border bg-sim-surface shadow-xl max-[560px]:w-28">
         <div className="p-1.5">
           <svg
-            className="block aspect-2/5 w-full touch-none cursor-crosshair bg-[#0d120f]"
+            className="block aspect-2/5 w-full touch-none cursor-crosshair bg-sim-surface"
             viewBox={`${COCKPIT_SVG_VIEWBOX_X} 0 ${COCKPIT_SVG_VIEWBOX_WIDTH} ${COCKPIT_SVG_VIEWBOX_HEIGHT}`}
             role="img"
             aria-label="Minimapa interactivo del cockpit"
@@ -798,14 +797,14 @@ export function CockpitView() {
             {COCKPIT_FOREIGN_OBJECTS.map((panel) => (
               <rect
                 key={`${panel.x}-${panel.y}`}
-                className="pointer-events-none fill-amber-400/15 stroke-amber-200/50"
+                className="pointer-events-none fill-sim-accent/15 stroke-sim-accent/50"
                 {...panel}
                 strokeWidth="10"
                 rx="12"
               />
             ))}
             <rect
-              className="fill-sim-cyan/10 stroke-sim-cyan"
+              className="fill-sim-accent/10 stroke-sim-accent"
               x={visibleArea.x}
               y={visibleArea.y}
               width={visibleArea.width}
@@ -815,11 +814,11 @@ export function CockpitView() {
           </svg>
         </div>
         <div
-          className="flex w-full items-center border-t border-[#343c38] text-[#89918d]"
+          className="flex w-full items-center border-t border-sim-border text-sim-text-muted"
           aria-label="Controles de zoom del cockpit"
         >
           <button
-            className="size-7 shrink-0 cursor-pointer border-r border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            className="size-7 shrink-0 cursor-pointer border-r border-sim-border bg-transparent text-sm hover:bg-sim-bg hover:text-sim-text-strong disabled:cursor-default disabled:opacity-30"
             type="button"
             onClick={() => zoomCockpit(-COCKPIT_ZOOM_STEP)}
             disabled={transform.scale <= MIN_COCKPIT_ZOOM}
@@ -834,7 +833,7 @@ export function CockpitView() {
             {Math.round((transform.scale / MIN_COCKPIT_ZOOM) * 100)}%
           </output>
           <button
-            className="size-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            className="size-7 shrink-0 cursor-pointer border-l border-sim-border bg-transparent text-sm hover:bg-sim-bg hover:text-sim-text-strong disabled:cursor-default disabled:opacity-30"
             type="button"
             onClick={() => zoomCockpit(COCKPIT_ZOOM_STEP)}
             disabled={transform.scale >= MAX_COCKPIT_ZOOM}
@@ -843,7 +842,7 @@ export function CockpitView() {
             +
           </button>
           <button
-            className="h-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent px-1.5 text-[7px] tracking-wider hover:bg-[#18201c] hover:text-[#c7cfca]"
+            className="h-7 shrink-0 cursor-pointer border-l border-sim-border bg-transparent px-1.5 text-[7px] tracking-wider hover:bg-sim-bg hover:text-sim-text-strong"
             type="button"
             onClick={fitCockpit}
             aria-label="Restablecer vista completa del cockpit"

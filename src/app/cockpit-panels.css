@@ -14,6 +14,12 @@
   font-family: Arial, sans-serif;
   letter-spacing: 0.02em;
 }
+
+/* Instrument labels remain legible at small scale without the terminal-like
+   monospace treatment used by the original mockup. */
+.aircraft-panel text {
+  font-family: var(--font-geist-sans), Arial, sans-serif !important;
+}
 .ap-screw {
   position: absolute;
   width: 7px;

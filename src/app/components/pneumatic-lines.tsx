@@ -204,10 +204,10 @@ export const LEFT_ENGINE_PNEUMATIC_LINES: PneumaticLine[] = [
 ];
 
 const stateClassNames: Record<PneumaticLineState, string> = {
-  inactive: "stroke-[#87918b]",
+  inactive: "stroke-sim-line-inactive",
   active: "stroke-sim-cyan",
-  isolated: "stroke-[#69716d]",
-  warning: "stroke-amber-500",
+  isolated: "stroke-sim-line-isolated",
+  warning: "stroke-sim-accent",
 };
 
 export function clonePneumaticLines(lines: PneumaticLine[]) {
@@ -706,7 +706,7 @@ export function PneumaticLineLayer({
             data-state={state}
           >
             <path
-              className="stroke-[#080b0a]"
+              className="stroke-sim-bg"
               d={path}
               strokeWidth="2.25"
               aria-hidden="true"
@@ -754,7 +754,7 @@ export function PneumaticLineLayer({
                   />
                   {point.accessory ? (
                     <rect
-                      className="pointer-events-none fill-amber-400 stroke-[#0d120f]"
+                      className="pointer-events-none fill-sim-accent stroke-sim-surface"
                       x={point.x - 1.7}
                       y={point.y - 1.7}
                       width="3.4"
@@ -764,7 +764,7 @@ export function PneumaticLineLayer({
                     />
                   ) : (
                     <circle
-                      className="pointer-events-none fill-[#0d120f] stroke-sim-cyan"
+                      className="pointer-events-none fill-sim-surface stroke-sim-cyan"
                       cx={point.x}
                       cy={point.y}
                       r="1.4"
@@ -871,7 +871,7 @@ export function PneumaticLineLayer({
                 pointerEvents="all"
               />
               <circle
-                className="pointer-events-none fill-[#0d120f] stroke-sim-cyan"
+                className="pointer-events-none fill-sim-surface stroke-sim-cyan"
                 cx={point.x}
                 cy={point.y}
                 r="2"

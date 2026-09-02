@@ -1,12 +1,102 @@
 @import "tailwindcss";
 
+/*
+  PALETA 01 · GRAPHITE / VIOLET
+  Para activarla: descomentar este bloque y comentar la paleta activa.
+*/
+
 @theme {
-  --color-sim-bg: #0b0f0d;
-  --color-sim-panel: #555b57;
-  --color-sim-line: #2a302d;
-  --color-sim-text: #aab0ac;
-  --color-sim-accent: #c94d3b;
-  --color-sim-cyan: #55c9d6;
-  --color-sim-green: #50d16f;
+  --color-sim-bg: #0d0f14;
+  --color-sim-surface: #171a22;
+  --color-sim-shadow: #07080c;
+  --color-sim-grid: #1c2230;
+  --color-sim-border: #353b4a;
+  --color-sim-border-subtle: #29303d;
+  --color-sim-text-muted: #8f98aa;
+  --color-sim-text-secondary: #737d91;
+  --color-sim-text-label: #596274;
+  --color-sim-text-strong: #d1d7e2;
+  --color-sim-line-inactive: #8993a8;
+  --color-sim-line-isolated: #697286;
+  --color-sim-panel: #252b38;
+  --color-sim-line: #29303d;
+  --color-sim-text: #bac3d2;
+  --color-sim-accent: #b69af2;
+  --color-sim-cyan: #7bc9e8;
+  --color-sim-green: #72d6a0;
+  --color-cockpit-fill-base: #171a22;
+  --color-cockpit-fill-structure: #303747;
+  --color-cockpit-stroke: #596477;
+  --color-cockpit-stroke-dark: #252c38;
+  --color-cockpit-fill-secondary: #414d61;
+  --color-cockpit-fill-shadow: #202633;
+  --font-sim-sans: var(--font-geist-sans), sans-serif;
   --font-sim-mono: var(--font-geist-mono), monospace;
+  --font-mono: var(--font-geist-sans), sans-serif;
 }
+
+/*
+  PALETA 02 · OBSIDIAN / TEAL
+  Para activarla: descomentar este bloque y comentar la paleta activa.
+*/
+/*
+@theme {
+  --color-sim-bg: #081212;
+  --color-sim-surface: #101d1d;
+  --color-sim-shadow: #040909;
+  --color-sim-grid: #142828;
+  --color-sim-border: #294341;
+  --color-sim-border-subtle: #203634;
+  --color-sim-text-muted: #83a19d;
+  --color-sim-text-secondary: #668783;
+  --color-sim-text-label: #4d6b68;
+  --color-sim-text-strong: #c5dcda;
+  --color-sim-line-inactive: #7e9c98;
+  --color-sim-line-isolated: #5e7a77;
+  --color-sim-panel: #1e3434;
+  --color-sim-line: #203634;
+  --color-sim-text: #adc7c3;
+  --color-sim-accent: #e0b45f;
+  --color-sim-cyan: #66d7d1;
+  --color-sim-green: #70d69b;
+  --color-cockpit-fill-base: #101d1d;
+  --color-cockpit-fill-structure: #263d3d;
+  --color-cockpit-stroke: #476461;
+  --color-cockpit-stroke-dark: #192d2d;
+  --color-cockpit-fill-secondary: #345353;
+  --color-cockpit-fill-shadow: #172b2b;
+  --font-sim-sans: var(--font-geist-sans), sans-serif;
+  --font-sim-mono: var(--font-geist-mono), monospace;
+  --font-mono: var(--font-geist-sans), sans-serif;
+} */
+
+/* PALETA 03 · SLATE / AMBER (activa) */
+/* @theme {
+  --color-sim-bg: #0d141c;
+  --color-sim-surface: #1b1f22;
+  --color-sim-shadow: #080b0a;
+  --color-sim-grid: #17232c;
+  --color-sim-border: #343c38;
+  --color-sim-border-subtle: #2b3945;
+  --color-sim-text-muted: #89918d;
+  --color-sim-text-secondary: #71808b;
+  --color-sim-text-label: #505753;
+  --color-sim-text-strong: #c7cfca;
+  --color-sim-line-inactive: #87918b;
+  --color-sim-line-isolated: #69716d;
+  --color-sim-panel: #26313b;
+  --color-sim-line: #2b3945;
+  --color-sim-text: #b8c4cc;
+  --color-sim-accent: #e7ad58;
+  --color-sim-cyan: #65d5df;
+  --color-sim-green: #62d38c;
+  --color-cockpit-fill-base: #1b1f22;
+  --color-cockpit-fill-structure: #363d42;
+  --color-cockpit-stroke: #505a61;
+  --color-cockpit-stroke-dark: #1f2427;
+  --color-cockpit-fill-secondary: #465158;
+  --color-cockpit-fill-shadow: #1c2023;
+  --font-sim-sans: var(--font-geist-sans), sans-serif;
+  --font-sim-mono: var(--font-geist-mono), monospace;
+  --font-mono: var(--font-geist-sans), sans-serif;
+} */

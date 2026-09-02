@@ -4,16 +4,16 @@ import { SimulatorHeader } from "./components/simulator-header";
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-hidden bg-sim-bg bg-[linear-gradient(#151a17_1px,transparent_1px),linear-gradient(90deg,#151a17_1px,transparent_1px)] bg-size-[20px_20px] font-sim-mono text-[10px]/[1.25] tracking-[0.08em]">
+    <main className="min-h-screen overflow-hidden bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] font-sim-sans text-[10px]/[1.25] tracking-[0.045em]">
       <SimulatorHeader />
       <div
-        className="grid h-7 grid-cols-[44%_56%] items-center border-b border-[#252b28] bg-[#0c100e] text-[#4f5753] max-[900px]:hidden [&>span]:px-2.5"
+        className="grid h-7 grid-cols-[44%_56%] items-center border-b border-sim-border-subtle bg-sim-bg text-sim-text-secondary max-[900px]:hidden [&>span]:px-2.5"
         aria-hidden="true"
       >
         <span>COCKPIT</span>
         <span>SYSTEM</span>
       </div>
-      <section className="grid h-[calc(100vh-105px)] grid-cols-[44%_56%] border-b border-[#303633] max-[900px]:h-auto max-[900px]:grid-cols-1">
+      <section className="grid h-[calc(100vh-105px)] grid-cols-[44%_56%] border-b border-sim-border-subtle max-[900px]:h-auto max-[900px]:grid-cols-1">
         <CockpitView />
         <PneumaticSchematic />
       </section>

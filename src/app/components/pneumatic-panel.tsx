@@ -68,7 +68,7 @@ function ToggleSwitch({
   };
 
   return (
-    <div className="flex flex-col items-center relative z-20 font-mono">
+      <div className="flex flex-col items-center relative z-20 font-sim-sans">
       {renderLabel(labelTop, "mb-1.5")}
 
       <div className="relative flex items-center justify-center z-10">
@@ -118,7 +118,7 @@ function Annunciator({
   const isAmber = color === "amber";
   return (
     <div
-      className={`border-2 flex items-center justify-center text-center px-1 font-mono text-[9px] leading-tight w-18.5 h-7.5 shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] transition-all duration-100 ${
+      className={`border-2 flex items-center justify-center text-center px-1 font-sim-sans text-[9px] leading-tight w-18.5 h-7.5 shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] transition-all duration-100 ${
         lit
           ? isAmber
             ? "border-[#ffb300] text-[#ffb300] bg-black shadow-[0_0_8px_rgba(255,179,0,0.5),inset_0_0_8px_rgba(255,179,0,0.3)]"
@@ -148,7 +148,7 @@ export function PneumaticPanel() {
 
   return (
     <div className="flex size-full items-center justify-center">
-      <section className="relative w-100 h-137.5 bg-[#858585]  overflow-hidden font-mono select-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] scale-95 origin-center">
+      <section className="relative w-100 h-137.5 bg-[#858585]  overflow-hidden font-sim-sans select-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] scale-95 origin-center">
         {/* Top Dark Strip */}
         <div className="absolute top-0 left-0 w-full h-16.25 bg-[#858585] border-b border-[#6b7173] z-0" />
 
