@@ -1,6 +1,6 @@
 import { CockpitView } from "./components/cockpit-view";
-import { PneumaticSchematic } from "./components/pneumatic-schematic";
 import { SimulatorHeader } from "./components/simulator-header";
+import { SystemPanel } from "./components/system-panel";
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
       </div>
       <section className="grid h-[calc(100vh-105px)] grid-cols-[44%_56%] border-b border-sim-border-subtle max-[900px]:h-auto max-[900px]:grid-cols-1">
         <CockpitView />
-        <PneumaticSchematic />
+        <SystemPanel />
       </section>
     </main>
   );
