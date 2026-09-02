@@ -264,7 +264,7 @@ export function CockpitView() {
       onPointerLeave={handlePointerUp}
     >
       <div
-        className="absolute cockpit-bg origin-top-left flex flex-col items-center [contain:layout_paint]"
+        className="absolute cockpit-bg origin-top-left flex flex-col items-center contain-[layout_paint]"
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           width: "2400px",

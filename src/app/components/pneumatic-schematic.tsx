@@ -2,6 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import {
+  clonePneumaticLines,
+  LEFT_ENGINE_PNEUMATIC_LINES,
+  PneumaticLineLayer,
+  serializePneumaticLines,
+} from "./pneumatic-lines";
+import type { PneumaticLine } from "./pneumatic-lines";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -38,11 +45,7 @@ function constrainView(view: ViewState): ViewState {
   };
 }
 
-function getSvgPoint(
-  svg: SVGSVGElement,
-  clientX: number,
-  clientY: number,
-) {
+function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
   const point = svg.createSVGPoint();
   point.x = clientX;
   point.y = clientY;
@@ -57,6 +60,11 @@ function getSvgPoint(
 export function PneumaticSchematic() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
+  const [isEditingLines, setIsEditingLines] = useState(false);
+  const [didCopyLines, setDidCopyLines] = useState(false);
+  const [pneumaticLines, setPneumaticLines] = useState(() =>
+    clonePneumaticLines(LEFT_ENGINE_PNEUMATIC_LINES),
+  );
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);
@@ -90,10 +98,7 @@ export function PneumaticSchematic() {
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       const anchor = getSvgPoint(svg, event.clientX, event.clientY);
-      changeZoom(
-        event.deltaY < 0 ? WHEEL_ZOOM_STEP : -WHEEL_ZOOM_STEP,
-        anchor,
-      );
+      changeZoom(event.deltaY < 0 ? WHEEL_ZOOM_STEP : -WHEEL_ZOOM_STEP, anchor);
     };
 
     svg.addEventListener("wheel", handleWheel, { passive: false });
@@ -117,6 +122,23 @@ export function PneumaticSchematic() {
       viewY: view.y,
     };
     setIsDragging(true);
+  };
+
+  const updatePneumaticLines = (lines: PneumaticLine[]) => {
+    setDidCopyLines(false);
+    setPneumaticLines(lines);
+  };
+
+  const copyPneumaticLines = async () => {
+    await navigator.clipboard.writeText(
+      serializePneumaticLines(pneumaticLines),
+    );
+    setDidCopyLines(true);
+  };
+
+  const resetPneumaticLines = () => {
+    setDidCopyLines(false);
+    setPneumaticLines(clonePneumaticLines(LEFT_ENGINE_PNEUMATIC_LINES));
   };
 
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -143,9 +165,7 @@ export function PneumaticSchematic() {
     setIsDragging(false);
   };
 
-  const navigateFromMinimap = (
-    event: ReactPointerEvent<SVGSVGElement>,
-  ) => {
+  const navigateFromMinimap = (event: ReactPointerEvent<SVGSVGElement>) => {
     const point = getSvgPoint(
       event.currentTarget,
       event.clientX,
@@ -176,9 +196,7 @@ export function PneumaticSchematic() {
     navigateFromMinimap(event);
   };
 
-  const finishMinimapDragging = (
-    event: ReactPointerEvent<SVGSVGElement>,
-  ) => {
+  const finishMinimapDragging = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (minimapPointerRef.current === event.pointerId) {
       minimapPointerRef.current = null;
     }
@@ -193,15 +211,45 @@ export function PneumaticSchematic() {
 
   return (
     <section
-      className="relative overflow-hidden max-[900px]:h-137.5 max-[900px]:border-t max-[900px]:border-[#303633]"
+      className="relative overflow-hidden max-[900px]:h-137.5 border-l border-[#303633]"
       aria-label="Vista superior del avión"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-6 justify-between px-2.5 py-2 text-[7px] text-[#505753]">
         <span>TOP VIEW / SCHEMATIC</span>
       </div>
+      <div className="absolute top-2 right-2.5 z-30 flex items-center border border-[#343c38] bg-[#0a0e0c]/95 text-[7px] tracking-wider text-[#89918d]">
+        <button
+          className={`h-7 cursor-pointer px-2.5 hover:bg-[#18201c] hover:text-[#c7cfca] ${isEditingLines ? "bg-sim-cyan/15 text-sim-cyan" : ""}`}
+          type="button"
+          onClick={() => setIsEditingLines((current) => !current)}
+        >
+          {isEditingLines ? "DONE" : "EDIT LINES"}
+        </button>
+        {isEditingLines && (
+          <>
+            <span className="border-l border-[#343c38] px-2 text-[#59625d] max-[700px]:hidden">
+              SHIFT+DRAG SELECT · ALT+DRAG BRANCH · RIGHT CLICK ACCESSORY
+            </span>
+            <button
+              className="h-7 cursor-pointer border-l border-[#343c38] px-2.5 hover:bg-[#18201c] hover:text-[#c7cfca]"
+              type="button"
+              onClick={copyPneumaticLines}
+            >
+              {didCopyLines ? "COPIED" : "COPY"}
+            </button>
+            <button
+              className="h-7 cursor-pointer border-l border-[#343c38] px-2.5 hover:bg-[#18201c] hover:text-[#c7cfca]"
+              type="button"
+              onClick={resetPneumaticLines}
+            >
+              RESET
+            </button>
+          </>
+        )}
+      </div>
       <svg
         ref={mainSvgRef}
-        className={`block h-full w-full touch-none select-none pb-9 max-[560px]:w-180 max-[560px]:-translate-x-26.25 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`block h-full w-full touch-none select-none pb-9 max-[560px]:w-180 max-[560px]:-translate-x-26.25 ${isEditingLines ? "cursor-crosshair" : isDragging ? "cursor-grabbing" : "cursor-grab"}`}
         viewBox="0 0 760 580"
         role="img"
         aria-label="Vista técnica del Boeing 737-800 desde arriba"
@@ -231,6 +279,11 @@ export function PneumaticSchematic() {
             height="580"
             clipPath="url(#boeing-737-800-clip)"
             aria-hidden="true"
+          />
+          <PneumaticLineLayer
+            lines={pneumaticLines}
+            editing={isEditingLines}
+            onLinesChange={updatePneumaticLines}
           />
           <use
             className="fill-none stroke-[#59625d] [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
