@@ -7,6 +7,16 @@ export type MediumState = {
 
 export type SourceKind = "engine" | "apu";
 
+export type ValveKind =
+  | "on-off"
+  | "check-valve"
+  | "check-valve-reverse"
+  | "check-valve-invert"
+  | "check-valve-rev"
+  | "modulating"
+  | "solenoid"
+  | "shutoff-valve";
+
 export type PneumaticNode =
   | {
       id: string;
@@ -27,8 +37,9 @@ export type PneumaticNode =
       id: string;
       kind: "accessory";
       accessory: {
-        kind: "shutoff-valve";
+        kind: ValveKind;
         normallyOpen: boolean;
+        label?: string;
       };
     };
 
@@ -69,7 +80,7 @@ export type PneumaticSolution = {
 };
 
 export type LegacyPneumaticPoint = Point & {
-  accessory?: boolean;
+  accessory?: boolean | ValveKind;
 };
 
 export type LegacyPneumaticLine = {

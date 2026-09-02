@@ -315,19 +315,49 @@ export function PneumaticSchematic() {
         </div>
       </div>
 
-      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 h-7 border border-sim-border bg-sim-surface px-3 py-2 text-sim-text-muted">
-        <span className="mr-2 ml-3.25 inline-block w-5.5 border-t-2 border-sim-cyan align-middle" />{" "}
-        ACTIVE FLOW{" "}
-        <span className="mr-2 ml-3.25 inline-block w-5.5 border-t border-dashed border-sim-line-isolated align-middle" />{" "}
-        ISOLATED{" "}
-        <span className="mr-2 ml-3.25 inline-block text-[15px] leading-1 text-sim-green align-middle">
-          ⌀
-        </span>{" "}
-        OPEN{" "}
-        <span className="mr-2 ml-3.25 inline-block text-[13px] leading-1 text-sim-text-muted align-middle">
-          ◉
-        </span>{" "}
-        CLOSED
+      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 flex h-7 items-center overflow-x-auto border border-sim-border bg-sim-surface px-3 text-[7.5px] tracking-wider text-sim-text-muted whitespace-nowrap gap-x-3.5">
+        <span className="flex items-center gap-1">
+          <span className="inline-block size-2 rounded-full bg-amber-400 align-middle shadow-[0_0_4px_rgba(251,191,36,0.6)]" />
+          <span>PRESSURE INLET</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-flex h-2 w-3 items-center justify-center border border-sim-border bg-sim-surface text-[5px] text-sim-cyan">
+            ▶
+          </span>
+          <span>CHECK VALVE</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-flex size-2 items-center justify-center border border-sim-border bg-sim-surface text-[6px] text-sim-cyan">
+            ⧖
+          </span>
+          <span>MODULATING</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-flex size-2 items-center justify-center rounded-full border border-sim-border bg-sim-surface text-[5px] font-bold text-sim-cyan">
+            S
+          </span>
+          <span>SOLENOID</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-block text-[9px] leading-1 text-sim-green">
+            ⌀
+          </span>
+          <span>ON/OFF</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3.5 border-t-2 border-sim-cyan" />
+          <span>ACTIVE FLOW</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-3.5 border-t border-dashed border-sim-line-isolated" />
+          <span>ISOLATED</span>
+        </span>
       </div>
     </section>
   );

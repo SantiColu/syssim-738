@@ -5,6 +5,7 @@ import type {
   PneumaticNode,
   Point,
   SourceDefinition,
+  ValveKind,
 } from "./types";
 
 const pointKey = ({ x, y }: Point) => `${x},${y}`;
@@ -26,7 +27,7 @@ export function migrateLegacyNetwork(
   const sourceByPoint = new Map(
     sources.map((source) => [pointKey(source.point), source]),
   );
-  const accessoryPoints = new Set<string>();
+  const accessoryPoints = new Map<string, ValveKind>();
   const positions = new Map<string, Point>();
   const neighbors = new Map<string, Set<string>>();
 
@@ -46,7 +47,11 @@ export function migrateLegacyNetwork(
   for (const line of legacyLines) {
     for (const point of line.points) {
       positions.set(pointKey(point), { x: point.x, y: point.y });
-      if (point.accessory) accessoryPoints.add(pointKey(point));
+      if (point.accessory) {
+        const valveKind: ValveKind =
+          typeof point.accessory === "string" ? point.accessory : "on-off";
+        accessoryPoints.set(pointKey(point), valveKind);
+      }
     }
 
     for (let index = 0; index < line.points.length - 1; index += 1) {
@@ -93,10 +98,11 @@ export function migrateLegacyNetwork(
         label: source.label,
       });
     } else if (accessoryPoints.has(key)) {
+      const valveKind = accessoryPoints.get(key) ?? "on-off";
       nodes.push({
         id,
         kind: "accessory",
-        accessory: { kind: "shutoff-valve", normallyOpen: true },
+        accessory: { kind: valveKind, normallyOpen: true },
       });
     } else if (degree <= 1) {
       nodes.push({ id, kind: "sink", label: sinkLabel(sinkIndex) });

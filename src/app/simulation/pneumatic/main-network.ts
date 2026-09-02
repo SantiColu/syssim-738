@@ -1,7 +1,7 @@
 import { migrateLegacyNetwork, validatePneumaticNetwork } from "./migrate-legacy-network";
-import type { LegacyPneumaticLine, LegacyPneumaticPoint } from "./types";
+import type { LegacyPneumaticLine, LegacyPneumaticPoint, ValveKind } from "./types";
 
-type LegacyTuple = [x: number, y: number, accessory?: true];
+type LegacyTuple = [x: number, y: number, accessory?: true | ValveKind];
 
 function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
   return {
@@ -17,12 +17,12 @@ function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
 const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-01", [
     [362, 191],
-    [362, 217, true],
+    [362, 217, "on-off"],
     [362, 228],
     [362, 253],
     [363, 435],
-    [366, 475, true],
-    [371, 496, true],
+    [366, 475, "check-valve-reverse"],
+    [371, 496, "solenoid"],
     [376, 518],
   ]),
   legacyLine("legacy-02", [
@@ -35,17 +35,18 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-04", [
     [362, 228],
-    [372, 228, true],
+    [372, 228, "on-off"],
     [384, 228],
     [397, 228],
   ]),
   legacyLine("legacy-05", [
     [384, 228],
-    [384, 241, true],
+    [384, 241, "check-valve-reverse"],
+    [384, 260] 
   ]),
   legacyLine("legacy-06", [
     [397, 228],
-    [397, 216, true],
+    [397, 216, "on-off"],
     [397, 191],
   ]),
   legacyLine("legacy-07", [
@@ -57,20 +58,21 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [362, 253],
     [342, 253],
     [336, 253],
-    [331, 253, true],
+    [331, 253, "modulating"],
     [326, 253],
-    [326, 253, true],
+    [326, 253, "modulating"],
     [320, 253],
-    [313, 253, true],
+    [313, 253, "check-valve-reverse"],
     [306, 253],
   ]),
   legacyLine("legacy-09", [
     [342, 253],
+    [342, 260,"on-off"], 
     [342, 265],
   ]),
   legacyLine("legacy-10", [
     [336, 216],
-    [321, 216, true],
+    [321, 216, "on-off"],
   ]),
   legacyLine("legacy-11", [
     [336, 216],
@@ -78,7 +80,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-12", [
     [320, 269],
-    [311, 269, true],
+    [311, 269, "modulating"],
     [303, 269],
   ]),
   legacyLine("legacy-13", [
@@ -86,7 +88,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [303, 213],
   ]),
   legacyLine("legacy-14", [
-    [331, 253, true],
+    [331, 253, "modulating"],
     [330, 212],
   ]),
   legacyLine("legacy-15", [
@@ -117,14 +119,15 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [397, 254],
     [418, 254],
     [425, 254],
-    [430, 254, true],
-    [435, 254, true],
+    [430, 254, "modulating"],
+    [435, 254, "modulating"],
     [441, 254],
-    [449, 254, true],
-    [486, 254],
+    [449, 254, "check-valve-reverse"],
+    [457, 254],
   ]),
   legacyLine("legacy-22", [
     [418, 254],
+    [418, 260, "on-off"],
     [418, 265],
   ]),
   legacyLine("legacy-23", [
@@ -133,10 +136,10 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-24", [
     [425, 215],
-    [439, 215, true],
+    [439, 215, "on-off"],
   ]),
   legacyLine("legacy-25", [
-    [430, 254, true],
+    [430, 254, "modulating"],
     [429, 212],
   ]),
   legacyLine("legacy-26", [
@@ -154,7 +157,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-29", [
     [441, 271],
-    [449, 271, true],
+    [449, 271, "modulating"],
     [457, 271],
   ]),
   legacyLine("legacy-30", [
@@ -175,9 +178,9 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
   legacyMainSchematic,
   [
     {
-      point: { x: 246, y: 294 },
+      point: { x: 306, y: 253 },
       sourceKind: "engine",
-      label: "ENG 1 BLEED",
+      label: "ENG 1 5th stage",
       initial: {
         enabled: true,
         pressurePsi: 36,
@@ -185,9 +188,9 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 513, y: 293 },
+      point: { x: 303, y: 269 },
       sourceKind: "engine",
-      label: "ENG 2 BLEED",
+      label: "ENG 1 9th stage",
       initial: {
         enabled: true,
         pressurePsi: 36,
@@ -195,9 +198,39 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 376, y: 518 },
+      point: { x: 457, y: 271 },
+      sourceKind: "engine",
+      label: "ENG 2 5th stage",
+      initial: {
+        enabled: true,
+        pressurePsi: 36,
+        temperatureC: 215,
+      },
+    },
+    {
+      point: { x: 457, y: 254 },
+      sourceKind: "engine",
+      label: "ENG 2 9th stage",
+      initial: {
+        enabled: true,
+        pressurePsi: 36,
+        temperatureC: 215,
+      },
+    },
+    {
+      point: { x: 381, y: 518 },
       sourceKind: "apu",
       label: "APU BLEED",
+      initial: {
+        enabled: false,
+        pressurePsi: 32,
+        temperatureC: 190,
+      },
+    },
+    {
+      point: { x: 384, y: 260 },
+      sourceKind: "apu",
+      label: "External Air Conection",
       initial: {
         enabled: false,
         pressurePsi: 32,
