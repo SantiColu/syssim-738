@@ -179,7 +179,7 @@
 }
 .equipment-cooling-panel {
   width: 345px;
-  height: 369px;
+  height: 394px;
   padding-top: 38px;
 }
 .equipment-cooling-panel h2 {
@@ -247,7 +247,134 @@
 .cabin-altitude-panel {
   background: #aaa;
 }
-.cabin-gauges { position: absolute; width: 330px; height: 338px; padding: 0; background: #858585; border: 2px solid #4a4a4a; } .cabin-main-bezel { position: absolute; z-index: 0; left: 53px; top: 10px; width: 162px; height: 162px; background: #585d60; clip-path: polygon( 20% 0, 80% 0, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0 80%, 0 20% ); } .cabin-climb-bezel { position: absolute; z-index: 0; left: 76px; top: 215px; width: 116px; height: 116px; background: #585d60; border-radius: 50% 50% 50% 18px; } .cabin-pressure-gauge { position: absolute; z-index: 1; left: 59px; top: 15px; width: 152px; height: 152px; } .cabin-climb-gauge { position: absolute; z-index: 1; left: 82px; top: 221px; width: 104px; height: 104px; } .ap-gauge-altitude { --gauge-size: 142px; width: 142px; height: 142px; margin: auto; } .ap-gauge-altitude .ap-gauge-ticks i { transform-origin: 50% 61px; } .ap-gauge-altitude > span { transform: rotate(var(--label-angle)) translateY(-55px) rotate(calc(-1 * var(--label-angle))); } .ap-gauge-climb { --gauge-size: 105px; width: 105px; height: 105px; margin: 23px auto 0; } .ap-gauge-climb .ap-gauge-ticks i { transform-origin: 50% 42px; } .ap-gauge-climb > span { transform: rotate(var(--label-angle)) translateY(-38px) rotate(calc(-1 * var(--label-angle))); font-size: 6px; } .pressure-note { position: absolute; z-index: 2; left: 3px; top: 194px; padding: 6px; border-radius: 12px; color: white; background: #090909; font: 700 9px/1.05 monospace; } .horn-column { position: absolute; right: 0px; width: 74px; height: 338px; padding-top: 17px; text-align: center; border: 2px solid #4a4a4a; background: #858585; font: 18px/1.05 monospace; } .horn-cutout { display: block; width: 36px; height: 36px; margin: 11px auto 0; padding: 0; border-radius: 50%; cursor: pointer; appearance: none; background-color: #000; border: 4px solid #a3a3a3; box-shadow: inset 0 0 0 2px #4a4a4a, inset 4px 0 0 0 #262626, 0 0 0 2px #4a4a4a; transition: box-shadow 0.1s, transform 0.1s; } .horn-cutout:active { box-shadow: inset 0 0 0 2px #4a4a4a, inset 2px 0 0 0 #262626, 0 0 0 2px #4a4a4a; transform: scale(0.97); }
+.cabin-gauges {
+  position: absolute;
+  width: 330px;
+  height: 338px;
+  padding: 0;
+  background: #858585;
+  border: 2px solid #4a4a4a;
+}
+.cabin-main-bezel {
+  position: absolute;
+  z-index: 0;
+  left: 53px;
+  top: 10px;
+  width: 162px;
+  height: 162px;
+  background: #585d60;
+  clip-path: polygon(
+    20% 0,
+    80% 0,
+    100% 20%,
+    100% 80%,
+    80% 100%,
+    20% 100%,
+    0 80%,
+    0 20%
+  );
+}
+.cabin-climb-bezel {
+  position: absolute;
+  z-index: 0;
+  left: 76px;
+  top: 215px;
+  width: 116px;
+  height: 116px;
+  background: #585d60;
+  border-radius: 50% 50% 50% 18px;
+}
+.cabin-pressure-gauge {
+  position: absolute;
+  z-index: 1;
+  left: 59px;
+  top: 15px;
+  width: 152px;
+  height: 152px;
+}
+.cabin-climb-gauge {
+  position: absolute;
+  z-index: 1;
+  left: 82px;
+  top: 221px;
+  width: 104px;
+  height: 104px;
+}
+.ap-gauge-altitude {
+  --gauge-size: 142px;
+  width: 142px;
+  height: 142px;
+  margin: auto;
+}
+.ap-gauge-altitude .ap-gauge-ticks i {
+  transform-origin: 50% 61px;
+}
+.ap-gauge-altitude > span {
+  transform: rotate(var(--label-angle)) translateY(-55px)
+    rotate(calc(-1 * var(--label-angle)));
+}
+.ap-gauge-climb {
+  --gauge-size: 105px;
+  width: 105px;
+  height: 105px;
+  margin: 23px auto 0;
+}
+.ap-gauge-climb .ap-gauge-ticks i {
+  transform-origin: 50% 42px;
+}
+.ap-gauge-climb > span {
+  transform: rotate(var(--label-angle)) translateY(-38px)
+    rotate(calc(-1 * var(--label-angle)));
+  font-size: 6px;
+}
+.pressure-note {
+  position: absolute;
+  z-index: 2;
+  left: 3px;
+  top: 194px;
+  padding: 6px;
+  border-radius: 12px;
+  color: white;
+  background: #090909;
+  font: 700 9px/1.05 monospace;
+}
+.horn-column {
+  position: absolute;
+  right: 0px;
+  width: 74px;
+  height: 338px;
+  padding-top: 17px;
+  text-align: center;
+  border: 2px solid #4a4a4a;
+  background: #858585;
+  font: 18px/1.05 monospace;
+}
+.horn-cutout {
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: 11px auto 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  appearance: none;
+  background-color: #000;
+  border: 4px solid #a3a3a3;
+  box-shadow:
+    inset 0 0 0 2px #4a4a4a,
+    inset 4px 0 0 0 #262626,
+    0 0 0 2px #4a4a4a;
+  transition:
+    box-shadow 0.1s,
+    transform 0.1s;
+}
+.horn-cutout:active {
+  box-shadow:
+    inset 0 0 0 2px #4a4a4a,
+    inset 2px 0 0 0 #262626,
+    0 0 0 2px #4a4a4a;
+  transform: scale(0.97);
+}
 .cabin-panel-title {
   position: absolute;
   left: 0;
@@ -257,35 +384,44 @@
   font: 700 23px Arial;
 }
 .cabin-control-panel {
-  width: 395px;
+  width: 330px;
+  height: 436px;
+}
+.cabin-control-panel-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 365px;
   height: 481px;
+  transform: scale(0.9041);
+  transform-origin: top left;
 }
 .mode-lights {
   display: flex;
   position: absolute;
   top: 10px;
-  left: 39px;
+  left: 38px;
 }
 .mode-lights .ap-placard {
-  min-width: 76px;
-  height: 38px;
-  padding: 4px 5px;
-  font-size: 11px;
+  min-width: 64px;
+  height: 34px;
+  padding: 3px 4px;
+  font-size: 10px;
 }
-.mode-lights .ap-placard:nth-child(4) {
-  margin-left: 14px;
+.mode-lights .ap-placard {
+  margin-left: 3px;
 }
 .control-divider {
   position: absolute;
   top: 57px;
   bottom: 64px;
-  left: 222px;
+  left: 175px;
   width: 2px;
   background: #ddd;
 }
 .control-horizontal {
   position: absolute;
-  left: 222px;
+  left: 175px;
   right: 8px;
   top: 251px;
   height: 2px;
@@ -298,7 +434,7 @@
   font: 16px monospace;
 }
 .auto-title {
-  left: 108px;
+  left: 74px;
 }
 .manual-title {
   right: 59px;
@@ -306,7 +442,7 @@
 .flight-display,
 .landing-display {
   position: absolute;
-  left: 49px;
+  left: 19px;
   text-align: center;
 }
 .flight-display {
@@ -325,7 +461,7 @@
   position: absolute;
   z-index: 3;
   top: 108px;
-  right: 30px;
+  right: 58px;
   width: 112px;
   text-align: center;
   font: 13px monospace;
@@ -370,7 +506,7 @@
 .alt-mode {
   position: absolute;
   top: 257px;
-  right: 35px;
+  right: 54px;
   text-align: center;
   font: 15px monospace;
 }

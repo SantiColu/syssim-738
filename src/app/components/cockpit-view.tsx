@@ -562,13 +562,13 @@ export function CockpitView() {
             </foreignObject>
 
             {/* Pneumatic Panel in svg_15 (Middle Right) */}
-            <foreignObject x="2094" y="1311" width="330" height="467">
-              <div className="w-full h-full flex items-center justify-center">
+            <foreignObject x="2097" y="1311" width="324" height="467">
+              <div className="w-full h-full flex items-center justify-center ">
                 <div
                   style={{
                     width: "400px",
                     height: "550px",
-                    transform: "scale(0.82)",
+                    transform: "scale(0.88)",
                   }}
                 >
                   <PneumaticPanel />
@@ -581,9 +581,8 @@ export function CockpitView() {
               <div className="w-full h-full flex items-center justify-center">
                 <div
                   style={{
-                    width: "395px",
-                    height: "481px",
-                    transform: "scale(0.83)",
+                    width: "330px",
+                    height: "436px",
                   }}
                 >
                   <CabinAltitudeControlPanel />
@@ -611,7 +610,7 @@ export function CockpitView() {
                 <div
                   style={{
                     width: "345px",
-                    height: "369px",
+                    height: "394px",
                     transform: "scale(0.40)",
                   }}
                 >

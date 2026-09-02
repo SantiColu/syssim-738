@@ -34,10 +34,21 @@ const DIGIT_SEGMENTS: Record<string, number[]> = {
 function SevenSegmentCell({ char = " " }: { char?: string }) {
   const segs = DIGIT_SEGMENTS[char] || DIGIT_SEGMENTS[" "];
   return (
-    <svg viewBox="0 0 24 36" style={{ width: "24px", height: "36px", flexShrink: 0 }}>
+    <svg
+      viewBox="0 0 24 36"
+      style={{ width: "24px", height: "36px", flexShrink: 0 }}
+    >
       {/* Cell Background & Divider */}
-      <rect x="0.5" y="0.5" width="23" height="35" fill="#dce1e4" stroke="#181a1c" strokeWidth="1" />
-      
+      <rect
+        x="0.5"
+        y="0.5"
+        width="23"
+        height="35"
+        fill="#dce1e4"
+        stroke="#181a1c"
+        strokeWidth="1"
+      />
+
       {/* 7 Segments (slanted italic) */}
       <g transform="skewX(-5) translate(3, 3)">
         {/* a: top horizontal */}
@@ -103,7 +114,11 @@ function SevenSegmentCell({ char = " " }: { char?: string }) {
   );
 }
 
-export function DigitalDisplay({ value = "10000" }: { value?: string | number }) {
+export function DigitalDisplay({
+  value = "10000",
+}: {
+  value?: string | number;
+}) {
   const str = String(value).padStart(5, " ");
   const chars = str.slice(-5).split("");
 
@@ -116,7 +131,8 @@ export function DigitalDisplay({ value = "10000" }: { value?: string | number })
         borderRadius: "2px",
         padding: "2px 10px",
         gap: "1px",
-        boxShadow: "inset 0 1px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.1)",
+        boxShadow:
+          "inset 0 1px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.1)",
       }}
     >
       {chars.map((ch, index) => (
@@ -316,7 +332,14 @@ function ValvePositionIndicator({ position = 0 }: { position?: number }) {
           transition: "transform 0.3s cubic-bezier(0.2, 0, 0, 1)",
         }}
       />
-      <circle cx="75" cy="76" r="4.5" fill="#222" stroke="#fff" strokeWidth="1.5" />
+      <circle
+        cx="75"
+        cy="76"
+        r="4.5"
+        fill="#222"
+        stroke="#fff"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 }
@@ -424,17 +447,32 @@ function CabinPressureGauge() {
     ...Array.from({ length: 26 }, (_, i) => {
       const angle = (i / 25) * 190;
       const isMajor = i % 5 === 0;
-      return { angle, outer: 46, inner: isMajor ? 38 : 42, width: isMajor ? 1.8 : 1.0 };
+      return {
+        angle,
+        outer: 46,
+        inner: isMajor ? 38 : 42,
+        width: isMajor ? 1.8 : 1.0,
+      };
     }),
     ...Array.from({ length: 15 }, (_, i) => {
       const angle = 190 + (i + 1) * ((282 - 190) / 15);
       const isMajor = (i + 1) % 5 === 0;
-      return { angle, outer: 46, inner: isMajor ? 38 : 42, width: isMajor ? 1.8 : 1.0 };
+      return {
+        angle,
+        outer: 46,
+        inner: isMajor ? 38 : 42,
+        width: isMajor ? 1.8 : 1.0,
+      };
     }),
     ...Array.from({ length: 5 }, (_, i) => {
       const angle = 282 + (i + 1) * ((325 - 282) / 5);
-      const isMajor = (i + 1) === 5;
-      return { angle, outer: 46, inner: isMajor ? 38 : 42, width: isMajor ? 1.8 : 1.0 };
+      const isMajor = i + 1 === 5;
+      return {
+        angle,
+        outer: 46,
+        inner: isMajor ? 38 : 42,
+        width: isMajor ? 1.8 : 1.0,
+      };
     }),
   ];
 
@@ -448,18 +486,17 @@ function CabinPressureGauge() {
     >
       <defs>
         {/* Curved Path for DIFF PRESS text in the gap between 10 (315 deg) and 0 (0 deg) */}
-        <path id="diff-press-path" d="M 44.8 44.8 A 78 78 0 0 1 100 22" fill="none" />
+        <path
+          id="diff-press-path"
+          d="M 44.8 44.8 A 78 78 0 0 1 100 22"
+          fill="none"
+        />
         {/* Curved Path for PSI text slightly below DIFF PRESS */}
         <path id="psi-path" d="M 50.5 50.5 A 70 70 0 0 1 100 30" fill="none" />
       </defs>
 
       {/* Main Solid Black Gauge Dial */}
-      <circle
-        cx="100"
-        cy="100"
-        r="98"
-        fill="#000000"
-      />
+      <circle cx="100" cy="100" r="98" fill="#000000" />
 
       {/* Full White Circular Line on the inside of the outer scale (radius 64) */}
       <circle
@@ -495,8 +532,21 @@ function CabinPressureGauge() {
       {/* Centered on the tick mark. Right-angled triangle on the right (+X/outward) side, straight edge at the bottom (-Y). */}
       {/* Inner edge aligns with amber band (x=-4). Tips outwards towards number 9. */}
       <g transform="translate(30, 83.2) rotate(193.5)">
-        <polygon points="-4,-4 9,-4 5,4 -4,4" fill="#d91e18" stroke="#d91e18" strokeWidth="0.5" />
-        <rect x="-2.5" y="-1.5" width="6.5" height="3" fill="none" stroke="#111" strokeWidth="1" />
+        <polygon
+          points="-4,-4 9,-4 5,4 -4,4"
+          fill="#d91e18"
+          stroke="#d91e18"
+          strokeWidth="0.5"
+        />
+        <rect
+          x="-2.5"
+          y="-1.5"
+          width="6.5"
+          height="3"
+          fill="none"
+          stroke="#111"
+          strokeWidth="1"
+        />
       </g>
 
       {/* Outer Numbers (0 to 10 on the OUTSIDE of outer ticks, radius 86) */}
@@ -535,14 +585,26 @@ function CabinPressureGauge() {
       ))}
 
       {/* Curved "DIFF PRESS" Text in gap between 10 and 0 */}
-      <text fill="white" fontSize="7.2" fontFamily="monospace" fontWeight="bold" letterSpacing="0.5">
+      <text
+        fill="white"
+        fontSize="7.2"
+        fontFamily="monospace"
+        fontWeight="bold"
+        letterSpacing="0.5"
+      >
         <textPath href="#diff-press-path" startOffset="50%" textAnchor="middle">
           DIFF PRESS
         </textPath>
       </text>
 
       {/* Curved "PSI" Text centered under DIFF PRESS */}
-      <text fill="white" fontSize="7.2" fontFamily="monospace" fontWeight="bold" letterSpacing="0.5">
+      <text
+        fill="white"
+        fontSize="7.2"
+        fontFamily="monospace"
+        fontWeight="bold"
+        letterSpacing="0.5"
+      >
         <textPath href="#psi-path" startOffset="50%" textAnchor="middle">
           PSI
         </textPath>
@@ -586,13 +648,23 @@ function CabinPressureGauge() {
       {/* 1. Long Needle (Cabin Altitude Needle - pointing to ~25.5k ft at angle ~235°) */}
       {/* Rectangular body tapering to a trapezoidal tip, extending near the white circle */}
       <g transform="translate(100, 100) rotate(235)">
-        <polygon points="-12,2.5 -12,-2.5 45,-2.5 61,-0.8 61,0.8 45,2.5" fill="#ffffff" stroke="#222" strokeWidth="0.5" />
+        <polygon
+          points="-12,2.5 -12,-2.5 45,-2.5 61,-0.8 61,0.8 45,2.5"
+          fill="#ffffff"
+          stroke="#222"
+          strokeWidth="0.5"
+        />
       </g>
 
       {/* 2. Short Wedge Needle (Differential Pressure Needle - pointing to ~0 PSI / ~3 o'clock) */}
       {/* Trapezoidal shape, wide base, narrow flat tip */}
       <g transform="translate(100, 100) rotate(90)">
-        <polygon points="0,-5.5 36,-1 36,1 0,5.5" fill="#ffffff" stroke="#222" strokeWidth="0.5" />
+        <polygon
+          points="0,-5.5 36,-1 36,1 0,5.5"
+          fill="#ffffff"
+          stroke="#222"
+          strokeWidth="0.5"
+        />
       </g>
 
       {/* 3. Center Hub Cap (larger disc with metallic grey ring) */}
@@ -618,8 +690,8 @@ function CabinClimbGauge() {
     ...Array.from({ length: 5 }, (_, i) => ({
       angle: -90 + (i + 1) * 6.8,
       inner: 61,
-      outer: (i + 1) === 5 ? 72 : 68,
-      width: (i + 1) === 5 ? 1.5 : 1.0,
+      outer: i + 1 === 5 ? 72 : 68,
+      width: i + 1 === 5 ? 1.5 : 1.0,
     })),
     // .5 to 1.0 (10 steps)
     ...Array.from({ length: 10 }, (_, i) => {
@@ -658,8 +730,8 @@ function CabinClimbGauge() {
     ...Array.from({ length: 5 }, (_, i) => ({
       angle: -90 - (i + 1) * 6.8,
       inner: 61,
-      outer: (i + 1) === 5 ? 72 : 68,
-      width: (i + 1) === 5 ? 1.5 : 1.0,
+      outer: i + 1 === 5 ? 72 : 68,
+      width: i + 1 === 5 ? 1.5 : 1.0,
     })),
     // .5 to 1.0 (10 steps)
     ...Array.from({ length: 10 }, (_, i) => {
@@ -713,20 +785,30 @@ function CabinClimbGauge() {
     >
       <defs>
         {/* Adjusted radius arcs so texts sit comfortably between hub and ticks */}
-        <path id="climb-title-path" d="M 56 100 A 44 44 0 0 1 144 100" fill="none" />
-        <path id="climb-unit-path" d="M 45 100 A 55 55 0 0 0 155 100" fill="none" />
+        <path
+          id="climb-title-path"
+          d="M 56 100 A 44 44 0 0 1 144 100"
+          fill="none"
+        />
+        <path
+          id="climb-unit-path"
+          d="M 45 100 A 55 55 0 0 0 155 100"
+          fill="none"
+        />
       </defs>
 
       {/* Main Solid Black Gauge Dial (No outer grey stroke) */}
-      <circle
-        cx="100"
-        cy="100"
-        r="98"
-        fill="#000000"
-      />
+      <circle cx="100" cy="100" r="98" fill="#000000" />
 
       {/* Major Tick for 0 at 9 o'clock */}
-      <line x1="23" y1="100" x2="39" y2="100" stroke="#ffffff" strokeWidth="2.2" />
+      <line
+        x1="23"
+        y1="100"
+        x2="39"
+        y2="100"
+        stroke="#ffffff"
+        strokeWidth="2.2"
+      />
 
       {/* Upper Scale Ticks */}
       {upTicks.map((tick, i) => (
@@ -763,32 +845,91 @@ function CabinClimbGauge() {
       ))}
 
       {/* 0 Label and UP/DN Indicators at 9 o'clock */}
-      <text x="13" y="73" fill="#ffffff" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+      <text
+        x="13"
+        y="73"
+        fill="#ffffff"
+        fontSize="9"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
         UP
       </text>
-      <line x1="13" y1="84" x2="13" y2="78" stroke="#ffffff" strokeWidth="1.2" />
+      <line
+        x1="13"
+        y1="84"
+        x2="13"
+        y2="78"
+        stroke="#ffffff"
+        strokeWidth="1.2"
+      />
       <polygon points="11.5,80 13,76 14.5,80" fill="#ffffff" />
 
-      <text x="13" y="104.5" fill="#ffffff" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+      <text
+        x="13"
+        y="104.5"
+        fill="#ffffff"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
         0
       </text>
 
-      <line x1="13" y1="114" x2="13" y2="120" stroke="#ffffff" strokeWidth="1.2" />
+      <line
+        x1="13"
+        y1="114"
+        x2="13"
+        y2="120"
+        stroke="#ffffff"
+        strokeWidth="1.2"
+      />
       <polygon points="11.5,118 13,122 14.5,118" fill="#ffffff" />
-      <text x="13" y="132" fill="#ffffff" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+      <text
+        x="13"
+        y="132"
+        fill="#ffffff"
+        fontSize="9"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
         DN
       </text>
 
       {/* Bracket at 4 (3 o'clock position): Two radial major ticks joined by a vertical spine */}
       <PolarTick angle={84} inner={61} outer={77} width={2.2} />
       <PolarTick angle={96} inner={61} outer={77} width={2.2} />
-      <line x1="174" y1="92.2" x2="174" y2="107.8" stroke="#ffffff" strokeWidth="1.8" />
-      <text x="187" y="104.5" fill="#ffffff" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+      <line
+        x1="174"
+        y1="92.2"
+        x2="174"
+        y2="107.8"
+        stroke="#ffffff"
+        strokeWidth="1.8"
+      />
+      <text
+        x="187"
+        y="104.5"
+        fill="#ffffff"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
         4
       </text>
 
       {/* Curved "CABIN CLIMB" Text (Bold, large font, lowered) */}
-      <text fill="#ffffff" fontSize="14" fontFamily="monospace, sans-serif" fontWeight="bold" letterSpacing="0.8">
+      <text
+        fill="#ffffff"
+        fontSize="14"
+        fontFamily="monospace, sans-serif"
+        fontWeight="bold"
+        letterSpacing="0.8"
+      >
         <textPath
           href="#climb-title-path"
           startOffset="50%"
@@ -799,7 +940,13 @@ function CabinClimbGauge() {
       </text>
 
       {/* Curved "1000 FEET PER MIN" Blue Text (Bold, raised) */}
-      <text fill="#0055ff" fontSize="11.5" fontFamily="monospace, sans-serif" fontWeight="bold" letterSpacing="0.3">
+      <text
+        fill="#0055ff"
+        fontSize="11.5"
+        fontFamily="monospace, sans-serif"
+        fontWeight="bold"
+        letterSpacing="0.3"
+      >
         <textPath href="#climb-unit-path" startOffset="50%" textAnchor="middle">
           1000 FEET PER MIN
         </textPath>
@@ -892,7 +1039,12 @@ export function AircraftToggleSwitch({
         }}
       >
         <defs>
-          <radialGradient id={`dish-grad-${circleColor}`} cx="45%" cy="40%" r="55%">
+          <radialGradient
+            id={`dish-grad-${circleColor}`}
+            cx="45%"
+            cy="40%"
+            r="55%"
+          >
             {circleColor === "red" ? (
               <>
                 <stop offset="0%" stopColor="#8a1a1a" />
@@ -955,7 +1107,9 @@ export function AircraftToggleSwitch({
           cy="22"
           r="10.5"
           fill="none"
-          stroke={circleColor === "red" ? "#8c2020" : isLight ? "#9da3a6" : "#44484a"}
+          stroke={
+            circleColor === "red" ? "#8c2020" : isLight ? "#9da3a6" : "#44484a"
+          }
           strokeWidth="2"
         />
 
@@ -965,13 +1119,19 @@ export function AircraftToggleSwitch({
           cy="22"
           r="6.5"
           fill="none"
-          stroke={circleColor === "red" ? "#a82828" : isLight ? "#b8bec1" : "#555a5c"}
+          stroke={
+            circleColor === "red" ? "#a82828" : isLight ? "#b8bec1" : "#555a5c"
+          }
           strokeWidth="1.6"
         />
 
         {/* 2. Switch Bat / Lever anchored at Center (22, 22) */}
         <g
-          transform={orientation === "horizontal" ? "translate(22, 22) rotate(-90)" : "translate(22, 22)"}
+          transform={
+            orientation === "horizontal"
+              ? "translate(22, 22) rotate(-90)"
+              : "translate(22, 22)"
+          }
           style={{
             filter: "drop-shadow(0px 3px 3.5px rgba(0, 0, 0, 0.7))",
           }}
@@ -993,7 +1153,11 @@ export function AircraftToggleSwitch({
           {/* Stem junction collar ring */}
           {!isCenter && (
             <path
-              d={isDown ? `M -7.5 ${stemEndY} A 7.5 4 0 0 1 7.5 ${stemEndY}` : `M -7.5 ${stemEndY} A 7.5 4 0 0 0 7.5 ${stemEndY}`}
+              d={
+                isDown
+                  ? `M -7.5 ${stemEndY} A 7.5 4 0 0 1 7.5 ${stemEndY}`
+                  : `M -7.5 ${stemEndY} A 7.5 4 0 0 0 7.5 ${stemEndY}`
+              }
               fill="none"
               stroke="#303335"
               strokeWidth="2"
@@ -1071,24 +1235,35 @@ export function EquipmentCoolingPanel() {
         <span>EXHAUST</span>
       </div>
       <div className="cooling-norm">NORM</div>
-      <div className="cooling-controls" style={{ display: "flex", justifyContent: "space-around", marginTop: "24px" }}>
+      <div
+        className="cooling-controls"
+        style={{
+          display: "flex",
+          justifyContent: "space-around",
+          marginTop: "24px",
+        }}
+      >
         <AircraftToggleSwitch
           position={supplyPos === "NORM" ? "UP" : "DOWN"}
-          onClick={() => setSupplyPos(p => p === "NORM" ? "ALTN" : "NORM")}
+          onClick={() => setSupplyPos((p) => (p === "NORM" ? "ALTN" : "NORM"))}
           onWheelStep={handleSupplyWheel}
           size={54}
         />
         <AircraftToggleSwitch
           position={exhaustPos === "NORM" ? "UP" : "DOWN"}
-          onClick={() => setExhaustPos(p => p === "NORM" ? "ALTN" : "NORM")}
+          onClick={() => setExhaustPos((p) => (p === "NORM" ? "ALTN" : "NORM"))}
           onWheelStep={handleExhaustWheel}
           size={54}
         />
       </div>
       <div className="cooling-alt">ALTN</div>
       <div className="cooling-lights">
-        <Placard color={supplyPos === "ALTN" ? "amber" : undefined}>OFF</Placard>
-        <Placard color={exhaustPos === "ALTN" ? "amber" : undefined}>OFF</Placard>
+        <Placard color={supplyPos === "ALTN" ? "amber" : undefined}>
+          OFF
+        </Placard>
+        <Placard color={exhaustPos === "ALTN" ? "amber" : undefined}>
+          OFF
+        </Placard>
       </div>
       <div className="ap-rule bottom-rule" />
       <Screw className="s1" />
@@ -1133,12 +1308,18 @@ export function AircraftPushButton({
     }
   };
 
-  const renderLabel = (label: string | string[] | undefined, marginClass: string) => {
+  const renderLabel = (
+    label: string | string[] | undefined,
+    marginClass: string,
+  ) => {
     if (!label) return null;
     return (
       <div className={`flex flex-col items-center gap-0.5 ${marginClass}`}>
         {(Array.isArray(label) ? label : [label]).map((line, i) => (
-          <span key={i} className="text-white bg-[#7a8183] px-1 py-px leading-none text-[10px] whitespace-nowrap">
+          <span
+            key={i}
+            className="text-white bg-[#7a8183] px-1 py-px leading-none text-[10px] whitespace-nowrap"
+          >
             {line}
           </span>
         ))}
@@ -1169,7 +1350,10 @@ export function AircraftPushButton({
           justifyContent: "center",
         }}
       >
-        <svg viewBox="0 0 44 44" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+        <svg
+          viewBox="0 0 44 44"
+          style={{ width: "100%", height: "100%", overflow: "visible" }}
+        >
           <defs>
             {/* Recessed Inner Bezel Gradient */}
             <radialGradient id="recess-bevel-grad" cx="35%" cy="35%" r="65%">
@@ -1231,7 +1415,9 @@ export function AircraftPushButton({
           {/* 2. Plunger (The Pressable Central Button) */}
           <g
             style={{
-              transform: isPressed ? "translate(22px, 23px) scale(0.92)" : "translate(22px, 22px) scale(1)",
+              transform: isPressed
+                ? "translate(22px, 23px) scale(0.92)"
+                : "translate(22px, 22px) scale(1)",
               transformOrigin: "center",
               transition: "transform 0.08s ease-out, filter 0.08s ease-out",
               filter: isPressed
@@ -1367,7 +1553,9 @@ export function TrimAirSwitch({
         {/* 3. Round Ivory/Cream Knob Head */}
         <g
           style={{
-            transform: isOff ? "translate(25px, 17px)" : "translate(25px, 31px)",
+            transform: isOff
+              ? "translate(25px, 17px)"
+              : "translate(25px, 31px)",
             transition: "transform 0.15s cubic-bezier(0.2, 0, 0, 1)",
             filter: "drop-shadow(0px 3px 3.5px rgba(0, 0, 0, 0.75))",
           }}
@@ -1415,7 +1603,11 @@ export function CabinAltitudePanel() {
           <br />
           CUTOUT
         </span>
-        <button className="horn-cutout" aria-label="ALT HORN CUTOUT" type="button" />
+        <button
+          className="horn-cutout"
+          aria-label="ALT HORN CUTOUT"
+          type="button"
+        />
       </div>
       <Screw className="s1" />
       <Screw className="s2" />
@@ -1458,22 +1650,52 @@ export function LandingScaleTable() {
       <line x1="286" y1="6" x2="286" y2="28" stroke="white" strokeWidth="1.6" />
 
       {/* Text Elements */}
-      <g fill="white" fontFamily="monospace" fontWeight="bold" fontSize="9.5" textAnchor="middle">
+      <g
+        fill="white"
+        fontFamily="monospace"
+        fontWeight="bold"
+        fontSize="9.5"
+        textAnchor="middle"
+      >
         {/* Top Row: Centered in cells between vertical lines */}
-        <text x="31" y="16">CAB ALT</text>
-        <text x="80" y="16">LAND ALT</text>
-        <text x="127" y="16">2000</text>
-        <text x="172.5" y="16">4000</text>
-        <text x="217.5" y="16">6000</text>
-        <text x="263" y="16">8000</text>
+        <text x="31" y="16">
+          CAB ALT
+        </text>
+        <text x="80" y="16">
+          LAND ALT
+        </text>
+        <text x="127" y="16">
+          2000
+        </text>
+        <text x="172.5" y="16">
+          4000
+        </text>
+        <text x="217.5" y="16">
+          6000
+        </text>
+        <text x="263" y="16">
+          8000
+        </text>
 
         {/* Bottom Row: FLT ALT on left, and Flight Levels centered directly under the vertical lines */}
-        <text x="31" y="37">FLT ALT</text>
-        <text x="104" y="37">&lt;FL160</text>
-        <text x="150" y="37">FL220</text>
-        <text x="195" y="37">FL260</text>
-        <text x="240" y="37">FL320</text>
-        <text x="286" y="37">FL410</text>
+        <text x="31" y="37">
+          FLT ALT
+        </text>
+        <text x="104" y="37">
+          &lt;FL160
+        </text>
+        <text x="150" y="37">
+          FL220
+        </text>
+        <text x="195" y="37">
+          FL260
+        </text>
+        <text x="240" y="37">
+          FL320
+        </text>
+        <text x="286" y="37">
+          FL410
+        </text>
       </g>
     </svg>
   );
@@ -1488,7 +1710,8 @@ export function CabinAltitudeControlPanel() {
   const [landKnobAngle, setLandKnobAngle] = useState<number>(0);
 
   const modeAngles = [-35, 0, 35];
-  const currentMode = modeIndex === 0 ? "AUTO" : modeIndex === 1 ? "ALTN" : "MAN";
+  const currentMode =
+    modeIndex === 0 ? "AUTO" : modeIndex === 1 ? "ALTN" : "MAN";
 
   const handleModeStep = (direction: number) => {
     setModeIndex((prev) => {
@@ -1511,7 +1734,9 @@ export function CabinAltitudeControlPanel() {
   const handleLandWheel = (direction: number) => {
     // direction > 0 (scroll up) -> +50 ft
     // direction < 0 (scroll down) -> -50 ft
-    setLandAlt((prev) => Math.max(-1000, Math.min(14000, prev + direction * 50)));
+    setLandAlt((prev) =>
+      Math.max(-1000, Math.min(14000, prev + direction * 50)),
+    );
     setLandKnobAngle((prev) => prev + direction * 20);
   };
 
@@ -1525,150 +1750,260 @@ export function CabinAltitudeControlPanel() {
     setValvePos((prev) => (prev === "CLOSE" ? "OPEN" : "CLOSE"));
   };
 
-  const needlePosition = valvePos === "CLOSE" ? -0.8 : valvePos === "OPEN" ? 0.8 : 0;
+  const needlePosition =
+    valvePos === "CLOSE" ? -0.8 : valvePos === "OPEN" ? 0.8 : 0;
 
   return (
     <section
       className="aircraft-panel cabin-control-panel"
       aria-label="Cabin altitude control panel"
     >
-      <div className="mode-lights">
-        <Placard>
-          AUTO
-          <br />
-          FAIL
-        </Placard>
-        <Placard>
-          OFF SCHED
-          <br />
-          DESCENT
-        </Placard>
-        <Placard color={currentMode === "ALTN" ? "green" : undefined}>ALTN</Placard>
-        <Placard color={currentMode === "MAN" ? "green" : undefined}>MANUAL</Placard>
-      </div>
-      <div className="control-divider" />
-      <div className="control-horizontal" />
-      <span className="auto-title">AUTO</span>
-      <span className="manual-title">MANUAL</span>
-      <div className="flight-display">
-        <DigitalDisplay value={fltAlt} />
-        <label>FLT ALT</label>
-        <ScallopedKnob
-          angle={fltKnobAngle}
-          onWheelStep={handleFltWheel}
-          onClick={() => handleFltWheel(1)}
-          size={52}
-        />
-      </div>
-      <div className="landing-display">
-        <DigitalDisplay value={landAlt} />
-        <label>LAND ALT</label>
-        <ScallopedKnob
-          ring
-          angle={landKnobAngle}
-          onWheelStep={handleLandWheel}
-          onClick={() => handleLandWheel(1)}
-          size={52}
-        />
-      </div>
-      <div className="valve-meter">
-        <ValvePositionIndicator position={needlePosition} />
-        <span>VALVE</span>
-        <div style={{ position: "relative", width: "100%", height: "48px", marginTop: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {/* Vertical C L O S E on the left */}
-          <div
-            style={{
-              position: "absolute",
-              left: "-12px",
-              display: "flex",
-              flexDirection: "column",
-              lineHeight: "1.1",
-              fontSize: "12px",
-              fontWeight: "bold",
-              color: "white",
-              textAlign: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => setValvePos("CLOSE")}
-          >
-            <span>C</span>
-            <span>L</span>
-            <span>O</span>
-            <span>S</span>
-            <span>E</span>
-          </div>
-
-          {/* Horizontal Toggle Switch */}
-          <AircraftToggleSwitch
-            position={valvePos === "CLOSE" ? "UP" : valvePos === "OPEN" ? "DOWN" : "CENTER"}
-            orientation="horizontal"
-            circleColor="light"
-            onWheelStep={handleValveWheel}
-            onClick={handleValveClick}
-            size={48}
-          />
-
-          {/* Vertical O P E N on the right */}
-          <div
-            style={{
-              position: "absolute",
-              right: "-12px",
-              display: "flex",
-              flexDirection: "column",
-              lineHeight: "1.1",
-              fontSize: "12px",
-              fontWeight: "bold",
-              color: "white",
-              textAlign: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => setValvePos("OPEN")}
-          >
-            <span>O</span>
-            <span>P</span>
-            <span>E</span>
-            <span>N</span>
-          </div>
-        </div>
-      </div>
-      <div className="alt-mode" style={{ position: "absolute", top: "258px", right: "22px", textAlign: "center" }}>
-        {/* Mode Labels */}
-        <div style={{ position: "relative", width: "124px", height: "38px", margin: "0 auto 0 auto" }}>
-          <span style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", top: "0px", fontWeight: "bold", fontSize: "14px", color: "white" }}>
-            ALTN
-          </span>
-          <span style={{ position: "absolute", left: "8px", top: "16px", fontWeight: "bold", fontSize: "14px", color: "white" }}>
+      <div className="cabin-control-panel-content">
+        <div className="mode-lights">
+          <Placard>
             AUTO
-          </span>
-          <span style={{ position: "absolute", right: "8px", top: "16px", fontWeight: "bold", fontSize: "14px", color: "white" }}>
-            MAN
-          </span>
+            <br />
+            FAIL
+          </Placard>
+          <Placard>
+            OFF SCHED
+            <br />
+            DESCENT
+          </Placard>
+          <Placard color={currentMode === "ALTN" ? "green" : undefined}>
+            ALTN
+          </Placard>
+          <Placard color={currentMode === "MAN" ? "green" : undefined}>
+            MANUAL
+          </Placard>
         </div>
-        {/* Mode Selector Knob with 3 Alignment Tick Lines */}
-        <div style={{ position: "relative", width: "90px", height: "90px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }} viewBox="0 0 90 90">
-            {/* Line to AUTO (-35 deg from top center) */}
-            <line x1="25" y1="16" x2="20" y2="7" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-            {/* Line to ALTN (0 deg / vertical) */}
-            <line x1="45" y1="11" x2="45" y2="2" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-            {/* Line to MAN (+35 deg from top center) */}
-            <line x1="65" y1="16" x2="70" y2="7" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-          </svg>
-          <PointerKnob
-            angle={modeAngles[modeIndex]}
-            onWheelStep={handleModeStep}
-            onClick={handleModeClick}
-            size={90}
+        <div className="control-divider" />
+        <div className="control-horizontal" />
+        <span className="auto-title">AUTO</span>
+        <span className="manual-title">MANUAL</span>
+        <div className="flight-display">
+          <DigitalDisplay value={fltAlt} />
+          <label>FLT ALT</label>
+          <ScallopedKnob
+            angle={fltKnobAngle}
+            onWheelStep={handleFltWheel}
+            onClick={() => handleFltWheel(1)}
+            size={52}
           />
         </div>
+        <div className="landing-display">
+          <DigitalDisplay value={landAlt} />
+          <label>LAND ALT</label>
+          <ScallopedKnob
+            ring
+            angle={landKnobAngle}
+            onWheelStep={handleLandWheel}
+            onClick={() => handleLandWheel(1)}
+            size={52}
+          />
+        </div>
+        <div className="valve-meter">
+          <ValvePositionIndicator position={needlePosition} />
+          <span>VALVE</span>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              height: "48px",
+              marginTop: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {/* Vertical C L O S E on the left */}
+            <div
+              style={{
+                position: "absolute",
+                left: "-12px",
+                display: "flex",
+                flexDirection: "column",
+                lineHeight: "1.1",
+                fontSize: "12px",
+                fontWeight: "bold",
+                color: "white",
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => setValvePos("CLOSE")}
+            >
+              <span>C</span>
+              <span>L</span>
+              <span>O</span>
+              <span>S</span>
+              <span>E</span>
+            </div>
+
+            {/* Horizontal Toggle Switch */}
+            <AircraftToggleSwitch
+              position={
+                valvePos === "CLOSE"
+                  ? "UP"
+                  : valvePos === "OPEN"
+                    ? "DOWN"
+                    : "CENTER"
+              }
+              orientation="horizontal"
+              circleColor="light"
+              onWheelStep={handleValveWheel}
+              onClick={handleValveClick}
+              size={48}
+            />
+
+            {/* Vertical O P E N on the right */}
+            <div
+              style={{
+                position: "absolute",
+                right: "-12px",
+                display: "flex",
+                flexDirection: "column",
+                lineHeight: "1.1",
+                fontSize: "12px",
+                fontWeight: "bold",
+                color: "white",
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => setValvePos("OPEN")}
+            >
+              <span>O</span>
+              <span>P</span>
+              <span>E</span>
+              <span>N</span>
+            </div>
+          </div>
+        </div>
+        <div
+          className="alt-mode"
+          style={{
+            position: "absolute",
+            top: "258px",
+            right: "22px",
+            textAlign: "center",
+          }}
+        >
+          {/* Mode Labels */}
+          <div
+            style={{
+              position: "relative",
+              width: "124px",
+              height: "38px",
+              margin: "0 auto 0 auto",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%)",
+                top: "0px",
+                fontWeight: "bold",
+                fontSize: "14px",
+                color: "white",
+              }}
+            >
+              ALTN
+            </span>
+            <span
+              style={{
+                position: "absolute",
+                left: "8px",
+                top: "16px",
+                fontWeight: "bold",
+                fontSize: "14px",
+                color: "white",
+              }}
+            >
+              AUTO
+            </span>
+            <span
+              style={{
+                position: "absolute",
+                right: "8px",
+                top: "16px",
+                fontWeight: "bold",
+                fontSize: "14px",
+                color: "white",
+              }}
+            >
+              MAN
+            </span>
+          </div>
+          {/* Mode Selector Knob with 3 Alignment Tick Lines */}
+          <div
+            style={{
+              position: "relative",
+              width: "90px",
+              height: "90px",
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                pointerEvents: "none",
+                overflow: "visible",
+              }}
+              viewBox="0 0 90 90"
+            >
+              {/* Line to AUTO (-35 deg from top center) */}
+              <line
+                x1="25"
+                y1="16"
+                x2="20"
+                y2="7"
+                stroke="white"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              />
+              {/* Line to ALTN (0 deg / vertical) */}
+              <line
+                x1="45"
+                y1="11"
+                x2="45"
+                y2="2"
+                stroke="white"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              />
+              {/* Line to MAN (+35 deg from top center) */}
+              <line
+                x1="65"
+                y1="16"
+                x2="70"
+                y2="7"
+                stroke="white"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              />
+            </svg>
+            <PointerKnob
+              angle={modeAngles[modeIndex]}
+              onWheelStep={handleModeStep}
+              onClick={handleModeClick}
+              size={90}
+            />
+          </div>
+        </div>
+        <div className="landing-scale">
+          <LandingScaleTable />
+        </div>
+        <Screw className="s1" />
+        <Screw className="s2" />
+        <Screw className="s3" />
+        <Screw className="s4" />
       </div>
-      <div className="landing-scale">
-        <LandingScaleTable />
-      </div>
-      <Screw className="s1" />
-      <Screw className="s2" />
-      <Screw className="s3" />
-      <Screw className="s4" />
     </section>
   );
 }
@@ -1727,10 +2062,20 @@ export function PointerKnob({
           filter: "drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.6))",
         }}
       >
-        <svg viewBox="0 0 90 90" style={{ width: "90px", height: "90px", overflow: "visible" }}>
+        <svg
+          viewBox="0 0 90 90"
+          style={{ width: "90px", height: "90px", overflow: "visible" }}
+        >
           <g transform="translate(45, 45)">
             {/* Base disc */}
-            <circle cx="0" cy="0" r="34" fill="#eff2f4" stroke="#4a4e50" strokeWidth="2.5" />
+            <circle
+              cx="0"
+              cy="0"
+              r="34"
+              fill="#eff2f4"
+              stroke="#4a4e50"
+              strokeWidth="2.5"
+            />
             {/* Pointer body */}
             <path
               d="M -20 26 L -20 -10 L -8 -32 L 8 -32 L 20 -10 L 20 26 A 14 14 0 0 1 6 40 L -6 40 A 14 14 0 0 1 -20 26 Z"
@@ -1741,7 +2086,16 @@ export function PointerKnob({
             {/* Shading facet on right of nose */}
             <polygon points="0,-32 8,-32 20,-10 0,-10" fill="#dfe3e6" />
             {/* White stripe with crisp black outline */}
-            <rect x="-2.5" y="-30" width="5" height="58" fill="#ffffff" stroke="#000000" strokeWidth="1.8" rx="0.5" />
+            <rect
+              x="-2.5"
+              y="-30"
+              width="5"
+              height="58"
+              fill="#ffffff"
+              stroke="#000000"
+              strokeWidth="1.8"
+              rx="0.5"
+            />
           </g>
         </svg>
       </div>
@@ -1767,15 +2121,31 @@ function TempSourceLabels() {
       {/* Radial lines and Outer Arcs */}
       <g stroke="white" strokeWidth="2" fill="none">
         {/* Inner lines from knob to labels (r: 35 to 42) - excludes -90 (FWD) */}
-        {[-135, -45, 0, 45, 90, 135].map(a => {
-          const rad = (a - 90) * Math.PI / 180;
-          return <line key={`in-${a}`} x1={35 * Math.cos(rad)} y1={35 * Math.sin(rad)} x2={42 * Math.cos(rad)} y2={42 * Math.sin(rad)} />;
+        {[-135, -45, 0, 45, 90, 135].map((a) => {
+          const rad = ((a - 90) * Math.PI) / 180;
+          return (
+            <line
+              key={`in-${a}`}
+              x1={35 * Math.cos(rad)}
+              y1={35 * Math.sin(rad)}
+              x2={42 * Math.cos(rad)}
+              y2={42 * Math.sin(rad)}
+            />
+          );
         })}
 
         {/* Outer radial lines beyond labels (r: 76 to 88) - excludes -90 (FWD) */}
-        {[-135, -45, 0, 45, 90, 135].map(a => {
-          const rad = (a - 90) * Math.PI / 180;
-          return <line key={`out-${a}`} x1={76 * Math.cos(rad)} y1={76 * Math.sin(rad)} x2={88 * Math.cos(rad)} y2={88 * Math.sin(rad)} />;
+        {[-135, -45, 0, 45, 90, 135].map((a) => {
+          const rad = ((a - 90) * Math.PI) / 180;
+          return (
+            <line
+              key={`out-${a}`}
+              x1={76 * Math.cos(rad)}
+              y1={76 * Math.sin(rad)}
+              x2={88 * Math.cos(rad)}
+              y2={88 * Math.sin(rad)}
+            />
+          );
         })}
 
         {/* Outer connecting arcs (r = 88) */}
@@ -1786,46 +2156,128 @@ function TempSourceLabels() {
         {/* PACK arc: 90° to 135° */}
         <path d="M 88 0 A 88 88 0 0 1 62.2 62.2" />
       </g>
-      
+
       {/* Position labels around knob */}
-      <g fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+      <g
+        fill="white"
+        fontSize="13"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
         {/* CONT CAB at -135° */}
-        <text x="-44" y="38">CONT</text>
-        <text x="-44" y="52">CAB</text>
+        <text x="-44" y="38">
+          CONT
+        </text>
+        <text x="-44" y="52">
+          CAB
+        </text>
         {/* AFT (SUPPLY DUCT) at -45° */}
-        <text x="-41" y="-36">AFT</text>
+        <text x="-41" y="-36">
+          AFT
+        </text>
         {/* FWD (PASS CAB) at 0° */}
-        <text x="0" y="-53">FWD</text>
+        <text x="0" y="-53">
+          FWD
+        </text>
         {/* AFT (PASS CAB) at 45° */}
-        <text x="41" y="-36">AFT</text>
+        <text x="41" y="-36">
+          AFT
+        </text>
         {/* R (PACK) at 90° */}
-        <text x="58" y="4">R</text>
+        <text x="58" y="4">
+          R
+        </text>
         {/* L (PACK) at 135° */}
-        <text x="41" y="46">L</text>
+        <text x="41" y="46">
+          L
+        </text>
       </g>
 
       {/* Vertical text: FWD (inside SUPPLY DUCT arc) */}
-      <g fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-        {['F','W','D'].map((char, i) => (
-          <text key={`fwd-${i}`} x="-68" y={-14 + i * 15}>{char}</text>
+      <g
+        fill="white"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        {["F", "W", "D"].map((char, i) => (
+          <text key={`fwd-${i}`} x="-68" y={-14 + i * 15}>
+            {char}
+          </text>
         ))}
       </g>
 
       {/* Group text: SUPPLY DUCT */}
-      <g fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-        {['S','U','P','P','L','Y'].map((char, i) => <text key={`s-${i}`} x="-120" y={-50 + i * 16}>{char}</text>)}
-        {['D','U','C','T'].map((char, i) => <text key={`d-${i}`} x="-98" y={-34 + i * 16}>{char}</text>)}
+      <g
+        fill="white"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        {["S", "U", "P", "P", "L", "Y"].map((char, i) => (
+          <text key={`s-${i}`} x="-120" y={-50 + i * 16}>
+            {char}
+          </text>
+        ))}
+        {["D", "U", "C", "T"].map((char, i) => (
+          <text key={`d-${i}`} x="-98" y={-34 + i * 16}>
+            {char}
+          </text>
+        ))}
       </g>
 
       {/* Group text: PACK */}
-      <g fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-        {['P','A','C','K'].map((char, i) => <text key={`p-${i}`} x="105" y={10 + i * 16}>{char}</text>)}
+      <g
+        fill="white"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        {["P", "A", "C", "K"].map((char, i) => (
+          <text key={`p-${i}`} x="105" y={10 + i * 16}>
+            {char}
+          </text>
+        ))}
       </g>
 
       {/* Group texts: AIR TEMP and PASS CAB */}
-      <text x="-15" y="-102" fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">AIR TEMP</text>
-      <text x="64" y="-102" fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">PASS</text>
-      <text x="64" y="-88" fill="white" fontSize="14" fontFamily="monospace" fontWeight="bold" textAnchor="middle">CAB</text>
+      <text
+        x="-15"
+        y="-102"
+        fill="white"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        AIR TEMP
+      </text>
+      <text
+        x="64"
+        y="-102"
+        fill="white"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        PASS
+      </text>
+      <text
+        x="64"
+        y="-88"
+        fill="white"
+        fontSize="14"
+        fontFamily="monospace"
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        CAB
+      </text>
     </svg>
   );
 }
@@ -1869,11 +2321,31 @@ export function RoundHeadToggle({
       </defs>
 
       {/* Base Bezel */}
-      <circle cx="30" cy="30" r="22" fill="url(#bezel-grad)" stroke="#606669" strokeWidth="1.5" />
-      <circle cx="30" cy="30" r="16" fill="url(#cavity-grad)" stroke="#111314" strokeWidth="1" />
+      <circle
+        cx="30"
+        cy="30"
+        r="22"
+        fill="url(#bezel-grad)"
+        stroke="#606669"
+        strokeWidth="1.5"
+      />
+      <circle
+        cx="30"
+        cy="30"
+        r="16"
+        fill="url(#cavity-grad)"
+        stroke="#111314"
+        strokeWidth="1"
+      />
 
       {/* Crescent / arc track underneath */}
-      <path d="M 17 34 A 14 14 0 0 0 43 34" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M 17 34 A 14 14 0 0 0 43 34"
+        fill="none"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
 
       {/* Stem & Round Head */}
       <g
@@ -1884,9 +2356,21 @@ export function RoundHeadToggle({
         }}
       >
         {/* Metal stem */}
-        <path d="M 28 32 L 28 26 L 32 26 L 32 32 Z" fill="#b0b5b8" stroke="#505558" strokeWidth="0.5" />
+        <path
+          d="M 28 32 L 28 26 L 32 26 L 32 32 Z"
+          fill="#b0b5b8"
+          stroke="#505558"
+          strokeWidth="0.5"
+        />
         {/* Round Head Ball */}
-        <circle cx="30" cy="24" r="11" fill="url(#ball-grad)" stroke="#8c8573" strokeWidth="0.8" />
+        <circle
+          cx="30"
+          cy="24"
+          r="11"
+          fill="url(#ball-grad)"
+          stroke="#8c8573"
+          strokeWidth="0.8"
+        />
       </g>
     </svg>
   );
@@ -1912,8 +2396,22 @@ export function TemperatureGauge({ value = 24 }: { value?: number }) {
         }}
       >
         {/* Outer grey border / bezel */}
-        <circle cx="100" cy="100" r="98" fill="#52585c" stroke="#25282a" strokeWidth="2.5" />
-        <circle cx="100" cy="100" r="91" fill="#1b1d1e" stroke="#70767a" strokeWidth="2" />
+        <circle
+          cx="100"
+          cy="100"
+          r="98"
+          fill="#52585c"
+          stroke="#25282a"
+          strokeWidth="2.5"
+        />
+        <circle
+          cx="100"
+          cy="100"
+          r="91"
+          fill="#1b1d1e"
+          stroke="#70767a"
+          strokeWidth="2"
+        />
         <circle cx="100" cy="100" r="86" fill="#08090a" />
 
         {/* Scale Ticks */}
@@ -1938,7 +2436,13 @@ export function TemperatureGauge({ value = 24 }: { value?: number }) {
         </g>
 
         {/* Numbers */}
-        <g fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        <g
+          fill="white"
+          fontSize="13"
+          fontFamily="monospace"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
           {numbers.map((v) => {
             const deg = 220 + (v / 100) * 255;
             const rad = ((deg - 90) * Math.PI) / 180;
@@ -1954,10 +2458,26 @@ export function TemperatureGauge({ value = 24 }: { value?: number }) {
         </g>
 
         {/* Center Dial Labels */}
-        <text x="100" y="68" fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        <text
+          x="100"
+          y="68"
+          fill="white"
+          fontSize="13"
+          fontFamily="monospace"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
           TEMP
         </text>
-        <text x="100" y="134" fill="white" fontSize="13" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+        <text
+          x="100"
+          y="134"
+          fill="white"
+          fontSize="13"
+          fontFamily="monospace"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
           °C
         </text>
       </svg>
@@ -1986,7 +2506,14 @@ export function TemperatureGauge({ value = 24 }: { value?: number }) {
         </g>
 
         {/* Central Hub Circle */}
-        <circle cx="100" cy="100" r="20" fill="#121415" stroke="#70767a" strokeWidth="2.5" />
+        <circle
+          cx="100"
+          cy="100"
+          r="20"
+          fill="#121415"
+          stroke="#70767a"
+          strokeWidth="2.5"
+        />
       </svg>
     </div>
   );
@@ -2009,7 +2536,9 @@ export function TemperatureSelector({
       e.preventDefault();
       // Scroll up (deltaY < 0): rotate clockwise (+angle / Warmer)
       // Scroll down (deltaY > 0): rotate counter-clockwise (-angle / Cooler / OFF)
-      const step = Math.sign(-e.deltaY) * Math.max(2, Math.min(8, Math.abs(e.deltaY) * 0.04));
+      const step =
+        Math.sign(-e.deltaY) *
+        Math.max(2, Math.min(8, Math.abs(e.deltaY) * 0.04));
       onWheelDelta(step);
     };
 
@@ -2044,17 +2573,37 @@ export function TemperatureSelector({
       >
         <g transform="translate(15, 12)">
           {/* AUTO label in the gap */}
-          <text x="45" y="6" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">AUTO</text>
-          
+          <text
+            x="45"
+            y="6"
+            fill="white"
+            fontSize="16"
+            fontFamily="monospace"
+            fontWeight="bold"
+            textAnchor="middle"
+          >
+            AUTO
+          </text>
+
           {/* Left Arc: -115 to -32 degrees */}
-          <path d="M 4.2 64 A 45 45 0 0 1 21 6.8" fill="none" stroke="white" strokeWidth="2.5" />
-          
+          <path
+            d="M 4.2 64 A 45 45 0 0 1 21 6.8"
+            fill="none"
+            stroke="white"
+            strokeWidth="2.5"
+          />
+
           {/* Right Arc: 32 to 115 degrees */}
-          <path d="M 69 6.8 A 45 45 0 0 1 85.8 64" fill="none" stroke="white" strokeWidth="2.5" />
-          
+          <path
+            d="M 69 6.8 A 45 45 0 0 1 85.8 64"
+            fill="none"
+            stroke="white"
+            strokeWidth="2.5"
+          />
+
           {/* 4 Dots (inside the arc, radius 40 instead of 45) */}
           {[-90, -45, 45, 90].map((a, i) => {
-            const rad = (a - 90) * Math.PI / 180;
+            const rad = ((a - 90) * Math.PI) / 180;
             const r = 40;
             const x = 45 + r * Math.cos(rad);
             const y = 45 + r * Math.sin(rad);
@@ -2062,9 +2611,39 @@ export function TemperatureSelector({
           })}
 
           {/* Labels C, W, OFF */}
-          <text x="4" y="86" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">C</text>
-          <text x="86" y="86" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">W</text>
-          <text x="37" y="106" fill="white" fontSize="16" fontFamily="monospace" fontWeight="bold" textAnchor="middle">OFF</text>
+          <text
+            x="4"
+            y="86"
+            fill="white"
+            fontSize="16"
+            fontFamily="monospace"
+            fontWeight="bold"
+            textAnchor="middle"
+          >
+            C
+          </text>
+          <text
+            x="86"
+            y="86"
+            fill="white"
+            fontSize="16"
+            fontFamily="monospace"
+            fontWeight="bold"
+            textAnchor="middle"
+          >
+            W
+          </text>
+          <text
+            x="37"
+            y="106"
+            fill="white"
+            fontSize="16"
+            fontFamily="monospace"
+            fontWeight="bold"
+            textAnchor="middle"
+          >
+            OFF
+          </text>
         </g>
       </svg>
 
@@ -2084,10 +2663,20 @@ export function TemperatureSelector({
           pointerEvents: "none",
         }}
       >
-        <svg viewBox="0 0 90 90" style={{ width: "90px", height: "90px", overflow: "visible" }}>
+        <svg
+          viewBox="0 0 90 90"
+          style={{ width: "90px", height: "90px", overflow: "visible" }}
+        >
           <g transform="translate(45, 45)">
             {/* Base disc */}
-            <circle cx="0" cy="0" r="34" fill="#eff2f4" stroke="#4a4e50" strokeWidth="2.5" />
+            <circle
+              cx="0"
+              cy="0"
+              r="34"
+              fill="#eff2f4"
+              stroke="#4a4e50"
+              strokeWidth="2.5"
+            />
             {/* Pointer body */}
             <path
               d="M -20 26 L -20 -10 L -8 -32 L 8 -32 L 20 -10 L 20 26 A 14 14 0 0 1 6 40 L -6 40 A 14 14 0 0 1 -20 26 Z"
@@ -2098,7 +2687,16 @@ export function TemperatureSelector({
             {/* Shading facet on right of nose */}
             <polygon points="0,-32 8,-32 20,-10 0,-10" fill="#dfe3e6" />
             {/* White stripe with crisp black outline */}
-            <rect x="-2.5" y="-30" width="5" height="58" fill="#ffffff" stroke="#000000" strokeWidth="1.8" rx="0.5" />
+            <rect
+              x="-2.5"
+              y="-30"
+              width="5"
+              height="58"
+              fill="#ffffff"
+              stroke="#000000"
+              strokeWidth="1.8"
+              rx="0.5"
+            />
           </g>
         </svg>
       </div>
@@ -2118,11 +2716,15 @@ const AIR_TEMP_POSITIONS = [
 
 export function TemperaturePanel() {
   const [sourceIndex, setSourceIndex] = useState(3); // Default to PASS CAB FWD (0°)
-  const [zoneAngles, setZoneAngles] = useState<[number, number, number]>([0, 0, 0]); // [CONT CAB, FWD CAB, AFT CAB]
+  const [zoneAngles, setZoneAngles] = useState<[number, number, number]>([
+    0, 0, 0,
+  ]); // [CONT CAB, FWD CAB, AFT CAB]
   const [trimAir, setTrimAir] = useState<"ON" | "OFF">("ON");
 
   const handleSourceStep = (dir: number) => {
-    setSourceIndex((prev) => Math.max(0, Math.min(AIR_TEMP_POSITIONS.length - 1, prev + dir)));
+    setSourceIndex((prev) =>
+      Math.max(0, Math.min(AIR_TEMP_POSITIONS.length - 1, prev + dir)),
+    );
   };
 
   const handleZoneDelta = (index: number, delta: number) => {
@@ -2167,11 +2769,19 @@ export function TemperaturePanel() {
       <div className="temp-gauge">
         <TemperatureGauge value={Math.round(gaugeTemp)} />
       </div>
-      
+
       {/* Temp-source component overlay */}
       <div style={{ position: "absolute", left: "320px", top: "126px" }}>
         <TempSourceLabels />
-        <div style={{ position: "absolute", left: "-45px", top: "-45px", width: "90px", height: "90px" }}>
+        <div
+          style={{
+            position: "absolute",
+            left: "-45px",
+            top: "-45px",
+            width: "90px",
+            height: "90px",
+          }}
+        >
           <PointerKnob
             angle={AIR_TEMP_POSITIONS[sourceIndex].angle}
             onWheelStep={handleSourceStep}
@@ -2192,10 +2802,23 @@ export function TemperaturePanel() {
           color: "white",
         }}
       >
-        <span style={{ marginBottom: "6px", fontSize: "16px", fontWeight: "bold", whiteSpace: "nowrap" }}>
+        <span
+          style={{
+            marginBottom: "6px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+          }}
+        >
           TRIM AIR
         </span>
-        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
           <TrimAirSwitch
             position={trimAir}
             onWheelStep={(dir) => setTrimAir(dir < 0 ? "OFF" : "ON")}
@@ -2224,13 +2847,22 @@ export function TemperaturePanel() {
       </div>
       <div className="zone-controls" style={{ top: "290px" }}>
         {(["CONT CAB", "FWD CAB", "AFT CAB"] as const).map((label, index) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div
+            key={label}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
             <Placard>
               ZONE
               <br />
               TEMP
             </Placard>
-            <b style={{ marginBottom: "-6px", marginTop: "2px", zIndex: 10 }}>{label}</b>
+            <b style={{ marginBottom: "-6px", marginTop: "2px", zIndex: 10 }}>
+              {label}
+            </b>
             <TemperatureSelector
               angle={zoneAngles[index]}
               onWheelDelta={(delta) => handleZoneDelta(index, delta)}
