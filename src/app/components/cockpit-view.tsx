@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CabinAltitudeControlPanel,
   CabinAltitudePanel,
@@ -9,11 +9,68 @@ import {
 } from "./aircraft-panels";
 import { PneumaticPanel } from "./pneumatic-panel";
 
+const COCKPIT_WORLD_WIDTH = 2400;
+const COCKPIT_WORLD_HEIGHT = 6000;
+const COCKPIT_SVG_VIEWBOX_X = 750;
+const COCKPIT_SVG_VIEWBOX_WIDTH = 1800;
+const COCKPIT_SVG_VIEWBOX_HEIGHT = 4500;
+const COCKPIT_RENDERED_SVG_HEIGHT = 6000;
+const MIN_COCKPIT_ZOOM = 0.1;
+const MAX_COCKPIT_ZOOM = 3;
+const COCKPIT_ZOOM_STEP = 0.25;
+const COCKPIT_FOREIGN_OBJECTS = [
+  { x: 2094, y: 965, width: 330, height: 342 },
+  { x: 2097, y: 1311, width: 324, height: 467 },
+  { x: 2094, y: 1782, width: 330, height: 436 },
+  { x: 1760, y: 1880, width: 330, height: 338 },
+  { x: 1616, y: 1447, width: 140, height: 160 },
+] as const;
+
+function clampCockpitZoom(scale: number) {
+  return Math.min(MAX_COCKPIT_ZOOM, Math.max(MIN_COCKPIT_ZOOM, scale));
+}
+
+function isCockpitCommand(target: Element) {
+  let current: Element | null = target;
+
+  while (current) {
+    if (
+      current.matches(
+        "button, input, select, textarea, [role=button], [data-cockpit-command]",
+      ) ||
+      window.getComputedStyle(current).cursor === "pointer"
+    ) {
+      return true;
+    }
+
+    if (current.tagName.toLowerCase() === "foreignobject") break;
+    current = current.parentElement;
+  }
+
+  return false;
+}
+
 export function CockpitView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.3 });
+  const transformRef = useRef(transform);
+  const transformFrameRef = useRef<number | null>(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const isDragging = useRef(false);
   const startPan = useRef({ x: 0, y: 0 });
+
+  const scheduleTransform = useCallback(
+    (update: (current: typeof transform) => typeof transform) => {
+      transformRef.current = update(transformRef.current);
+
+      if (transformFrameRef.current !== null) return;
+      transformFrameRef.current = requestAnimationFrame(() => {
+        transformFrameRef.current = null;
+        setTransform(transformRef.current);
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -21,19 +78,34 @@ export function CockpitView() {
 
     // Center initially based on container size
     const rect = container.getBoundingClientRect();
+    setViewport({ width: rect.width, height: rect.height });
     const initialScale = 0.25;
-    // World is 2400x3600. Center it.
+    // Keep the existing initial cockpit framing; FIT uses the complete SVG.
     const initialX = (rect.width - 2400 * initialScale) / 2;
     const initialY = (rect.height - 3600 * initialScale) / 2;
-    setTransform({ x: initialX, y: initialY, scale: initialScale });
+    const initialTransform = {
+      x: initialX,
+      y: initialY,
+      scale: initialScale,
+    };
+    transformRef.current = initialTransform;
+    setTransform(initialTransform);
 
     const handleWheel = (e: WheelEvent) => {
+      // Controls inside foreignObjects own the wheel gesture (knobs, selectors,
+      // etc.). Let their handler consume it without also zooming the cockpit.
+      if (
+        e.defaultPrevented ||
+        (e.target instanceof Element && isCockpitCommand(e.target))
+      ) {
+        return;
+      }
       e.preventDefault();
 
       const scaleAdjustment = e.deltaY * -0.001;
-      setTransform((prev) => {
+      scheduleTransform((prev) => {
         let newScale = prev.scale + scaleAdjustment;
-        newScale = Math.max(0.1, Math.min(newScale, 3)); // Clamp scale
+        newScale = clampCockpitZoom(newScale);
 
         // Calculate mouse position relative to container
         const mouseX = e.clientX - rect.left;
@@ -52,37 +124,66 @@ export function CockpitView() {
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => container.removeEventListener("wheel", handleWheel);
-  }, []);
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      if (transformFrameRef.current !== null) {
+        cancelAnimationFrame(transformFrameRef.current);
+      }
+    };
+  }, [scheduleTransform]);
+
+  const zoomCockpit = (amount: number) => {
+    scheduleTransform((prev) => {
+      const scale = clampCockpitZoom(prev.scale + amount);
+      if (scale === prev.scale) return prev;
+
+      const anchorX = viewport.width / 2;
+      const anchorY = viewport.height / 2;
+      const ratio = scale / prev.scale;
+      return {
+        scale,
+        x: anchorX - (anchorX - prev.x) * ratio,
+        y: anchorY - (anchorY - prev.y) * ratio,
+      };
+    });
+  };
+
+  const fitCockpit = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const scale = Math.min(
+      rect.width / COCKPIT_WORLD_WIDTH,
+      rect.height / COCKPIT_WORLD_HEIGHT,
+    );
+    setViewport({ width: rect.width, height: rect.height });
+    const nextTransform = {
+      scale,
+      x: (rect.width - COCKPIT_WORLD_WIDTH * scale) / 2,
+      y: (rect.height - COCKPIT_WORLD_HEIGHT * scale) / 2,
+    };
+    transformRef.current = nextTransform;
+    setTransform(nextTransform);
+  };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only pan if it's the background or middle mouse button
-    if (
-      e.button === 1 ||
-      (e.target as HTMLElement).tagName.toLowerCase() === "svg"
-    ) {
-      isDragging.current = true;
-      startPan.current = {
-        x: e.clientX - transform.x,
-        y: e.clientY - transform.y,
-      };
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    } else if (
-      e.target === containerRef.current ||
-      (e.target as HTMLElement).classList.contains("cockpit-bg")
-    ) {
-      isDragging.current = true;
-      startPan.current = {
-        x: e.clientX - transform.x,
-        y: e.clientY - transform.y,
-      };
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const target = e.target as Element;
+    if ((e.button !== 0 && e.button !== 1) || isCockpitCommand(target)) {
+      return;
     }
+
+    isDragging.current = true;
+    startPan.current = {
+      x: e.clientX - transformRef.current.x,
+      y: e.clientY - transformRef.current.y,
+    };
+    (e.target as Element).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging.current) return;
-    setTransform((prev) => ({
+    scheduleTransform((prev) => ({
       ...prev,
       x: e.clientX - startPan.current.x,
       y: e.clientY - startPan.current.y,
@@ -91,24 +192,83 @@ export function CockpitView() {
 
   const handlePointerUp = (e: React.PointerEvent) => {
     isDragging.current = false;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    if ((e.target as Element).hasPointerCapture(e.pointerId)) {
+      (e.target as Element).releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const visibleArea = {
+    x:
+      COCKPIT_SVG_VIEWBOX_X +
+      (-transform.x / transform.scale) *
+        (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
+    y:
+      (-transform.y / transform.scale) *
+      (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
+    width:
+      (viewport.width / transform.scale) *
+      (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
+    height:
+      (viewport.height / transform.scale) *
+      (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
+  };
+
+  const navigateFromMinimap = (e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const svgX =
+      COCKPIT_SVG_VIEWBOX_X +
+      ((e.clientX - rect.left) / rect.width) * COCKPIT_SVG_VIEWBOX_WIDTH;
+    const svgY =
+      ((e.clientY - rect.top) / rect.height) * COCKPIT_SVG_VIEWBOX_HEIGHT;
+    const point = {
+      x:
+        (svgX - COCKPIT_SVG_VIEWBOX_X) *
+        (COCKPIT_WORLD_WIDTH / COCKPIT_SVG_VIEWBOX_WIDTH),
+      y: svgY * (COCKPIT_WORLD_HEIGHT / COCKPIT_SVG_VIEWBOX_HEIGHT),
+    };
+
+    scheduleTransform((prev) => ({
+      ...prev,
+      x: viewport.width / 2 - point.x * prev.scale,
+      y: viewport.height / 2 - point.y * prev.scale,
+    }));
+  };
+
+  const handleMinimapPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    navigateFromMinimap(e);
+  };
+
+  const handleMinimapPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    e.stopPropagation();
+    navigateFromMinimap(e);
+  };
+
+  const finishMinimapPointer = (e: React.PointerEvent<SVGSVGElement>) => {
+    e.stopPropagation();
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   };
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-[#0a0c0f] cursor-grab active:cursor-grabbing"
+      className="relative w-full h-full select-none overflow-hidden bg-[#0a0c0f] cursor-grab active:cursor-grabbing"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
       <div
-        className="absolute cockpit-bg origin-top-left flex flex-col items-center"
+        className="absolute cockpit-bg origin-top-left flex flex-col items-center [contain:layout_paint]"
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           width: "2400px",
-          height: "3600px",
+          height: "6000px",
         }}
       >
         <svg
@@ -119,7 +279,7 @@ export function CockpitView() {
           style={{ pointerEvents: "none" }}
         >
           {/* Main SVG Background Paths from OHP.svg */}
-          <g style={{ pointerEvents: "auto" }}>
+          <g id="cockpit-artwork" style={{ pointerEvents: "auto" }}>
             <path
               id="svg_3"
               d="m2417.6464,15.29411l5.88235,2279.99938l-357.64696,79.99998c1.17605,1.17608 -765.88257,-1.17686 -767.05904,-1.17686c-1.17647,0 -356.47049,-76.47056 -357.64654,-77.64665l1.56293,-2280.59642l1474.90726,-0.57943z"
@@ -620,6 +780,77 @@ export function CockpitView() {
             </foreignObject>
           </g>
         </svg>
+      </div>
+
+      <div className="absolute bottom-2.5 left-2.5 z-30 w-36 border border-[#343c38] bg-[#0a0e0c]/95 shadow-xl max-[560px]:w-28">
+        <div className="p-1.5">
+          <svg
+            className="block aspect-2/5 w-full touch-none cursor-crosshair bg-[#0d120f]"
+            viewBox={`${COCKPIT_SVG_VIEWBOX_X} 0 ${COCKPIT_SVG_VIEWBOX_WIDTH} ${COCKPIT_SVG_VIEWBOX_HEIGHT}`}
+            role="img"
+            aria-label="Minimapa interactivo del cockpit"
+            onPointerDown={handleMinimapPointerDown}
+            onPointerMove={handleMinimapPointerMove}
+            onPointerUp={finishMinimapPointer}
+            onPointerCancel={finishMinimapPointer}
+          >
+            <use href="#cockpit-artwork" />
+            {COCKPIT_FOREIGN_OBJECTS.map((panel) => (
+              <rect
+                key={`${panel.x}-${panel.y}`}
+                className="pointer-events-none fill-amber-400/15 stroke-amber-200/50"
+                {...panel}
+                strokeWidth="10"
+                rx="12"
+              />
+            ))}
+            <rect
+              className="fill-sim-cyan/10 stroke-sim-cyan"
+              x={visibleArea.x}
+              y={visibleArea.y}
+              width={visibleArea.width}
+              height={visibleArea.height}
+              strokeWidth="12"
+            />
+          </svg>
+        </div>
+        <div
+          className="flex w-full items-center border-t border-[#343c38] text-[#89918d]"
+          aria-label="Controles de zoom del cockpit"
+        >
+          <button
+            className="size-7 shrink-0 cursor-pointer border-r border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            type="button"
+            onClick={() => zoomCockpit(-COCKPIT_ZOOM_STEP)}
+            disabled={transform.scale <= MIN_COCKPIT_ZOOM}
+            aria-label="Alejar cockpit"
+          >
+            −
+          </button>
+          <output
+            className="min-w-0 flex-1 text-center text-[8px] tabular-nums"
+            aria-live="polite"
+          >
+            {Math.round((transform.scale / MIN_COCKPIT_ZOOM) * 100)}%
+          </output>
+          <button
+            className="size-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent text-sm hover:bg-[#18201c] hover:text-[#c7cfca] disabled:cursor-default disabled:opacity-30"
+            type="button"
+            onClick={() => zoomCockpit(COCKPIT_ZOOM_STEP)}
+            disabled={transform.scale >= MAX_COCKPIT_ZOOM}
+            aria-label="Acercar cockpit"
+          >
+            +
+          </button>
+          <button
+            className="h-7 shrink-0 cursor-pointer border-l border-[#343c38] bg-transparent px-1.5 text-[7px] tracking-wider hover:bg-[#18201c] hover:text-[#c7cfca]"
+            type="button"
+            onClick={fitCockpit}
+            aria-label="Restablecer vista completa del cockpit"
+          >
+            FIT
+          </button>
+        </div>
       </div>
     </div>
   );

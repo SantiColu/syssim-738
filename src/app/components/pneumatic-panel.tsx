@@ -148,9 +148,9 @@ export function PneumaticPanel() {
 
   return (
     <div className="flex size-full items-center justify-center">
-      <section className="relative w-100 h-137.5 bg-[#9ba1a2]  overflow-hidden font-mono select-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] scale-95 origin-center">
+      <section className="relative w-100 h-137.5 bg-[#858585]  overflow-hidden font-mono select-none shadow-[0_10px_30px_rgba(0,0,0,0.8)] scale-95 origin-center">
         {/* Top Dark Strip */}
-        <div className="absolute top-0 left-0 w-full h-16.25 bg-[#898e90] border-b border-[#6b7173] z-0" />
+        <div className="absolute top-0 left-0 w-full h-16.25 bg-[#858585] border-b border-[#6b7173] z-0" />
 
         {/* Flow Lines (SVG Background) */}
         <svg
