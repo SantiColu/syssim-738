@@ -510,6 +510,154 @@ export function PneumaticSourceLegendIcon({
   );
 }
 
+function HeatExchangerCore({
+  x,
+  y,
+  width,
+  height,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect
+        x={-width / 2}
+        y={-height / 2}
+        width={width}
+        height={height}
+        rx="0.5"
+        className="fill-sim-surface stroke-white"
+        strokeWidth="0.55"
+      />
+      {/* Fin matrix cross-hatch lines */}
+      <g
+        className="stroke-zinc-300"
+        opacity={0.85}
+        strokeWidth="0.3"
+        strokeLinecap="round"
+      >
+        <line x1={-width / 2 + 0.6} y1={-height / 2 + 1.2} x2={width / 2 - 1.2} y2={height / 2 - 0.6} />
+        <line x1={-width / 2 + 0.6} y1={-height / 2 + 2.7} x2={width / 2 - 2.7} y2={height / 2 - 0.6} />
+        <line x1={-width / 2 + 2.0} y1={-height / 2 + 0.6} x2={width / 2 - 0.6} y2={height / 2 - 2.0} />
+        <line x1={-width / 2 + 3.5} y1={-height / 2 + 0.6} x2={width / 2 - 0.6} y2={height / 2 - 3.5} />
+
+        <line x1={-width / 2 + 0.6} y1={height / 2 - 1.2} x2={width / 2 - 1.2} y2={-height / 2 + 0.6} />
+        <line x1={-width / 2 + 0.6} y1={height / 2 - 2.7} x2={width / 2 - 2.7} y2={-height / 2 + 0.6} />
+        <line x1={-width / 2 + 2.0} y1={height / 2 - 0.6} x2={width / 2 - 0.6} y2={-height / 2 + 2.0} />
+        <line x1={-width / 2 + 3.5} y1={height / 2 - 0.6} x2={width / 2 - 0.6} y2={-height / 2 + 3.5} />
+      </g>
+    </g>
+  );
+}
+
+function RamAirInletSymbol({ side }: { side: "left" | "right" }) {
+  const isLeft = side === "left";
+  return (
+    <g
+      transform={isLeft ? "translate(760 0) scale(-1 1)" : undefined}
+      className="cursor-pointer select-none"
+    >
+      <title>
+        {isLeft
+          ? "Left Pack · Ram-Air Inlet & Primary/Secondary Heat Exchangers"
+          : "Right Pack · Ram-Air Inlet & Primary/Secondary Heat Exchangers"}
+      </title>
+
+      {/* Ram Air Duct Plenum Outer Shell */}
+      <path
+        d="M 399 201 
+           L 403 198 
+           L 406.5 194.5 
+           L 412 197
+           L 413.5 200
+           L 413 222
+           L 410.5 226
+           L 407.5 226
+           L 407.5 221
+           L 406 216
+           L 406 203
+           L 399 201
+           Z"
+        className="fill-sim-surface stroke-white"
+        strokeWidth="0.55"
+        strokeLinejoin="round"
+      />
+
+      {/* Deflector door flap at ram air intake mouth */}
+      <line
+        x1="408"
+        y1="193.5"
+        x2="411.2"
+        y2="196"
+        stroke="#ffffff"
+        strokeWidth="0.65"
+        strokeLinecap="round"
+      />
+
+      {/* Actuated Ram-Air Inlet Door flap */}
+      <line
+        x1="412.5"
+        y1="198"
+        x2="408.8"
+        y2="202.5"
+        stroke="#ffffff"
+        strokeWidth="0.75"
+        strokeLinecap="round"
+      />
+      <circle cx="412.5" cy="198" r="0.45" fill="#ffffff" />
+
+      {/* Primary Heat Exchanger (Upper) */}
+      <HeatExchangerCore x={402.5} y={205} width={5.8} height={4.8} />
+
+      {/* Secondary Heat Exchanger (Lower) */}
+      <HeatExchangerCore x={402.5} y={211.5} width={5.8} height={4.8} />
+
+      {/* Ram Air Flow chevrons (ambient cooling airflow) */}
+      <path
+        d="M 408.5 204 L 409.5 206 L 410.5 204"
+        fill="none"
+        stroke="#38bdf8"
+        strokeWidth="0.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.75"
+      />
+      <path
+        d="M 408.5 210 L 409.5 212 L 410.5 210"
+        fill="none"
+        stroke="#38bdf8"
+        strokeWidth="0.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.75"
+      />
+      <path
+        d="M 408.5 216 L 409.5 218 L 410.5 216"
+        fill="none"
+        stroke="#38bdf8"
+        strokeWidth="0.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.75"
+      />
+
+      {/* Exhaust Louver Flap at bottom */}
+      <line
+        x1="407.5"
+        y1="223.5"
+        x2="410.8"
+        y2="226"
+        stroke="#ffffff"
+        strokeWidth="0.65"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
 function ConsumerNode({
   node,
   point,
@@ -529,20 +677,15 @@ function ConsumerNode({
     ? getPneumaticColor(solved, colorMode)
     : "#ef4444";
 
-  const isPack = node.id.includes("209");
   const isCowl = node.id === "sink-303-213" || node.id === "sink-457-213";
   const isWing = node.id === "sink-268-282" || node.id === "sink-492-282";
 
   const offsetX =
-    node.id === "sink-362-209"
-      ? 6
-      : node.id === "sink-397-209"
-        ? -6
-        : node.id === "sink-303-213"
-          ? 8
-          : node.id === "sink-457-213"
-            ? -8
-            : 0;
+    node.id === "sink-303-213"
+      ? 8
+      : node.id === "sink-457-213"
+        ? -8
+        : 0;
 
   const offsetY = isCowl ? -0.5 : 0;
 
@@ -553,7 +696,7 @@ function ConsumerNode({
         ? 28.2
         : 0;
 
-  const width = isPack ? 18 : isCowl || isWing ? 16 : 22;
+  const width = isCowl || isWing ? 16 : 22;
   const height = isCowl || isWing ? 5.5 : 8.5;
   const rx = isCowl || isWing ? 1.4 : 1.8;
 
@@ -604,7 +747,7 @@ function ConsumerNode({
         x={0}
         y={isCowl || isWing ? 0.65 : 0.8}
         textAnchor="middle"
-        fontSize={isCowl || isWing ? 1.9 : isPack ? 2.4 : 2.1}
+        fontSize={isCowl || isWing ? 1.9 : 2.1}
         fontWeight="bold"
         className="fill-white font-sim-sans tracking-wide"
       >
@@ -741,7 +884,11 @@ export function PneumaticNetworkLayer({
           );
         })}
 
-      {/* 5. Consumer Blocks: Pack L, Pack R, Hyd Resv B, Hyd Resv A, NGS, Water Tank, Cowl TAI, Wing TAI */}
+      {/* 5. Ram Air Inlets & Heat Exchangers (Pack L & Pack R) */}
+      <RamAirInletSymbol side="left" />
+      <RamAirInletSymbol side="right" />
+
+      {/* 6. Consumer Blocks: Hyd Resv B, Hyd Resv A, NGS, Water Tank, Cowl TAI, Wing TAI */}
       {network.nodes
         .filter((node) => Boolean(KNOWN_CONSUMERS[node.id]))
         .map((node) => {
