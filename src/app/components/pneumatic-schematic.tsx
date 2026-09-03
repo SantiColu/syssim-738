@@ -18,7 +18,7 @@ import { OverheatSensorsLayer } from "./overheat-sensors-layer";
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 4;
+const MAX_ZOOM = 5;
 const BUTTON_ZOOM_STEP = 0.5;
 const WHEEL_ZOOM_STEP = 0.25;
 const COLOR_SCALE_VALUES: Record<PneumaticColorMode, number[]> = {
@@ -77,8 +77,7 @@ function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
 export function PneumaticSchematic() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
-  const [colorMode, setColorMode] =
-    useState<PneumaticColorMode>("temperature");
+  const [colorMode, setColorMode] = useState<PneumaticColorMode>("temperature");
   const { solution, runtimeState } = usePneumatic();
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -242,10 +241,7 @@ export function PneumaticSchematic() {
           </clipPath>
         </defs>
         <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
-          <use
-            className="fill-sim-surface"
-            href="#boeing-737-800-outline"
-          />
+          <use className="fill-sim-surface" href="#boeing-737-800-outline" />
           <image
             className="opacity-[0.68]"
             href="/boeing-737-800-details.svg"
@@ -269,7 +265,10 @@ export function PneumaticSchematic() {
         </g>
       </svg>
 
-      <div className="absolute bottom-11 left-2.5 z-20 w-36 border border-sim-border bg-sim-surface shadow-xl max-[560px]:w-28">
+      <div
+        data-export-exclude
+        className="absolute bottom-11 left-2.5 z-20 w-36 border border-sim-border bg-sim-surface shadow-xl max-[560px]:w-28"
+      >
         <div className="p-1.5">
           <svg
             className="block aspect-38/29 w-full touch-none cursor-crosshair bg-sim-surface"
@@ -422,7 +421,6 @@ export function PneumaticSchematic() {
             <span>{item.label}</span>
           </span>
         ))}
-
       </div>
     </section>
   );

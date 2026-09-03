@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AircraftSideSchematic } from "./aircraft-side-schematic";
+import { PanelExportButton } from "./panel-export-button";
 import { PneumaticSchematic } from "./pneumatic-schematic";
 
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
@@ -14,6 +15,7 @@ const systemViews: { id: SystemView; label: string }[] = [
 ];
 
 export function SystemPanel() {
+  const panelRef = useRef<HTMLElement>(null);
   const [activeView, setActiveView] = useState<SystemView>("main");
   const { sourcesState, toggleEng1, toggleEng2, toggleApu, toggleGndAir } =
     usePneumatic();
@@ -29,7 +31,8 @@ export function SystemPanel() {
   ) => {
     let nextIndex = index;
 
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % systemViews.length;
+    if (event.key === "ArrowRight")
+      nextIndex = (index + 1) % systemViews.length;
     if (event.key === "ArrowLeft") {
       nextIndex = (index - 1 + systemViews.length) % systemViews.length;
     }
@@ -43,11 +46,18 @@ export function SystemPanel() {
 
   return (
     <section
-      className="relative overflow-hidden border-l border-sim-border-subtle max-[900px]:h-137.5"
+      ref={panelRef}
+      className="relative overflow-hidden border-l border-sim-border-subtle bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] max-[900px]:h-137.5"
       aria-label="Vistas del sistema neumático del avión"
     >
+      <PanelExportButton
+        panelRef={panelRef}
+        fileName={`system-${activeView}-panel.png`}
+        label="panel SYSTEM"
+        className="top-2 left-1/2 -translate-x-1/2"
+      />
       {/* Center View Switcher Tabs: MAIN / SIDE */}
-      <div
+      {/* <div
         className="absolute top-2 left-1/2 z-40 flex -translate-x-1/2 border border-sim-border bg-sim-surface text-[7px] tracking-[0.14em] text-sim-text-muted shadow-lg"
         role="tablist"
         aria-label="Vista del avión"
@@ -76,11 +86,12 @@ export function SystemPanel() {
             </button>
           );
         })}
-      </div>
+      </div> */}
 
       {/* Top Right Simulation Source Controls: ENG 1, ENG 2, APU, GND AIR */}
       {activeView === "main" && (
         <div
+          data-export-exclude
           className="absolute top-2 right-2.5 z-40 flex items-center border border-sim-border bg-sim-surface text-[7px] tracking-[0.14em] shadow-lg divide-x divide-sim-border max-[560px]:text-[6px]"
           role="toolbar"
           aria-label="Controles de motores, APU y aire de tierra"

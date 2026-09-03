@@ -8,6 +8,10 @@ import {
   TemperaturePanel,
 } from "./aircraft-panels";
 import { PneumaticPanel } from "./pneumatic-panel";
+import {
+  PanelExportButton,
+  renderCockpitSvgToPng,
+} from "./panel-export-button";
 
 const COCKPIT_WORLD_WIDTH = 2400;
 const COCKPIT_WORLD_HEIGHT = 6000;
@@ -52,6 +56,7 @@ function isCockpitCommand(target: Element) {
 
 export function CockpitView() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const cockpitSvgRef = useRef<SVGSVGElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.3 });
   const transformRef = useRef(transform);
   const transformFrameRef = useRef<number | null>(null);
@@ -263,6 +268,17 @@ export function CockpitView() {
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
+      <PanelExportButton
+        panelRef={containerRef}
+        fileName="cockpit-panel.png"
+        label="panel COCKPIT"
+        className="top-2 right-2.5"
+        createPng={() => {
+          const svg = cockpitSvgRef.current;
+          if (!svg) return Promise.reject(new Error("Cockpit no disponible"));
+          return renderCockpitSvgToPng(svg, visibleArea, viewport);
+        }}
+      />
       <div
         className="absolute origin-top-left flex flex-col items-center contain-[layout_paint]"
         style={{
@@ -272,6 +288,7 @@ export function CockpitView() {
         }}
       >
         <svg
+          ref={cockpitSvgRef}
           viewBox="750 0 1800 4500"
           width="2400"
           height="6000"
@@ -781,7 +798,10 @@ export function CockpitView() {
         </svg>
       </div>
 
-      <div className="absolute bottom-2.5 left-2.5 z-30 w-36 border border-sim-border bg-sim-surface shadow-xl max-[560px]:w-28">
+      <div
+        data-export-exclude
+        className="absolute bottom-2.5 left-2.5 z-30 w-36 border border-sim-border bg-sim-surface shadow-xl max-[560px]:w-28"
+      >
         <div className="p-1.5">
           <svg
             className="block aspect-2/5 w-full touch-none cursor-crosshair bg-sim-surface"
