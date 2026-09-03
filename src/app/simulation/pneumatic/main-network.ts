@@ -58,8 +58,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [362, 253],
     [342, 253],
     [336, 253],
-    [331, 253, "modulating"],
-    [326, 253],
+    [331, 253, "precooler"],
     [326, 253, "modulating"],
     [320, 253],
     [313, 253, "check-valve-reverse"],
@@ -88,7 +87,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [303, 213],
   ]),
   legacyLine("legacy-14", [
-    [331, 253, "modulating"],
+    [331, 253, "precooler"],
     [330, 212],
   ]),
   legacyLine("legacy-15", [
@@ -119,7 +118,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [397, 254],
     [418, 254],
     [425, 254],
-    [430, 254, "modulating"],
+    [430, 254, "precooler"],
     [435, 254, "modulating"],
     [441, 254],
     [449, 254, "check-valve-reverse"],
@@ -139,7 +138,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [439, 215, "on-off"],
   ]),
   legacyLine("legacy-25", [
-    [430, 254, "modulating"],
+    [430, 254, "precooler"],
     [429, 212],
   ]),
   legacyLine("legacy-26", [
@@ -184,7 +183,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       initial: {
         enabled: true,
         pressurePsi: 36,
-        temperatureC: 215,
+        temperatureC: 200,
       },
     },
     {
@@ -194,27 +193,47 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       initial: {
         enabled: true,
         pressurePsi: 36,
-        temperatureC: 215,
+        temperatureC: 390,
       },
     },
     {
-      point: { x: 457, y: 271 },
+      point: { x: 330, y: 212 },
       sourceKind: "engine",
-      label: "ENG 2 5th stage",
+      label: "ENG 1 Fan Air",
       initial: {
         enabled: true,
-        pressurePsi: 36,
-        temperatureC: 215,
+        pressurePsi: 15,
+        temperatureC: 25,
       },
     },
     {
       point: { x: 457, y: 254 },
       sourceKind: "engine",
+      label: "ENG 2 5th stage",
+      initial: {
+        enabled: true,
+        pressurePsi: 36,
+        temperatureC: 200,
+      },
+    },
+    {
+      point: { x: 457, y: 271 },
+      sourceKind: "engine",
       label: "ENG 2 9th stage",
       initial: {
         enabled: true,
         pressurePsi: 36,
-        temperatureC: 215,
+        temperatureC: 390,
+      },
+    },
+    {
+      point: { x: 429, y: 212 },
+      sourceKind: "engine",
+      label: "ENG 2 Fan Air",
+      initial: {
+        enabled: true,
+        pressurePsi: 15,
+        temperatureC: 25,
       },
     },
     {
@@ -224,7 +243,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       initial: {
         enabled: false,
         pressurePsi: 32,
-        temperatureC: 190,
+        temperatureC: 230,
       },
     },
     {
@@ -234,7 +253,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       initial: {
         enabled: false,
         pressurePsi: 32,
-        temperatureC: 190,
+        temperatureC: 30,
       },
     },
   ],

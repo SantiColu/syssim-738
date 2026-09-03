@@ -4,6 +4,8 @@ import { useState } from "react";
 import { AircraftSideSchematic } from "./aircraft-side-schematic";
 import { PneumaticSchematic } from "./pneumatic-schematic";
 
+import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
+
 type SystemView = "main" | "side";
 
 const systemViews: { id: SystemView; label: string }[] = [
@@ -13,6 +15,8 @@ const systemViews: { id: SystemView; label: string }[] = [
 
 export function SystemPanel() {
   const [activeView, setActiveView] = useState<SystemView>("main");
+  const { sourcesState, toggleEng1, toggleEng2, toggleApu, toggleGndAir } =
+    usePneumatic();
 
   const selectView = (view: SystemView) => {
     setActiveView(view);
@@ -42,6 +46,7 @@ export function SystemPanel() {
       className="relative overflow-hidden border-l border-sim-border-subtle max-[900px]:h-137.5"
       aria-label="Vistas del sistema neumático del avión"
     >
+      {/* Center View Switcher Tabs: MAIN / SIDE */}
       <div
         className="absolute top-2 left-1/2 z-40 flex -translate-x-1/2 border border-sim-border bg-sim-surface text-[7px] tracking-[0.14em] text-sim-text-muted shadow-lg"
         role="tablist"
@@ -72,6 +77,115 @@ export function SystemPanel() {
           );
         })}
       </div>
+
+      {/* Top Right Simulation Source Controls: ENG 1, ENG 2, APU, GND AIR */}
+      {activeView === "main" && (
+        <div
+          className="absolute top-2 right-2.5 z-40 flex items-center border border-sim-border bg-sim-surface text-[7px] tracking-[0.14em] shadow-lg divide-x divide-sim-border max-[560px]:text-[6px]"
+          role="toolbar"
+          aria-label="Controles de motores, APU y aire de tierra"
+        >
+          {/* ENG 1 Button */}
+          <button
+            type="button"
+            onClick={toggleEng1}
+            title={
+              sourcesState.eng1Running
+                ? "Motor 1 encendido (Click para apagar)"
+                : "Motor 1 apagado (Click para encender)"
+            }
+            className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
+              sourcesState.eng1Running
+                ? "text-sim-text-strong bg-sim-accent/15"
+                : "text-sim-text-muted hover:text-sim-text"
+            }`}
+          >
+            <span
+              className={`size-1.5 rounded-full transition-all ${
+                sourcesState.eng1Running
+                  ? "bg-sim-green shadow-[0_0_6px_var(--color-sim-green)]"
+                  : "bg-zinc-600"
+              }`}
+            />
+            <span>ENG 1</span>
+          </button>
+
+          {/* ENG 2 Button */}
+          <button
+            type="button"
+            onClick={toggleEng2}
+            title={
+              sourcesState.eng2Running
+                ? "Motor 2 encendido (Click para apagar)"
+                : "Motor 2 apagado (Click para encender)"
+            }
+            className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
+              sourcesState.eng2Running
+                ? "text-sim-text-strong bg-sim-accent/15"
+                : "text-sim-text-muted hover:text-sim-text"
+            }`}
+          >
+            <span
+              className={`size-1.5 rounded-full transition-all ${
+                sourcesState.eng2Running
+                  ? "bg-sim-green shadow-[0_0_6px_var(--color-sim-green)]"
+                  : "bg-zinc-600"
+              }`}
+            />
+            <span>ENG 2</span>
+          </button>
+
+          {/* APU Button */}
+          <button
+            type="button"
+            onClick={toggleApu}
+            title={
+              sourcesState.apuRunning
+                ? "APU encendida (Click para apagar)"
+                : "APU apagada (Click para encender)"
+            }
+            className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
+              sourcesState.apuRunning
+                ? "text-sim-text-strong bg-sim-accent/15"
+                : "text-sim-text-muted hover:text-sim-text"
+            }`}
+          >
+            <span
+              className={`size-1.5 rounded-full transition-all ${
+                sourcesState.apuRunning
+                  ? "bg-sim-green shadow-[0_0_6px_var(--color-sim-green)]"
+                  : "bg-zinc-600"
+              }`}
+            />
+            <span>APU</span>
+          </button>
+
+          {/* GND AIR Button */}
+          <button
+            type="button"
+            onClick={toggleGndAir}
+            title={
+              sourcesState.gndAirConnected
+                ? "Ground Air conectado (Click para desconectar)"
+                : "Ground Air desconectado (Click para conectar)"
+            }
+            className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
+              sourcesState.gndAirConnected
+                ? "text-sim-cyan bg-sim-cyan/15"
+                : "text-sim-text-muted hover:text-sim-text"
+            }`}
+          >
+            <span
+              className={`size-1.5 rounded-full transition-all ${
+                sourcesState.gndAirConnected
+                  ? "bg-sim-cyan shadow-[0_0_6px_var(--color-sim-cyan)]"
+                  : "bg-zinc-600"
+              }`}
+            />
+            <span>GND AIR</span>
+          </button>
+        </div>
+      )}
 
       <div
         className="size-full"

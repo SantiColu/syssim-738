@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { MAIN_PNEUMATIC_SYSTEM } from "../simulation/pneumatic/main-network";
-import { solvePneumaticNetwork } from "../simulation/pneumatic/solve-network";
+import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { PneumaticNetworkLayer } from "./pneumatic-network-layer";
 
 const ARTBOARD_WIDTH = 760;
@@ -56,14 +56,7 @@ function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
 export function PneumaticSchematic() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
-  const solution = useMemo(
-    () =>
-      solvePneumaticNetwork(
-        MAIN_PNEUMATIC_SYSTEM.network,
-        MAIN_PNEUMATIC_SYSTEM.initialState,
-      ),
-    [],
-  );
+  const { network, solution, runtimeState } = usePneumatic();
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);
@@ -236,6 +229,7 @@ export function PneumaticSchematic() {
             network={MAIN_PNEUMATIC_SYSTEM.network}
             layout={MAIN_PNEUMATIC_SYSTEM.layout}
             solution={solution}
+            runtimeState={runtimeState}
           />
           <use
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
@@ -333,6 +327,13 @@ export function PneumaticSchematic() {
             ⧖
           </span>
           <span>MODULATING</span>
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="inline-flex h-2.5 w-3.5 items-center justify-center border border-sim-cyan/60 bg-sim-surface text-[7px] leading-none text-sim-cyan">
+            ▦
+          </span>
+          <span>PRECOOLER</span>
         </span>
 
         <span className="flex items-center gap-1">

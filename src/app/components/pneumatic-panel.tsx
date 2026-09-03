@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import { AircraftToggleSwitch, AircraftPushButton } from "./aircraft-panels";
+import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 
 function ToggleSwitch({
   labelTop,
   labelBottom,
   positions = [],
-  activePos: initialPos = 0,
+  activePos,
+  onChange,
   align = "right",
   circleColor = "black",
   positionsOffset = "",
@@ -16,28 +18,33 @@ function ToggleSwitch({
   labelBottom?: string | string[];
   positions?: string[];
   activePos?: number;
+  onChange?: (newPos: number) => void;
   align?: "left" | "right";
   circleColor?: "black" | "red";
   positionsOffset?: string;
 }) {
-  const [currentPos, setCurrentPos] = useState(initialPos);
+  const [internalPos, setInternalPos] = useState(activePos ?? 0);
+  const currentPos = activePos !== undefined ? activePos : internalPos;
 
   const numPositions = positions.length > 0 ? positions.length : 2;
 
+  const setPos = (nextPos: number) => {
+    if (activePos === undefined) {
+      setInternalPos(nextPos);
+    }
+    onChange?.(nextPos);
+  };
+
   const handleClick = () => {
-    setCurrentPos((prev) => (prev + 1) % numPositions);
+    setPos((currentPos + 1) % numPositions);
   };
 
   const handleWheel = (dir: number) => {
-    // dir < 0 is scroll up -> move towards 0 (UP)
-    // dir > 0 is scroll down -> move towards numPositions - 1 (DOWN)
-    setCurrentPos((prev) => {
-      if (dir < 0) {
-        return Math.max(0, prev - 1);
-      } else {
-        return Math.min(numPositions - 1, prev + 1);
-      }
-    });
+    if (dir < 0) {
+      setPos(Math.max(0, currentPos - 1));
+    } else {
+      setPos(Math.min(numPositions - 1, currentPos + 1));
+    }
   };
 
   const isUp = currentPos === 0;
@@ -88,7 +95,7 @@ function ToggleSwitch({
               p ? (
                 <span
                   key={i}
-                  onClick={() => setCurrentPos(i)}
+                  onClick={() => setPos(i)}
                   className="px-0.5 text-white bg-[#7a8183] text-[9px] font-bold leading-none whitespace-nowrap cursor-pointer"
                 >
                   {p}
@@ -133,6 +140,23 @@ function Annunciator({
 
 export function PneumaticPanel() {
   const [isOvhtTest, setIsOvhtTest] = useState(false);
+  const {
+    switches,
+    setLPack,
+    setIsolationValve,
+    setRPack,
+    setEng1Bleed,
+    setApuBleed,
+    setEng2Bleed,
+    leftDuctPressurePsi,
+    rightDuctPressurePsi,
+    isDualBleed,
+  } = usePneumatic();
+
+  const lNeedleAngle =
+    150 + (Math.min(80, Math.max(0, leftDuctPressurePsi)) / 80) * 180;
+  const rNeedleAngle =
+    150 + (Math.min(80, Math.max(0, rightDuctPressurePsi)) / 80) * 180;
 
   const paths = `
     M 80 491 L 80 320
@@ -179,7 +203,7 @@ export function PneumaticPanel() {
         {/* Top Section */}
         {/* Annunciators */}
         <div className="absolute top-3.75 left-32.5 -translate-x-1/2 flex gap-0 z-20">
-          <Annunciator color="amber">
+          <Annunciator color="amber" lit={isDualBleed}>
             DUAL
             <br />
             BLEED
@@ -307,15 +331,15 @@ export function PneumaticPanel() {
 
             {/* L Needle */}
             <div
-              className="absolute top-1/2 left-1/2 w-3 h-13.5 origin-bottom -ml-1.5 -mt-13.5 z-20 flex flex-col items-center"
-              style={{ transform: "rotate(255deg)" }}
+              className="absolute top-1/2 left-1/2 w-3 h-13.5 origin-bottom -ml-1.5 -mt-13.5 z-20 flex flex-col items-center transition-transform duration-300 ease-out"
+              style={{ transform: `rotate(${lNeedleAngle}deg)` }}
             >
               <div className="w-0 h-0 border-l-2 border-r-2 border-b-18 border-transparent border-b-white" />
               <div className="w-0.75 h-2 bg-white" />
               <div className="w-2.75 h-3.5 bg-white flex items-center justify-center rounded-[1px]">
                 <span
                   className="text-[9px] font-bold text-black leading-none mt-px"
-                  style={{ transform: "rotate(-255deg)" }}
+                  style={{ transform: `rotate(${-lNeedleAngle}deg)` }}
                 >
                   L
                 </span>
@@ -325,15 +349,15 @@ export function PneumaticPanel() {
 
             {/* R Needle */}
             <div
-              className="absolute top-1/2 left-1/2 w-3 h-13.5 origin-bottom -ml-1.5 -mt-13.5 z-20 flex flex-col items-center"
-              style={{ transform: "rotate(225deg)" }}
+              className="absolute top-1/2 left-1/2 w-3 h-13.5 origin-bottom -ml-1.5 -mt-13.5 z-20 flex flex-col items-center transition-transform duration-300 ease-out"
+              style={{ transform: `rotate(${rNeedleAngle}deg)` }}
             >
               <div className="w-0 h-0 border-l-2 border-r-2 border-b-18 border-transparent border-b-white" />
               <div className="w-0.75 h-2 bg-white" />
               <div className="w-2.75 h-3.5 bg-white flex items-center justify-center rounded-[1px]">
                 <span
                   className="text-[9px] font-bold text-black leading-none mt-px"
-                  style={{ transform: "rotate(-225deg)" }}
+                  style={{ transform: `rotate(${-rNeedleAngle}deg)` }}
                 >
                   R
                 </span>
@@ -364,7 +388,12 @@ export function PneumaticPanel() {
           <ToggleSwitch
             labelTop="L PACK"
             positions={["OFF", "AUTO", "HIGH"]}
-            activePos={1}
+            activePos={
+              switches.lPack === "OFF" ? 0 : switches.lPack === "AUTO" ? 1 : 2
+            }
+            onChange={(p) =>
+              setLPack(p === 0 ? "OFF" : p === 1 ? "AUTO" : "HIGH")
+            }
           />
         </div>
         <div className="absolute top-67 left-50 -translate-x-1/2">
@@ -372,7 +401,16 @@ export function PneumaticPanel() {
             labelTop={["ISOLATION", "VALVE", "CLOSE"]}
             labelBottom="OPEN"
             positions={["", "AUTO", ""]}
-            activePos={1}
+            activePos={
+              switches.isolationValve === "CLOSE"
+                ? 0
+                : switches.isolationValve === "AUTO"
+                  ? 1
+                  : 2
+            }
+            onChange={(p) =>
+              setIsolationValve(p === 0 ? "CLOSE" : p === 1 ? "AUTO" : "OPEN")
+            }
             positionsOffset="-mt-2"
           />
         </div>
@@ -380,7 +418,12 @@ export function PneumaticPanel() {
           <ToggleSwitch
             labelTop="R PACK"
             positions={["OFF", "AUTO", "HIGH"]}
-            activePos={1}
+            activePos={
+              switches.rPack === "OFF" ? 0 : switches.rPack === "AUTO" ? 1 : 2
+            }
+            onChange={(p) =>
+              setRPack(p === 0 ? "OFF" : p === 1 ? "AUTO" : "HIGH")
+            }
             align="left"
           />
         </div>
@@ -443,18 +486,25 @@ export function PneumaticPanel() {
           <ToggleSwitch
             labelBottom="1"
             positions={["OFF", "ON"]}
-            activePos={1}
+            activePos={switches.eng1Bleed ? 1 : 0}
+            onChange={(p) => setEng1Bleed(p === 1)}
             align="right"
           />
         </div>
         <div className="absolute top-118.75 left-37.5 -translate-x-1/2">
-          <ToggleSwitch labelBottom="APU" positions={[]} activePos={0} />
+          <ToggleSwitch
+            labelBottom="APU"
+            positions={["OFF", "ON"]}
+            activePos={switches.apuBleed ? 1 : 0}
+            onChange={(p) => setApuBleed(p === 1)}
+          />
         </div>
         <div className="absolute top-118.75 left-80 -translate-x-1/2">
           <ToggleSwitch
             labelBottom="2"
             positions={["OFF", "ON"]}
-            activePos={1}
+            activePos={switches.eng2Bleed ? 1 : 0}
+            onChange={(p) => setEng2Bleed(p === 1)}
             align="left"
           />
         </div>
