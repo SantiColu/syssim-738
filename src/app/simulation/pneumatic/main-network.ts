@@ -16,9 +16,9 @@ function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
 
 const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-01", [
-    [362, 194],
-    [362, 217, "on-off"],
-    [362, 228],
+    [362, 209],
+    [362, 232, "on-off"],
+    [362, 243],
     [362, 253],
     [363, 300],
     [363, 320],
@@ -49,23 +49,23 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [381, 518],
   ]),
   legacyLine("legacy-04", [
-    [362, 228],
-    [372, 228, "on-off"],
-    [384, 228],
-    [397, 228],
+    [362, 243],
+    [372, 243, "on-off"],
+    [384, 243],
+    [397, 243],
   ]),
   legacyLine("legacy-05", [
-    [384, 228],
-    [384, 241, "check-valve-reverse"],
-    [384, 260] 
+    [384, 243],
+    [384, 256, "check-valve-reverse"],
+    [384, 275] 
   ]),
   legacyLine("legacy-06", [
-    [397, 228],
-    [397, 216, "on-off"],
-    [397, 194],
+    [397, 243],
+    [397, 231, "on-off"],
+    [397, 209],
   ]),
   legacyLine("legacy-07", [
-    [397, 228],
+    [397, 243],
     [397, 254],
     [397, 285],
     [380, 285],
@@ -264,7 +264,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 384, y: 260 },
+      point: { x: 384, y: 275 },
       sourceKind: "apu",
       label: "External Air Conection",
       initial: {

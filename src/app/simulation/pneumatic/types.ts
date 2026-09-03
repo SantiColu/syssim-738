@@ -32,12 +32,12 @@ export type ConsumerInfo = {
 };
 
 export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
-  "sink-362-194": {
+  "sink-362-209": {
     label: "Pack L",
     fullLabel: "Left Air Conditioning Pack (ACM)",
     category: "air-conditioning",
   },
-  "sink-397-194": {
+  "sink-397-209": {
     label: "Pack R",
     fullLabel: "Right Air Conditioning Pack (ACM)",
     category: "air-conditioning",

@@ -446,14 +446,14 @@ function ConsumerNode({
     ? getTemperatureColor(solved.temperatureC)
     : "#ef4444";
 
-  const isPack = node.id.includes("194");
+  const isPack = node.id.includes("209");
   const isCowl = node.id === "sink-303-213" || node.id === "sink-457-213";
   const isWing = node.id === "sink-268-282" || node.id === "sink-492-282";
 
   const offsetX =
-    node.id === "sink-362-194"
+    node.id === "sink-362-209"
       ? 6
-      : node.id === "sink-397-194"
+      : node.id === "sink-397-209"
         ? -6
         : node.id === "sink-303-213"
           ? 8

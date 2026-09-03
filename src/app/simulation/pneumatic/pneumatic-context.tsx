@@ -115,7 +115,7 @@ function computeRuntimeState(
   }
 
   // Ground Air connection: enabled when Ground Air is connected
-  const gndAirSourceId = "source-apu-384-260";
+  const gndAirSourceId = "source-apu-384-275";
   if (sources[gndAirSourceId]) {
     sources[gndAirSourceId] = {
       ...sources[gndAirSourceId],
@@ -124,17 +124,17 @@ function computeRuntimeState(
   }
 
   // The 6 valves mapped to the 6 switches:
-  // 1. L PACK Valve -> valve-362-217
-  // 2. ISOLATION Valve -> valve-372-228
-  // 3. R PACK Valve -> valve-397-216
+  // 1. L PACK Valve -> valve-362-232
+  // 2. ISOLATION Valve -> valve-372-243
+  // 3. R PACK Valve -> valve-397-231
   // 4. ENG 1 BLEED Valve (PRSOV) -> valve-326-253
   // 5. APU BLEED Valve -> valve-371-496
   // 6. ENG 2 BLEED Valve (PRSOV) -> valve-435-254
   const accessories: PneumaticRuntimeState["accessories"] = {
     ...MAIN_PNEUMATIC_SYSTEM.initialState.accessories,
-    "valve-362-217": { open: switches.lPack !== "OFF" },
-    "valve-372-228": { open: isIsoOpen },
-    "valve-397-216": { open: switches.rPack !== "OFF" },
+    "valve-362-232": { open: switches.lPack !== "OFF" },
+    "valve-372-243": { open: isIsoOpen },
+    "valve-397-231": { open: switches.rPack !== "OFF" },
     "valve-326-253": { open: switches.eng1Bleed },
     "valve-371-496": { open: switches.apuBleed },
     "valve-435-254": { open: switches.eng2Bleed },
@@ -196,21 +196,21 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Pressure readings for DUCT PRESS gauge
-  // Left manifold at junction-362-228 or valve-362-217
+  // Left manifold at junction-362-243 or valve-362-232
   const leftDuctPressurePsi =
-    solution.nodes["junction-362-228"]?.pressurePsi ??
-    solution.nodes["valve-372-228"]?.pressurePsi ??
+    solution.nodes["junction-362-243"]?.pressurePsi ??
+    solution.nodes["valve-372-243"]?.pressurePsi ??
     0;
 
-  // Right manifold at junction-397-228 or valve-397-216
+  // Right manifold at junction-397-243 or valve-397-231
   const rightDuctPressurePsi =
-    solution.nodes["junction-397-228"]?.pressurePsi ??
-    solution.nodes["valve-397-216"]?.pressurePsi ??
+    solution.nodes["junction-397-243"]?.pressurePsi ??
+    solution.nodes["valve-397-231"]?.pressurePsi ??
     0;
 
   // DUAL BLEED annunciator logic:
   // APU bleed valve is open AND APU is running AND (eng 1 bleed on OR (eng 2 bleed on AND isolation valve open))
-  const isIsoOpen = runtimeState.accessories["valve-372-228"]?.open ?? false;
+  const isIsoOpen = runtimeState.accessories["valve-372-243"]?.open ?? false;
   const isDualBleed =
     switches.apuBleed &&
     sourcesState.apuRunning &&

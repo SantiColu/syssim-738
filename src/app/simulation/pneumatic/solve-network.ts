@@ -41,12 +41,12 @@ const CHECK_VALVE_FLOW_RULES: Record<
     allowedOutlet: (pos: Point) => boolean;
   }
 > = {
-  // Ground Air Check Valve at (384, 241):
-  // Allows UPward flow from Ground Air connection (384, 260) -> Manifold (384, 228)
-  // Blocks reverse flow from Manifold (384, 228) down to Ground connection (384, 260)
-  "valve-384-241": {
-    allowedInlet: (pos) => pos.y > 241, // from Ground Connection (y = 260)
-    allowedOutlet: (pos) => pos.y < 241, // to Manifold (y = 228)
+  // Ground Air Check Valve at (384, 256):
+  // Allows UPward flow from Ground Air connection (384, 275) -> Manifold (384, 243)
+  // Blocks reverse flow from Manifold (384, 243) down to Ground connection (384, 275)
+  "valve-384-256": {
+    allowedInlet: (pos) => pos.y > 256, // from Ground Connection (y = 275)
+    allowedOutlet: (pos) => pos.y < 256, // to Manifold (y = 243)
   },
   // APU Check Valve at (366, 475):
   // Allows UPward flow from APU (371, 496) -> Manifold (363, 435)
