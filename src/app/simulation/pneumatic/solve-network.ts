@@ -2,6 +2,7 @@ import type {
   MediumState,
   PneumaticLayout,
   PneumaticNetwork,
+  PneumaticNode,
   PneumaticRuntimeState,
   PneumaticSolution,
   Point,
@@ -17,9 +18,15 @@ const EMPTY_NODE_STATE: SolvedNodeState = {
 
 function shouldReplaceMedium(
   current: SolvedNodeState,
-  candidate: MediumState,
+  candidate: SolvedNodeState,
 ) {
-  return !current.energized || candidate.pressurePsi > current.pressurePsi;
+  return (
+    !current.energized ||
+    candidate.pressurePsi > current.pressurePsi ||
+    (candidate.pressurePsi === current.pressurePsi &&
+      candidate.sourceId === current.sourceId &&
+      candidate.temperatureC !== current.temperatureC)
+  );
 }
 
 function getNodePoint(nodeId: string, layout?: PneumaticLayout): Point {
@@ -71,6 +78,47 @@ const CHECK_VALVE_FLOW_RULES: Record<
   },
 };
 
+export const PRECOOLER_COLD_TEMPERATURE_WEIGHT = 0.5;
+
+type PrecoolerPort = "cold-inlet" | "hot-inlet" | "hot-outlet";
+
+function getPrecoolerDirection(node: PneumaticNode): 1 | -1 | null {
+  if (node.kind !== "accessory") return null;
+  if (node.accessory.kind === "precooler") return 1;
+  if (node.accessory.kind === "precooler-reverse") return -1;
+  if (node.accessory.kind === "heat-exchanger") return 1;
+  return null;
+}
+
+function getPrecoolerPort(
+  node: PneumaticNode,
+  center: Point,
+  neighbor: Point,
+): PrecoolerPort | null {
+  const direction = getPrecoolerDirection(node);
+  if (!direction) return null;
+
+  const dx = neighbor.x - center.x;
+  const dy = neighbor.y - center.y;
+  if (dy < 0 && Math.abs(dy) > Math.abs(dx)) return "cold-inlet";
+  return dx * direction < 0 ? "hot-inlet" : "hot-outlet";
+}
+
+function solvePrecoolerOutlet(
+  hot: SolvedNodeState,
+  cold?: MediumState,
+): SolvedNodeState {
+  if (!cold) return { ...hot };
+
+  const coldWeight = PRECOOLER_COLD_TEMPERATURE_WEIGHT;
+  return {
+    ...hot,
+    temperatureC: Math.round(
+      hot.temperatureC * (1 - coldWeight) + cold.temperatureC * coldWeight,
+    ),
+  };
+}
+
 export function solvePneumaticNetwork(
   network: PneumaticNetwork,
   runtime: PneumaticRuntimeState,
@@ -96,6 +144,8 @@ export function solvePneumaticNetwork(
     ]),
   );
   const queue: string[] = [];
+  const precoolerHotInputs = new Map<string, SolvedNodeState>();
+  const precoolerColdInputs = new Map<string, MediumState>();
 
   for (const node of network.nodes) {
     if (node.kind !== "source") continue;
@@ -112,13 +162,8 @@ export function solvePneumaticNetwork(
 
   const ENG1_5TH = "source-engine-307-236";
   const ENG1_9TH = "source-engine-307-253";
-  const ENG1_FAN = "source-engine-326-212";
-  const ENG1_PRECOOLER = "valve-337-253";
-
   const ENG2_5TH = "source-engine-453-236";
   const ENG2_9TH = "source-engine-453-254";
-  const ENG2_FAN = "source-engine-434-212";
-  const ENG2_PRECOOLER = "valve-424-254";
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
@@ -132,14 +177,6 @@ export function solvePneumaticNetwork(
         currentNode.accessory.normallyOpen);
 
     if (!currentValveOpen) continue;
-
-    // Fan Air cools the precooler, but terminates at the precooler and does not enter the bleed duct
-    if (
-      (currentId === ENG1_PRECOOLER && currentState.sourceId === ENG1_FAN) ||
-      (currentId === ENG2_PRECOOLER && currentState.sourceId === ENG2_FAN)
-    ) {
-      continue;
-    }
 
     // Handle 5th and 9th stage mixing at engine junctions:
     // When both stages are active, the temperature is the average of 5th (~200°C) and 9th (~390°C) -> 295°C
@@ -172,45 +209,69 @@ export function solvePneumaticNetwork(
       }
     }
 
-    // Handle Precooler heat exchange:
-    // Hot bleed air is cooled by mixing/averaging with cold Fan Air (~25°C) -> ~160°C
-    if (currentId === ENG1_PRECOOLER) {
-      const isFanActive = runtime.sources[ENG1_FAN]?.enabled ?? false;
-      if (isFanActive) {
-        const tCooled = Math.round((currentState.temperatureC + 25) / 2); // e.g. (295 + 25)/2 = 160°C
-        currentState.temperatureC = tCooled;
-        nodes[ENG1_PRECOOLER].temperatureC = tCooled;
-      }
-    }
-
-    if (currentId === ENG2_PRECOOLER) {
-      const isFanActive = runtime.sources[ENG2_FAN]?.enabled ?? false;
-      if (isFanActive) {
-        const tCooled = Math.round((currentState.temperatureC + 25) / 2); // e.g. (295 + 25)/2 = 160°C
-        currentState.temperatureC = tCooled;
-        nodes[ENG2_PRECOOLER].temperatureC = tCooled;
-      }
-    }
-
     for (const link of linksByNode.get(currentId) ?? []) {
       const nextId = link.from === currentId ? link.to : link.from;
       const nextNode = nodeById.get(nextId)!;
       const nextPos = getNodePoint(nextId, layout);
 
-      // Do not allow pneumatic air to push back into Fan Air intake
-      if (nextId === ENG1_FAN || nextId === ENG2_FAN) {
+      const currentPrecoolerPort = getPrecoolerPort(
+        currentNode,
+        currentPos,
+        nextPos,
+      );
+      if (currentPrecoolerPort && currentPrecoolerPort !== "hot-outlet") {
         continue;
       }
 
-      // Do not allow pneumatic bleed air from Precooler to push back into Fan Air cooling duct (y < 250)
-      if (
-        (currentId === ENG1_PRECOOLER || currentId === ENG2_PRECOOLER) &&
-        currentState.sourceId !== ENG1_FAN &&
-        currentState.sourceId !== ENG2_FAN
-      ) {
-        if (nextPos.y < 250) {
-          continue;
+      const nextPrecoolerPort = getPrecoolerPort(
+        nextNode,
+        nextPos,
+        currentPos,
+      );
+      if (nextPrecoolerPort) {
+        // A precooler is a directional heat exchanger, not a junction:
+        // cold air terminates at the cold side, while hot bleed can only cross
+        // from the declared inlet to the declared outlet.
+        links[link.id] = {
+          state: "active",
+          medium: {
+            pressurePsi: currentState.pressurePsi,
+            temperatureC: currentState.temperatureC,
+          },
+        };
+
+        // Reverse pressure reaches the outlet face, but cannot cross the
+        // exchanger/check-valve element into the engine bleed side.
+        if (nextPrecoolerPort === "hot-outlet") continue;
+
+        if (nextPrecoolerPort === "cold-inlet") {
+          precoolerColdInputs.set(nextId, {
+            pressurePsi: currentState.pressurePsi,
+            temperatureC: currentState.temperatureC,
+          });
+        } else {
+          const previousHot = precoolerHotInputs.get(nextId);
+          if (!previousHot || shouldReplaceMedium(previousHot, currentState)) {
+            precoolerHotInputs.set(nextId, { ...currentState });
+          }
         }
+
+        const hotInput = precoolerHotInputs.get(nextId);
+        if (hotInput) {
+          const outlet = solvePrecoolerOutlet(
+            hotInput,
+            precoolerColdInputs.get(nextId),
+          );
+          if (shouldReplaceMedium(nodes[nextId], outlet)) {
+            nodes[nextId] = outlet;
+            const nextPrecoolerOpen =
+              runtime.accessories[nextId]?.open ??
+              (nextNode.kind === "accessory" &&
+                nextNode.accessory.normallyOpen);
+            if (nextPrecoolerOpen) queue.push(nextId);
+          }
+        }
+        continue;
       }
 
       // Check if current node is a check valve exiting towards nextId:

@@ -1,13 +1,15 @@
 import {
-  getTemperatureColor,
+  getPneumaticColor,
   KNOWN_CONSUMERS,
   type PneumaticLayout,
+  type PneumaticColorMode,
   type PneumaticNetwork,
   type PneumaticNode,
   type PneumaticRuntimeState,
   type PneumaticSolution,
   type Point,
   type SolvedNodeState,
+  type ValveKind,
 } from "../simulation/pneumatic/types";
 
 type PneumaticNetworkLayerProps = {
@@ -15,6 +17,7 @@ type PneumaticNetworkLayerProps = {
   layout: PneumaticLayout;
   solution: PneumaticSolution;
   runtimeState?: PneumaticRuntimeState;
+  colorMode?: PneumaticColorMode;
 };
 
 
@@ -58,12 +61,16 @@ function ValveNode({
   solved,
   angle,
   isOpen,
+  colorMode,
+  showTitle = true,
 }: {
   node: Extract<PneumaticNode, { kind: "accessory" }>;
   point: Point;
   solved: SolvedNodeState;
   angle: number;
   isOpen: boolean;
+  colorMode: PneumaticColorMode;
+  showTitle?: boolean;
 }) {
   const valveKind = node.accessory.kind;
 
@@ -73,7 +80,9 @@ function ValveNode({
     valveKind === "check-valve-rev";
   const isCheckValve = valveKind === "check-valve" || isReverseCheck;
   const isPrecooler =
-    valveKind === "precooler" || valveKind === "heat-exchanger";
+    valveKind === "precooler" ||
+    valveKind === "precooler-reverse" ||
+    valveKind === "heat-exchanger";
   const effectiveAngle =
     valveKind === "starter-turbine"
       ? 0
@@ -81,8 +90,8 @@ function ValveNode({
         ? angle + 180
         : angle;
   const isEnergized = solved.energized;
-  const tempColor = isEnergized
-    ? getTemperatureColor(solved.temperatureC)
+  const mediumColor = isEnergized
+    ? getPneumaticColor(solved, colorMode)
     : "#ef4444";
 
   return (
@@ -95,19 +104,21 @@ function ValveNode({
       transform={`translate(${point.x} ${point.y})`}
       className="cursor-pointer select-none"
     >
-      <title>
-        {isPrecooler
-          ? `Precooler / Intercambiador de calor · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-          : isCheckValve
-            ? `Válvula de retención (Check Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-            : valveKind === "starter-turbine"
-              ? `Turbina de arranque (Air Starter Turbine) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-              : valveKind === "modulating"
-                ? `Válvula moduladora / reguladora · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-                : valveKind === "solenoid"
-                  ? `Válvula con solenoide (Solenoid Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-                  : `Válvula ON/OFF · ${isOpen ? "Abierta" : "Cerrada"} · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`}
-      </title>
+      {showTitle && (
+        <title>
+          {isPrecooler
+            ? `Precooler / Intercambiador de calor · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+            : isCheckValve
+              ? `Válvula de retención (Check Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+              : valveKind === "starter-turbine"
+                ? `Turbina de arranque (Air Starter Turbine) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                : valveKind === "modulating"
+                  ? `Válvula moduladora / reguladora · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                  : valveKind === "solenoid"
+                    ? `Válvula con solenoide (Solenoid Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                    : `Válvula ON/OFF · ${isOpen ? "Abierta" : "Cerrada"} · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`}
+        </title>
+      )}
 
       <g transform={`rotate(${effectiveAngle})`}>
         {/* PRECOOLER / HEAT EXCHANGER: Clean white / zinc-gray / dark surface core */}
@@ -305,7 +316,7 @@ function ValveNode({
               <path
                 d="M -2.1 -2.0 Q -0.75 0.15 -0.55 1.3 L 0.55 1.3 Q 0.75 0.15 2.1 -2.0 Z"
                 fill="none"
-                stroke={tempColor}
+                stroke={mediumColor}
                 strokeWidth="0.32"
               />
             )}
@@ -387,13 +398,17 @@ function SourceInletNode({
   node,
   point,
   solved,
+  colorMode = "temperature",
+  showTitle = true,
 }: {
   node: Extract<PneumaticNode, { kind: "source" }>;
   point: Point;
   solved: SolvedNodeState;
+  colorMode?: PneumaticColorMode;
+  showTitle?: boolean;
 }) {
   const isEnergized = solved.energized;
-  const tempColor = getTemperatureColor(solved.temperatureC);
+  const mediumColor = getPneumaticColor(solved, colorMode);
 
   return (
     <g
@@ -404,14 +419,16 @@ function SourceInletNode({
       transform={`translate(${point.x} ${point.y})`}
       className="cursor-pointer group select-none"
     >
-      <title>
-        {`${node.label} · ${isEnergized ? `${solved.pressurePsi} PSI · ${solved.temperatureC} °C` : "OFF / STANDBY"} (Punto de toma de presión)`}
-      </title>
+      {showTitle && (
+        <title>
+          {`${node.label} · ${isEnergized ? `${solved.pressurePsi} PSI · ${solved.temperatureC} °C` : "OFF / STANDBY"} (Punto de toma de presión)`}
+        </title>
+      )}
 
-      {/* Small circle colored according to temperature: Blue for cold fan air, scale of reds for hot air */}
+      {/* Source marker follows the selected pressure/temperature color scale. */}
       <circle
         r="2.2"
-        fill={isEnergized ? tempColor : "#3f3f46"}
+        fill={isEnergized ? mediumColor : "#3f3f46"}
         stroke="#090d16"
         strokeWidth="0.5"
       />
@@ -420,7 +437,7 @@ function SourceInletNode({
       <circle
         r="4.2"
         fill="none"
-        stroke={isEnergized ? tempColor : "#71717a"}
+        stroke={isEnergized ? mediumColor : "#71717a"}
         className="opacity-0 transition-opacity duration-150 group-hover:opacity-60"
         strokeWidth="0.5"
         strokeDasharray="1.5 1"
@@ -429,21 +446,87 @@ function SourceInletNode({
   );
 }
 
+const LEGEND_MEDIUM: SolvedNodeState = {
+  energized: true,
+  pressurePsi: 36,
+  temperatureC: 200,
+  sourceId: "legend",
+};
+
+export function PneumaticAccessoryLegendIcon({
+  kind,
+  colorMode,
+}: {
+  kind: ValveKind;
+  colorMode: PneumaticColorMode;
+}) {
+  const node: Extract<PneumaticNode, { kind: "accessory" }> = {
+    id: `legend-${kind}`,
+    kind: "accessory",
+    accessory: { kind, normallyOpen: true },
+  };
+
+  return (
+    <svg
+      className="h-4 w-5 shrink-0 overflow-visible"
+      viewBox="-7 -5 14 10"
+      aria-hidden="true"
+    >
+      <ValveNode
+        node={node}
+        point={{ x: 0, y: 0 }}
+        solved={LEGEND_MEDIUM}
+        angle={0}
+        isOpen
+        colorMode={colorMode}
+        showTitle={false}
+      />
+    </svg>
+  );
+}
+
+export function PneumaticSourceLegendIcon({
+  colorMode,
+}: {
+  colorMode: PneumaticColorMode;
+}) {
+  const node: Extract<PneumaticNode, { kind: "source" }> = {
+    id: "legend-source",
+    kind: "source",
+    sourceKind: "engine",
+    label: "Air source",
+  };
+
+  return (
+    <svg className="size-4 shrink-0 overflow-visible" viewBox="-5 -5 10 10" aria-hidden="true">
+      <SourceInletNode
+        node={node}
+        point={{ x: 0, y: 0 }}
+        solved={LEGEND_MEDIUM}
+        colorMode={colorMode}
+        showTitle={false}
+      />
+    </svg>
+  );
+}
+
 function ConsumerNode({
   node,
   point,
   solved,
+  colorMode,
 }: {
   node: PneumaticNode;
   point: Point;
   solved: SolvedNodeState;
+  colorMode: PneumaticColorMode;
 }) {
   const consumer = KNOWN_CONSUMERS[node.id];
   if (!consumer) return null;
 
   const isEnergized = solved.energized && solved.pressurePsi > 0;
-  const tempColor = isEnergized
-    ? getTemperatureColor(solved.temperatureC)
+  const mediumColor = isEnergized
+    ? getPneumaticColor(solved, colorMode)
     : "#ef4444";
 
   const isPack = node.id.includes("209");
@@ -502,7 +585,7 @@ function ConsumerNode({
         strokeWidth="0.65"
       />
 
-      {/* Fine inner contour in red/temperature color when pressurized */}
+      {/* Fine inner contour follows the selected scale when pressurized. */}
       {isEnergized && (
         <rect
           x={-width / 2 + 0.6}
@@ -511,7 +594,7 @@ function ConsumerNode({
           height={height - 1.2}
           rx={Math.max(0.6, rx - 0.4)}
           fill="none"
-          stroke={tempColor}
+          stroke={mediumColor}
           strokeWidth="0.32"
         />
       )}
@@ -536,6 +619,7 @@ export function PneumaticNetworkLayer({
   layout,
   solution,
   runtimeState,
+  colorMode = "temperature",
 }: PneumaticNetworkLayerProps) {
   return (
     <g
@@ -547,9 +631,9 @@ export function PneumaticNetworkLayer({
         const solved = solution.links[link.id];
         const route = layout.linkRoutes[link.id];
         const path = pointsToPath(route);
-        const tempColor = solved.medium
-          ? getTemperatureColor(solved.medium.temperatureC)
-          : "#38bdf8";
+        const mediumColor = solved.medium
+          ? getPneumaticColor(solved.medium, colorMode)
+          : "#52525b";
 
         return (
           <g
@@ -574,7 +658,7 @@ export function PneumaticNetworkLayer({
                   ? "stroke-sim-line-inactive"
                   : undefined
               }
-              stroke={solved.state !== "inactive" ? tempColor : undefined}
+              stroke={solved.state !== "inactive" ? mediumColor : undefined}
               d={path}
               strokeWidth="0.85"
               strokeDasharray={solved.state === "isolated" ? "7 5" : undefined}
@@ -589,8 +673,8 @@ export function PneumaticNetworkLayer({
         .map((node) => {
           const point = layout.nodePositions[node.id];
           const solved = solution.nodes[node.id];
-          const tempColor = solved.energized
-            ? getTemperatureColor(solved.temperatureC)
+          const mediumColor = solved.energized
+            ? getPneumaticColor(solved, colorMode)
             : undefined;
 
           return (
@@ -599,7 +683,7 @@ export function PneumaticNetworkLayer({
               className={
                 solved.energized ? undefined : "fill-sim-line-inactive"
               }
-              fill={tempColor}
+              fill={mediumColor}
               cx={point.x}
               cy={point.y}
               r="0.9"
@@ -631,11 +715,12 @@ export function PneumaticNetworkLayer({
               solved={solved}
               angle={angle}
               isOpen={isOpen}
+              colorMode={colorMode}
             />
           );
         })}
 
-      {/* 4. Pressure Inlet Sources: Simple small yellow circles without labels */}
+      {/* 4. Pressure inlet sources */}
       {network.nodes
         .filter(
           (node): node is Extract<PneumaticNode, { kind: "source" }> =>
@@ -651,6 +736,7 @@ export function PneumaticNetworkLayer({
               node={node}
               point={point}
               solved={solved}
+              colorMode={colorMode}
             />
           );
         })}
@@ -668,6 +754,7 @@ export function PneumaticNetworkLayer({
               node={node}
               point={point}
               solved={solved}
+              colorMode={colorMode}
             />
           );
         })}

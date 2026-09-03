@@ -4,7 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { MAIN_PNEUMATIC_SYSTEM } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
-import { PneumaticNetworkLayer } from "./pneumatic-network-layer";
+import type {
+  PneumaticColorMode,
+  ValveKind,
+} from "../simulation/pneumatic/types";
+import {
+  PneumaticAccessoryLegendIcon,
+  PneumaticNetworkLayer,
+  PneumaticSourceLegendIcon,
+} from "./pneumatic-network-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -12,6 +20,18 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const BUTTON_ZOOM_STEP = 0.5;
 const WHEEL_ZOOM_STEP = 0.25;
+const COLOR_SCALE_VALUES: Record<PneumaticColorMode, number[]> = {
+  temperature: [0, 45, 160, 240, 320, 400],
+  pressure: [0, 10, 20, 30, 40, 50],
+};
+const MAIN_ACCESSORY_LEGEND: { kind: ValveKind; label: string }[] = [
+  { kind: "on-off", label: "SHUTOFF" },
+  { kind: "check-valve", label: "CHECK" },
+  { kind: "modulating", label: "MODULATING" },
+  { kind: "solenoid", label: "SOLENOID" },
+  { kind: "precooler", label: "PRECOOLER" },
+  { kind: "starter-turbine", label: "AIR STARTER" },
+];
 
 type ViewState = {
   scale: number;
@@ -56,6 +76,8 @@ function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
 export function PneumaticSchematic() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
+  const [colorMode, setColorMode] =
+    useState<PneumaticColorMode>("temperature");
   const { solution, runtimeState } = usePneumatic();
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -194,7 +216,7 @@ export function PneumaticSchematic() {
       </div>
       <svg
         ref={mainSvgRef}
-        className={`block h-full w-full touch-none select-none pb-9 max-[560px]:w-180 max-[560px]:-translate-x-26.25 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`block h-full w-full touch-none select-none pb-10 max-[560px]:w-180 max-[560px]:-translate-x-26.25 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
         viewBox="0 0 760 580"
         role="img"
         aria-label="Vista técnica del Boeing 737-800 desde arriba"
@@ -230,6 +252,7 @@ export function PneumaticSchematic() {
             layout={MAIN_PNEUMATIC_SYSTEM.layout}
             solution={solution}
             runtimeState={runtimeState}
+            colorMode={colorMode}
           />
           <use
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
@@ -309,56 +332,89 @@ export function PneumaticSchematic() {
         </div>
       </div>
 
-      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 flex h-7 items-center overflow-x-auto border border-sim-border bg-sim-surface px-3 text-[7.5px] tracking-wider text-sim-text-muted whitespace-nowrap gap-x-3.5">
-        <span className="flex items-center gap-1">
-          <span className="inline-block size-2 rounded-full bg-amber-400 align-middle shadow-[0_0_4px_rgba(251,191,36,0.6)]" />
-          <span>PRESSURE INLET</span>
-        </span>
+      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 flex h-8 items-center overflow-x-auto border border-sim-border bg-sim-surface px-2 text-[7px] tracking-wider text-sim-text-muted whitespace-nowrap gap-x-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex h-full shrink-0 items-center gap-1.5 border-r border-sim-border pr-2">
+          <span className="text-[6.5px] tracking-[0.16em]">COLOR</span>
+          <div
+            className="flex"
+            role="group"
+            aria-label="Color de la red según variable"
+          >
+            {(["temperature", "pressure"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`h-5 cursor-pointer border px-2 text-[6.5px] tracking-wider transition-colors ${
+                  colorMode === mode
+                    ? "border-sim-accent bg-sim-accent/15 text-sim-text-strong"
+                    : "border-sim-border bg-transparent text-sim-text-muted hover:bg-sim-bg hover:text-sim-text-strong"
+                }`}
+                onClick={() => setColorMode(mode)}
+                aria-pressed={colorMode === mode}
+              >
+                {mode === "temperature" ? "TEMP" : "PRESS"}
+              </button>
+            ))}
+          </div>
 
-        <span className="flex items-center gap-1">
-          <span className="inline-flex h-2 w-3 items-center justify-center border border-sim-border bg-sim-surface text-[5px] text-sim-cyan">
-            ▶
+          <div className="w-36 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`h-2 flex-1 border border-white/15 ${
+                  colorMode === "temperature"
+                    ? "bg-[linear-gradient(90deg,#52525b_0%,#38bdf8_1%,#38bdf8_11.25%,rgb(250,130,130)_40%,rgb(235,55,55)_60%,rgb(200,25,25)_80%,rgb(255,18,18)_100%)]"
+                    : "bg-[linear-gradient(90deg,#52525b_0%,#6366f1_20%,#38bdf8_40%,#22c55e_60%,#facc15_80%,#f97316_100%)]"
+                }`}
+                aria-hidden="true"
+              />
+              <span className="w-4 text-[6px] text-sim-text-strong">
+                {colorMode === "temperature" ? "°C" : "PSI"}
+              </span>
+            </div>
+            <div className="relative mt-0.5 mr-5 h-1.5 text-[5.5px] leading-none tabular-nums text-sim-text-muted">
+              {COLOR_SCALE_VALUES[colorMode].map((value, index, values) => {
+                const maximum = values.at(-1) ?? 1;
+                const position = (value / maximum) * 100;
+
+                return (
+                  <span
+                    key={value}
+                    className={`absolute ${
+                      index === 0
+                        ? "translate-x-0"
+                        : index === values.length - 1
+                          ? "-translate-x-full"
+                          : "-translate-x-1/2"
+                    }`}
+                    style={{ left: `${position}%` }}
+                  >
+                    {value}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          <span className="sr-only" aria-live="polite">
+            Colores según{" "}
+            {colorMode === "temperature" ? "temperatura" : "presión"}
           </span>
-          <span>CHECK VALVE</span>
+        </div>
+
+        <span className="flex shrink-0 items-center gap-0.5">
+          <PneumaticSourceLegendIcon colorMode={colorMode} />
+          <span>AIR SOURCE</span>
         </span>
 
-        <span className="flex items-center gap-1">
-          <span className="inline-flex size-2 items-center justify-center border border-sim-border bg-sim-surface text-[6px] text-sim-cyan">
-            ⧖
+        {MAIN_ACCESSORY_LEGEND.map((item) => (
+          <span key={item.kind} className="flex shrink-0 items-center gap-0.5">
+            <PneumaticAccessoryLegendIcon
+              kind={item.kind}
+              colorMode={colorMode}
+            />
+            <span>{item.label}</span>
           </span>
-          <span>MODULATING</span>
-        </span>
+        ))}
 
-        <span className="flex items-center gap-1">
-          <span className="inline-flex h-2.5 w-3.5 items-center justify-center border border-sim-cyan/60 bg-sim-surface text-[7px] leading-none text-sim-cyan">
-            ▦
-          </span>
-          <span>PRECOOLER</span>
-        </span>
-
-        <span className="flex items-center gap-1">
-          <span className="inline-flex size-2 items-center justify-center rounded-full border border-sim-border bg-sim-surface text-[5px] font-bold text-sim-cyan">
-            S
-          </span>
-          <span>SOLENOID</span>
-        </span>
-
-        <span className="flex items-center gap-1">
-          <span className="inline-block text-[9px] leading-1 text-sim-green">
-            ⌀
-          </span>
-          <span>ON/OFF</span>
-        </span>
-
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3.5 border-t-2 border-sim-cyan" />
-          <span>ACTIVE FLOW</span>
-        </span>
-
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3.5 border-t border-dashed border-sim-line-isolated" />
-          <span>ISOLATED</span>
-        </span>
       </div>
     </section>
   );

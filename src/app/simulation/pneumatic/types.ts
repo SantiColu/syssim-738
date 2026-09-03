@@ -5,6 +5,8 @@ export type MediumState = {
   temperatureC: number;
 };
 
+export type PneumaticColorMode = "temperature" | "pressure";
+
 export type SourceKind = "engine" | "apu";
 
 export type ValveKind =
@@ -16,6 +18,7 @@ export type ValveKind =
   | "modulating"
   | "solenoid"
   | "precooler"
+  | "precooler-reverse"
   | "heat-exchanger"
   | "shutoff-valve"
   | "starter-turbine";
@@ -219,4 +222,47 @@ export function getTemperatureColor(tempC: number): string {
   const g = Math.round(25 + t * (18 - 25));
   const b = Math.round(25 + t * (18 - 25));
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+type ColorStop = {
+  value: number;
+  color: [number, number, number];
+};
+
+const PRESSURE_COLOR_STOPS: ColorStop[] = [
+  { value: 0, color: [82, 82, 91] },
+  { value: 10, color: [99, 102, 241] },
+  { value: 20, color: [56, 189, 248] },
+  { value: 30, color: [34, 197, 94] },
+  { value: 40, color: [250, 204, 21] },
+  { value: 50, color: [249, 115, 22] },
+];
+
+/** Maps pneumatic pressure to the same graduated 0–50 PSI scale shown in MAIN. */
+export function getPressureColor(pressurePsi: number): string {
+  if (pressurePsi <= 0) return "#52525b";
+
+  const upperIndex = PRESSURE_COLOR_STOPS.findIndex(
+    (stop) => pressurePsi <= stop.value,
+  );
+  if (upperIndex <= 0) return "#52525b";
+  if (upperIndex === -1) return "rgb(249, 115, 22)";
+
+  const lower = PRESSURE_COLOR_STOPS[upperIndex - 1];
+  const upper = PRESSURE_COLOR_STOPS[upperIndex];
+  const ratio = (pressurePsi - lower.value) / (upper.value - lower.value);
+  const channels = lower.color.map((channel, index) =>
+    Math.round(channel + ratio * (upper.color[index] - channel)),
+  );
+
+  return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`;
+}
+
+export function getPneumaticColor(
+  medium: MediumState,
+  mode: PneumaticColorMode,
+): string {
+  return mode === "pressure"
+    ? getPressureColor(medium.pressurePsi)
+    : getTemperatureColor(medium.temperatureC);
 }
