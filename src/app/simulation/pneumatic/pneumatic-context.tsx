@@ -83,9 +83,9 @@ function computeRuntimeState(
 
   // Engine 1 5th stage, 9th stage and Fan Air sources
   for (const eng1Id of [
-    "source-engine-306-253",
-    "source-engine-303-269",
-    "source-engine-330-212",
+    "source-engine-307-236",
+    "source-engine-307-253",
+    "source-engine-326-212",
   ]) {
     const s = sources[eng1Id];
     if (s) {
@@ -95,9 +95,9 @@ function computeRuntimeState(
 
   // Engine 2 5th stage, 9th stage and Fan Air sources
   for (const eng2Id of [
-    "source-engine-457-254",
-    "source-engine-457-271",
-    "source-engine-429-212",
+    "source-engine-453-236",
+    "source-engine-453-254",
+    "source-engine-434-212",
   ]) {
     const s = sources[eng2Id];
     if (s) {

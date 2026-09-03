@@ -16,11 +16,6 @@ type PneumaticNetworkLayerProps = {
   runtimeState?: PneumaticRuntimeState;
 };
 
-const linkStateClassNames = {
-  active: "stroke-sim-cyan",
-  inactive: "stroke-sim-line-inactive",
-  isolated: "stroke-sim-line-isolated",
-} as const;
 
 function pointsToPath(points: Point[]) {
   return points
@@ -78,11 +73,13 @@ function ValveNode({
   const isCheckValve = valveKind === "check-valve" || isReverseCheck;
   const isPrecooler =
     valveKind === "precooler" || valveKind === "heat-exchanger";
-  const effectiveAngle = isReverseCheck ? angle + 180 : angle;
+  const effectiveAngle =
+    valveKind === "starter-turbine"
+      ? 0
+      : isReverseCheck
+        ? angle + 180
+        : angle;
   const isEnergized = solved.energized;
-  const tempColor = isEnergized
-    ? getTemperatureColor(solved.temperatureC)
-    : "#38bdf8";
 
   return (
     <g
@@ -99,11 +96,13 @@ function ValveNode({
           ? `Precooler / Intercambiador de calor · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
           : isCheckValve
             ? `Válvula de retención (Check Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-            : valveKind === "modulating"
-              ? `Válvula moduladora / reguladora · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-              : valveKind === "solenoid"
-                ? `Válvula con solenoide (Solenoid Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-                : `Válvula ON/OFF · ${isOpen ? "Abierta" : "Cerrada"} · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`}
+            : valveKind === "starter-turbine"
+              ? `Turbina de arranque (Air Starter Turbine) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+              : valveKind === "modulating"
+                ? `Válvula moduladora / reguladora · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                : valveKind === "solenoid"
+                  ? `Válvula con solenoide (Solenoid Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                  : `Válvula ON/OFF · ${isOpen ? "Abierta" : "Cerrada"} · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`}
       </title>
 
       <g transform={`rotate(${effectiveAngle})`}>
@@ -274,6 +273,63 @@ function ValveNode({
               y2="-2.2"
               className="stroke-zinc-300"
               strokeWidth="0.45"
+            />
+          </g>
+        )}
+
+        {/* STARTER TURBINE: Vertical radial/axial air turbine matching technical schematic */}
+        {valveKind === "starter-turbine" && (
+          <g>
+            {/* Wide rotor wheel base on top */}
+            <rect
+              x="-2.7"
+              y="-3.0"
+              width="5.4"
+              height="0.75"
+              rx="0.25"
+              className="fill-zinc-200 stroke-white"
+              strokeWidth="0.38"
+            />
+            {/* Horn/funnel body tapering downwards to bottom nozzle */}
+            <path
+              d="M -2.5 -2.25 Q -0.9 0.2 -0.75 1.6 L 0.75 1.6 Q 0.9 0.2 2.5 -2.25 Z"
+              className="fill-sim-surface stroke-white"
+              strokeWidth="0.45"
+            />
+            {/* Inlet nozzle collar on bottom */}
+            <rect
+              x="-0.85"
+              y="1.6"
+              width="1.7"
+              height="0.75"
+              rx="0.2"
+              className="fill-zinc-300 stroke-white"
+              strokeWidth="0.32"
+            />
+            {/* Internal curved turbine blades radiating from bottom nozzle */}
+            <path
+              d="M -0.4 1.6 Q -0.6 0.0 -1.8 -1.8"
+              className="stroke-zinc-300 fill-none"
+              strokeWidth="0.32"
+              strokeLinecap="round"
+            />
+            <path
+              d="M -0.15 1.6 Q -0.2 0.0 -0.6 -2.0"
+              className="stroke-zinc-300 fill-none"
+              strokeWidth="0.32"
+              strokeLinecap="round"
+            />
+            <path
+              d="M 0.15 1.6 Q 0.2 0.0 0.6 -2.0"
+              className="stroke-zinc-300 fill-none"
+              strokeWidth="0.32"
+              strokeLinecap="round"
+            />
+            <path
+              d="M 0.4 1.6 Q 0.6 0.0 1.8 -1.8"
+              className="stroke-zinc-300 fill-none"
+              strokeWidth="0.32"
+              strokeLinecap="round"
             />
           </g>
         )}

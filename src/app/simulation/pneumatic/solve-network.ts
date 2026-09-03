@@ -55,19 +55,19 @@ const CHECK_VALVE_FLOW_RULES: Record<
     allowedInlet: (pos) => pos.y > 475, // from APU (y = 496)
     allowedOutlet: (pos) => pos.y < 475, // to Manifold (y = 435)
   },
-  // Engine 1 5th Stage Check Valve at (313, 253):
-  // Allows RIGHTward flow from 5th stage source (306, 253) -> Manifold/PRSOV (320, 253)
-  // Blocks reverse flow from 9th stage/manifold (320, 253) backwards into 5th stage
-  "valve-313-253": {
-    allowedInlet: (pos) => pos.x < 313, // from 5th stage (x = 306)
-    allowedOutlet: (pos) => pos.x > 313, // to Manifold (x = 320)
+  // Engine 1 5th Stage Check Valve at (314, 236):
+  // Allows RIGHTward flow from 5th stage source (307, 236) -> Manifold/PRSOV (320, 236)
+  // Blocks reverse flow from 9th stage/manifold (320, 236) backwards into 5th stage
+  "valve-314-236": {
+    allowedInlet: (pos) => pos.x < 314, // from 5th stage (x = 307)
+    allowedOutlet: (pos) => pos.x > 314, // to Manifold (x = 320)
   },
-  // Engine 2 5th Stage Check Valve at (449, 254):
-  // Allows LEFTward flow from 5th stage source (457, 254) -> Manifold/PRSOV (441, 254)
-  // Blocks reverse flow from 9th stage/manifold (441, 254) backwards into 5th stage
-  "valve-449-254": {
-    allowedInlet: (pos) => pos.x > 449, // from 5th stage (x = 457)
-    allowedOutlet: (pos) => pos.x < 449, // to Manifold (x = 441)
+  // Engine 2 5th Stage Check Valve at (447, 236):
+  // Allows LEFTward flow from 5th stage source (453, 236) -> Manifold/PRSOV (441, 236)
+  // Blocks reverse flow from 9th stage/manifold (441, 236) backwards into 5th stage
+  "valve-447-236": {
+    allowedInlet: (pos) => pos.x > 447, // from 5th stage (x = 453)
+    allowedOutlet: (pos) => pos.x < 447, // to Manifold (x = 441)
   },
 };
 
@@ -110,17 +110,15 @@ export function solvePneumaticNetwork(
     queue.push(node.id);
   }
 
-  const ENG1_5TH = "source-engine-306-253";
-  const ENG1_9TH = "source-engine-303-269";
-  const ENG1_FAN = "source-engine-330-212";
-  const ENG1_JUNCTION = "junction-320-253";
-  const ENG1_PRECOOLER = "valve-331-253";
+  const ENG1_5TH = "source-engine-307-236";
+  const ENG1_9TH = "source-engine-307-253";
+  const ENG1_FAN = "source-engine-326-212";
+  const ENG1_PRECOOLER = "valve-337-253";
 
-  const ENG2_5TH = "source-engine-457-254";
-  const ENG2_9TH = "source-engine-457-271";
-  const ENG2_FAN = "source-engine-429-212";
-  const ENG2_JUNCTION = "junction-441-254";
-  const ENG2_PRECOOLER = "valve-430-254";
+  const ENG2_5TH = "source-engine-453-236";
+  const ENG2_9TH = "source-engine-453-254";
+  const ENG2_FAN = "source-engine-434-212";
+  const ENG2_PRECOOLER = "valve-424-254";
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
@@ -135,52 +133,42 @@ export function solvePneumaticNetwork(
 
     if (!currentValveOpen) continue;
 
-    // Handle Fan Air: Fan air cools the precooler, but does NOT enter the pneumatic bleed lines
-    if (currentId === ENG1_FAN) {
-      for (const link of linksByNode.get(currentId) ?? []) {
-        links[link.id] = {
-          state: "active",
-          medium: {
-            pressurePsi: currentState.pressurePsi,
-            temperatureC: currentState.temperatureC,
-          },
-        };
-      }
-      continue;
-    }
-
-    if (currentId === ENG2_FAN) {
-      for (const link of linksByNode.get(currentId) ?? []) {
-        links[link.id] = {
-          state: "active",
-          medium: {
-            pressurePsi: currentState.pressurePsi,
-            temperatureC: currentState.temperatureC,
-          },
-        };
-      }
+    // Fan Air cools the precooler, but terminates at the precooler and does not enter the bleed duct
+    if (
+      (currentId === ENG1_PRECOOLER && currentState.sourceId === ENG1_FAN) ||
+      (currentId === ENG2_PRECOOLER && currentState.sourceId === ENG2_FAN)
+    ) {
       continue;
     }
 
     // Handle 5th and 9th stage mixing at engine junctions:
     // When both stages are active, the temperature is the average of 5th (~200°C) and 9th (~390°C) -> 295°C
-    if (currentId === ENG1_JUNCTION) {
+    if (
+      currentId === "junction-320-253" ||
+      currentId === "junction-320-254" ||
+      currentId === "junction-320-245"
+    ) {
       const is5thActive = runtime.sources[ENG1_5TH]?.enabled ?? false;
       const is9thActive = runtime.sources[ENG1_9TH]?.enabled ?? false;
       if (is5thActive && is9thActive) {
         const tMix = Math.round((200 + 390) / 2); // 295°C
         currentState.temperatureC = tMix;
-        nodes[ENG1_JUNCTION].temperatureC = tMix;
+        nodes[currentId].temperatureC = tMix;
       }
     }
 
-    if (currentId === ENG2_JUNCTION) {
+    if (
+      currentId === "junction-440-254" ||
+      currentId === "junction-441-254" ||
+      currentId === "junction-440-245" ||
+      currentId === "junction-441-245"
+    ) {
       const is5thActive = runtime.sources[ENG2_5TH]?.enabled ?? false;
       const is9thActive = runtime.sources[ENG2_9TH]?.enabled ?? false;
       if (is5thActive && is9thActive) {
         const tMix = Math.round((200 + 390) / 2); // 295°C
         currentState.temperatureC = tMix;
-        nodes[ENG2_JUNCTION].temperatureC = tMix;
+        nodes[currentId].temperatureC = tMix;
       }
     }
 
@@ -212,6 +200,17 @@ export function solvePneumaticNetwork(
       // Do not allow pneumatic air to push back into Fan Air intake
       if (nextId === ENG1_FAN || nextId === ENG2_FAN) {
         continue;
+      }
+
+      // Do not allow pneumatic bleed air from Precooler to push back into Fan Air cooling duct (y < 250)
+      if (
+        (currentId === ENG1_PRECOOLER || currentId === ENG2_PRECOOLER) &&
+        currentState.sourceId !== ENG1_FAN &&
+        currentState.sourceId !== ENG2_FAN
+      ) {
+        if (nextPos.y < 250) {
+          continue;
+        }
       }
 
       // Check if current node is a check valve exiting towards nextId:

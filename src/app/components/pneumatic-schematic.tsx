@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { MAIN_PNEUMATIC_SYSTEM } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
@@ -56,7 +56,7 @@ function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
 export function PneumaticSchematic() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [isDragging, setIsDragging] = useState(false);
-  const { network, solution, runtimeState } = usePneumatic();
+  const { solution, runtimeState } = usePneumatic();
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);

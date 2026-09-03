@@ -56,58 +56,57 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-08", [
     [362, 253],
-    [342, 253],
-    [336, 253],
-    [331, 253, "precooler"],
+    [351, 253],
+    [344, 253],
+    [337, 253, "precooler"],
     [326, 253, "modulating"],
     [320, 253],
-    [313, 253, "check-valve-reverse"],
-    [306, 253],
   ]),
   legacyLine("legacy-09", [
-    [342, 253],
-    [342, 260,"on-off"], 
-    [342, 265],
+    [351, 253],
+    [351, 260, "on-off"], 
+    [351, 268],
   ]),
   legacyLine("legacy-10", [
-    [336, 216],
-    [321, 216, "on-off"],
-  ]),
-  legacyLine("legacy-11", [
-    [336, 216],
-    [336, 253],
+    [322, 220, "starter-turbine"],
+    [322, 230, "on-off"],
+    [322, 249],
+    [344, 249],
+    [344, 253],
   ]),
   legacyLine("legacy-12", [
-    [320, 269],
-    [311, 269, "modulating"],
-    [303, 269],
+    [307, 253],
+    [314, 253, "modulating"],
+    [320, 253],
   ]),
   legacyLine("legacy-13", [
-    [303, 262],
+    [303, 245],
     [303, 213],
   ]),
   legacyLine("legacy-14", [
-    [331, 253, "precooler"],
-    [330, 212],
+    [326, 212],
+    [326, 236, "on-off"],
+    [326, 246],
+    [337, 246],
+    [337, 253, "precooler"],
   ]),
   legacyLine("legacy-15", [
-    [320, 262],
-    [320, 269],
+    [307, 236],
+    [314, 236, "check-valve"],
+    [320, 236],
   ]),
   legacyLine("legacy-16", [
-    [320, 262],
-    [303, 262],
+    [320, 245],
+    [314, 245, "on-off"],
+    [303, 245],
   ]),
   legacyLine("legacy-17", [
+    [320, 236],
+    [320, 245],
     [320, 253],
-    [320, 262],
   ]),
   legacyLine("legacy-18", [
-    [342, 265],
-    [302, 281],
-  ]),
-  legacyLine("legacy-19", [
-    [302, 281],
+    [351, 268],
     [295, 268],
   ]),
   legacyLine("legacy-20", [
@@ -116,55 +115,57 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-21", [
     [397, 254],
-    [418, 254],
-    [425, 254],
-    [430, 254, "precooler"],
+    [409, 254],
+    [416, 254],
+    [424, 254, "precooler"],
     [435, 254, "modulating"],
-    [441, 254],
-    [449, 254, "check-valve-reverse"],
-    [457, 254],
+    [440, 254],
   ]),
   legacyLine("legacy-22", [
-    [418, 254],
-    [418, 260, "on-off"],
-    [418, 265],
+    [409, 254],
+    [409, 260, "on-off"],
+    [409, 268],
   ]),
   legacyLine("legacy-23", [
-    [425, 254],
-    [425, 215],
-  ]),
-  legacyLine("legacy-24", [
-    [425, 215],
-    [439, 215, "on-off"],
+    [438, 220, "starter-turbine"],
+    [438, 230, "on-off"],
+    [438, 249],
+    [416, 249],
+    [416, 254],
   ]),
   legacyLine("legacy-25", [
-    [430, 254, "precooler"],
-    [429, 212],
+    [434, 212],
+    [434, 236, "on-off"],
+    [434, 246],
+    [424, 246],
+    [424, 254, "precooler"],
   ]),
   legacyLine("legacy-26", [
-    [441, 254],
-    [441, 262],
-    [441, 271],
+    [440, 236],
+    [440, 245],
+    [440, 254],
   ]),
   legacyLine("legacy-27", [
-    [441, 262],
-    [457, 262],
+    [440, 245],
+    [447, 245, "on-off"],
+    [457, 245],
   ]),
   legacyLine("legacy-28", [
-    [457, 262],
+    [457, 245],
     [457, 213],
   ]),
   legacyLine("legacy-29", [
-    [441, 271],
-    [449, 271, "modulating"],
-    [457, 271],
+    [440, 254],
+    [447, 254, "modulating"],
+    [453, 254],
+  ]),
+  legacyLine("legacy-35", [
+    [453, 236],
+    [447, 236, "check-valve"],
+    [440, 236],
   ]),
   legacyLine("legacy-30", [
-    [418, 265],
-    [458, 283],
-  ]),
-  legacyLine("legacy-31", [
-    [458, 283],
+    [409, 268],
     [467, 268],
   ]),
   legacyLine("legacy-32", [
@@ -177,7 +178,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
   legacyMainSchematic,
   [
     {
-      point: { x: 306, y: 253 },
+      point: { x: 307, y: 236 },
       sourceKind: "engine",
       label: "ENG 1 5th stage",
       initial: {
@@ -187,7 +188,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 303, y: 269 },
+      point: { x: 307, y: 253 },
       sourceKind: "engine",
       label: "ENG 1 9th stage",
       initial: {
@@ -197,7 +198,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 330, y: 212 },
+      point: { x: 326, y: 212 },
       sourceKind: "engine",
       label: "ENG 1 Fan Air",
       initial: {
@@ -207,7 +208,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 457, y: 254 },
+      point: { x: 453, y: 236 },
       sourceKind: "engine",
       label: "ENG 2 5th stage",
       initial: {
@@ -217,7 +218,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 457, y: 271 },
+      point: { x: 453, y: 254 },
       sourceKind: "engine",
       label: "ENG 2 9th stage",
       initial: {
@@ -227,7 +228,7 @@ export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
       },
     },
     {
-      point: { x: 429, y: 212 },
+      point: { x: 434, y: 212 },
       sourceKind: "engine",
       label: "ENG 2 Fan Air",
       initial: {

@@ -17,7 +17,8 @@ export type ValveKind =
   | "solenoid"
   | "precooler"
   | "heat-exchanger"
-  | "shutoff-valve";
+  | "shutoff-valve"
+  | "starter-turbine";
 
 export type PneumaticNode =
   | {
