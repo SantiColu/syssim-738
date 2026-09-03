@@ -35,6 +35,16 @@ export type ConsumerInfo = {
 };
 
 export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
+  "sink-362-209": {
+    label: "Pack L",
+    fullLabel: "Left Air Conditioning Pack (ACM)",
+    category: "air-conditioning",
+  },
+  "sink-397-209": {
+    label: "Pack R",
+    fullLabel: "Right Air Conditioning Pack (ACM)",
+    category: "air-conditioning",
+  },
   "sink-380-285": {
     label: "Hyd Resv B",
     fullLabel: "Hydraulic System B Reservoir Pressurization",
