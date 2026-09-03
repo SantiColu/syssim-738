@@ -81,6 +81,9 @@ function ValveNode({
         ? angle + 180
         : angle;
   const isEnergized = solved.energized;
+  const tempColor = isEnergized
+    ? getTemperatureColor(solved.temperatureC)
+    : "#ef4444";
 
   return (
     <g
@@ -297,6 +300,15 @@ function ValveNode({
               className="fill-sim-surface stroke-white"
               strokeWidth="0.45"
             />
+            {/* Fine inner contour of color when energized with flow */}
+            {isEnergized && solved.pressurePsi > 0 && (
+              <path
+                d="M -2.1 -2.0 Q -0.75 0.15 -0.55 1.3 L 0.55 1.3 Q 0.75 0.15 2.1 -2.0 Z"
+                fill="none"
+                stroke={tempColor}
+                strokeWidth="0.32"
+              />
+            )}
             {/* Inlet nozzle collar on bottom */}
             <rect
               x="-0.85"
@@ -422,7 +434,7 @@ function ConsumerNode({
   point,
   solved,
 }: {
-  node: Extract<PneumaticNode, { kind: "sink" }>;
+  node: PneumaticNode;
   point: Point;
   solved: SolvedNodeState;
 }) {
@@ -430,21 +442,44 @@ function ConsumerNode({
   if (!consumer) return null;
 
   const isEnergized = solved.energized && solved.pressurePsi > 0;
-  const isPack = node.id.includes("172");
-  const offsetX =
-    node.id === "sink-362-172" ? 6 : node.id === "sink-397-172" ? -6 : 0;
+  const tempColor = isEnergized
+    ? getTemperatureColor(solved.temperatureC)
+    : "#ef4444";
 
-  const width = isPack ? 18 : 22;
-  const height = isPack ? 8.5 : 8.5;
-  const rx = 1.8;
+  const isPack = node.id.includes("194");
+  const isCowl = node.id === "sink-303-213" || node.id === "sink-457-213";
+  const isWing = node.id === "sink-268-282" || node.id === "sink-492-282";
+
+  const offsetX =
+    node.id === "sink-362-194"
+      ? 6
+      : node.id === "sink-397-194"
+        ? -6
+        : node.id === "sink-303-213"
+          ? 8
+          : node.id === "sink-457-213"
+            ? -8
+            : 0;
+
+  const offsetY = isCowl ? -0.5 : 0;
+
+  const rotation =
+    node.id === "sink-268-282"
+      ? -28.2
+      : node.id === "sink-492-282"
+        ? 28.2
+        : 0;
+
+  const width = isPack ? 18 : isCowl || isWing ? 16 : 22;
+  const height = isCowl || isWing ? 5.5 : 8.5;
+  const rx = isCowl || isWing ? 1.4 : 1.8;
 
   return (
     <g
       data-node-id={node.id}
-      data-node-kind="sink"
       data-consumer-id={node.id}
       data-energized={isEnergized}
-      transform={`translate(${point.x + offsetX} ${point.y})`}
+      transform={`translate(${point.x + offsetX} ${point.y + offsetY}) rotate(${rotation})`}
       className="cursor-pointer group select-none"
     >
       <title>
@@ -467,12 +502,26 @@ function ConsumerNode({
         strokeWidth="0.65"
       />
 
+      {/* Fine inner contour in red/temperature color when pressurized */}
+      {isEnergized && (
+        <rect
+          x={-width / 2 + 0.6}
+          y={-height / 2 + 0.6}
+          width={width - 1.2}
+          height={height - 1.2}
+          rx={Math.max(0.6, rx - 0.4)}
+          fill="none"
+          stroke={tempColor}
+          strokeWidth="0.32"
+        />
+      )}
+
       {/* Centered technical label */}
       <text
         x={0}
-        y={0.8}
+        y={isCowl || isWing ? 0.65 : 0.8}
         textAnchor="middle"
-        fontSize={isPack ? 2.4 : 2.1}
+        fontSize={isCowl || isWing ? 1.9 : isPack ? 2.4 : 2.1}
         fontWeight="bold"
         className="fill-white font-sim-sans tracking-wide"
       >
@@ -536,7 +585,7 @@ export function PneumaticNetworkLayer({
 
       {/* 2. Junction Nodes */}
       {network.nodes
-        .filter((node) => node.kind === "junction")
+        .filter((node) => node.kind === "junction" && !KNOWN_CONSUMERS[node.id])
         .map((node) => {
           const point = layout.nodePositions[node.id];
           const solved = solution.nodes[node.id];
@@ -606,12 +655,9 @@ export function PneumaticNetworkLayer({
           );
         })}
 
-      {/* 5. Consumer / Sink Blocks: PACK L, PACK R, Hyd Resv B, Hyd Resv A, NGS, Water Tank */}
+      {/* 5. Consumer Blocks: Pack L, Pack R, Hyd Resv B, Hyd Resv A, NGS, Water Tank, Cowl TAI, Wing TAI */}
       {network.nodes
-        .filter(
-          (node): node is Extract<PneumaticNode, { kind: "sink" }> =>
-            node.kind === "sink" && Boolean(KNOWN_CONSUMERS[node.id]),
-        )
+        .filter((node) => Boolean(KNOWN_CONSUMERS[node.id]))
         .map((node) => {
           const point = layout.nodePositions[node.id];
           const solved = solution.nodes[node.id];

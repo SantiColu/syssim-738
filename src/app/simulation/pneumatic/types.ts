@@ -23,17 +23,22 @@ export type ValveKind =
 export type ConsumerInfo = {
   label: string;
   fullLabel: string;
-  category: "air-conditioning" | "hydraulics" | "fuel-inerting" | "potable-water";
+  category:
+    | "air-conditioning"
+    | "hydraulics"
+    | "fuel-inerting"
+    | "potable-water"
+    | "anti-ice";
 };
 
 export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
-  "sink-362-172": {
-    label: "pack L",
+  "sink-362-194": {
+    label: "Pack L",
     fullLabel: "Left Air Conditioning Pack (ACM)",
     category: "air-conditioning",
   },
-  "sink-397-172": {
-    label: "pack R",
+  "sink-397-194": {
+    label: "Pack R",
     fullLabel: "Right Air Conditioning Pack (ACM)",
     category: "air-conditioning",
   },
@@ -42,20 +47,40 @@ export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
     fullLabel: "Hydraulic System B Reservoir Pressurization",
     category: "hydraulics",
   },
-  "sink-380-325": {
+  "sink-380-300": {
     label: "Hyd Resv A",
     fullLabel: "Hydraulic System A Reservoir Pressurization",
     category: "hydraulics",
   },
-  "sink-380-365": {
+  "sink-380-320": {
     label: "NGS",
     fullLabel: "Nitrogen Generation System (Center Tank Inerting)",
     category: "fuel-inerting",
   },
-  "sink-380-410": {
+  "sink-380-400": {
     label: "Water Tank",
     fullLabel: "Potable Water Tank Pressurization",
     category: "potable-water",
+  },
+  "sink-303-213": {
+    label: "Cowl TAI",
+    fullLabel: "Engine 1 Cowl Thermal Anti-Ice",
+    category: "anti-ice",
+  },
+  "sink-457-213": {
+    label: "Cowl TAI",
+    fullLabel: "Engine 2 Cowl Thermal Anti-Ice",
+    category: "anti-ice",
+  },
+  "sink-268-282": {
+    label: "Wing TAI",
+    fullLabel: "Left Wing Thermal Anti-Ice (Slats)",
+    category: "anti-ice",
+  },
+  "sink-492-282": {
+    label: "Wing TAI",
+    fullLabel: "Right Wing Thermal Anti-Ice (Slats)",
+    category: "anti-ice",
   },
 };
 

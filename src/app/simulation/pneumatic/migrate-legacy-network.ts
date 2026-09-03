@@ -62,10 +62,18 @@ export function migrateLegacyNetwork(
 
   const protectedPoints = new Set<string>();
   for (const [key, pointNeighbors] of neighbors) {
+    const pos = positions.get(key)!;
+    const isKnownConsumer = [
+      `junction-${slugPoint(pos)}`,
+      `sink-${slugPoint(pos)}`,
+      `valve-${slugPoint(pos)}`,
+    ].some((id) => Boolean(KNOWN_CONSUMERS[id]));
+
     if (
       pointNeighbors.size !== 2 ||
       accessoryPoints.has(key) ||
-      sourceByPoint.has(key)
+      sourceByPoint.has(key) ||
+      isKnownConsumer
     ) {
       protectedPoints.add(key);
     }
