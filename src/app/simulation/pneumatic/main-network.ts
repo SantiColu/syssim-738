@@ -75,7 +75,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [351, 253],
     [344, 253],
     [337, 253, "precooler"],
-    [326, 253, "modulating"],
+    [329, 253, "modulating"],
     [320, 253],
   ]),
   legacyLine("legacy-09", [
@@ -134,7 +134,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [409, 254],
     [416, 254],
     [424, 254, "precooler-reverse"],
-    [435, 254, "modulating"],
+    [431, 254, "modulating"],
     [440, 254],
   ]),
   legacyLine("legacy-22", [

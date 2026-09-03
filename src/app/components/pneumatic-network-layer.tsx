@@ -11,6 +11,10 @@ import {
   type SolvedNodeState,
   type ValveKind,
 } from "../simulation/pneumatic/types";
+import {
+  usePneumatic,
+  INTERACTIVE_MANUAL_VALVES,
+} from "../simulation/pneumatic/pneumatic-context";
 
 type PneumaticNetworkLayerProps = {
   network: PneumaticNetwork;
@@ -63,6 +67,9 @@ function ValveNode({
   isOpen,
   colorMode,
   showTitle = true,
+  isInteractive = false,
+  interactiveLabel,
+  onToggle,
 }: {
   node: Extract<PneumaticNode, { kind: "accessory" }>;
   point: Point;
@@ -71,6 +78,9 @@ function ValveNode({
   isOpen: boolean;
   colorMode: PneumaticColorMode;
   showTitle?: boolean;
+  isInteractive?: boolean;
+  interactiveLabel?: string;
+  onToggle?: () => void;
 }) {
   const valveKind = node.accessory.kind;
 
@@ -101,23 +111,69 @@ function ValveNode({
       data-valve-kind={valveKind}
       data-energized={isEnergized}
       data-valve-open={isOpen}
+      data-interactive={isInteractive ? "true" : undefined}
       transform={`translate(${point.x} ${point.y})`}
-      className="cursor-pointer select-none"
+      className={`select-none ${isInteractive ? "cursor-pointer group focus:outline-none" : "cursor-pointer"}`}
+      tabIndex={isInteractive ? 0 : undefined}
+      role={isInteractive ? "button" : undefined}
+      aria-pressed={isInteractive ? isOpen : undefined}
+      aria-label={
+        isInteractive
+          ? `${interactiveLabel}: ${isOpen ? "Abierta" : "Cerrada"}. Clic para alternar.`
+          : undefined
+      }
+      onPointerDown={(e) => {
+        if (isInteractive) e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        if (isInteractive) e.stopPropagation();
+      }}
+      onClick={(e) => {
+        if (isInteractive) {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle?.();
+        }
+      }}
+      onKeyDown={(e) => {
+        if (isInteractive && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle?.();
+        }
+      }}
     >
       {showTitle && (
         <title>
-          {isPrecooler
-            ? `Precooler / Intercambiador de calor · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-            : isCheckValve
-              ? `Válvula de retención (Check Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-              : valveKind === "starter-turbine"
-                ? `Turbina de arranque (Air Starter Turbine) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-                : valveKind === "modulating"
-                  ? `Válvula moduladora / reguladora · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-                  : valveKind === "solenoid"
-                    ? `Válvula con solenoide (Solenoid Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
-                    : `Válvula ON/OFF · ${isOpen ? "Abierta" : "Cerrada"} · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`}
+          {isInteractive
+            ? `${interactiveLabel} · ${isOpen ? "ABIERTA" : "CERRADA"} (Clic para ${isOpen ? "cerrar" : "abrir"}) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+            : isPrecooler
+              ? `Precooler / Intercambiador de calor · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+              : isCheckValve
+                ? `Válvula de retención (Check Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                : valveKind === "starter-turbine"
+                  ? `Turbina de arranque (Air Starter Turbine) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                  : valveKind === "modulating"
+                    ? `Válvula moduladora / reguladora · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                    : valveKind === "solenoid"
+                      ? `Válvula con solenoide (Solenoid Valve) · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`
+                      : `Válvula ON/OFF · ${isOpen ? "Abierta" : "Cerrada"} · ${solved.pressurePsi} PSI · ${solved.temperatureC} °C`}
         </title>
+      )}
+
+      {/* Interactive hover circle indicator & hitbox for manual valves */}
+      {isInteractive && (
+        <>
+          <circle
+            r="3.8"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="0.4"
+            strokeDasharray="1 0.8"
+            className="opacity-0 transition-opacity duration-150 group-hover:opacity-85"
+          />
+          <circle r="5.5" fill="transparent" className="cursor-pointer" />
+        </>
       )}
 
       <g transform={`rotate(${effectiveAngle})`}>
@@ -621,6 +677,8 @@ export function PneumaticNetworkLayer({
   runtimeState,
   colorMode = "temperature",
 }: PneumaticNetworkLayerProps) {
+  const { toggleManualValve } = usePneumatic();
+
   return (
     <g
       className="fill-none [stroke-linecap:round] [stroke-linejoin:round]"
@@ -706,6 +764,8 @@ export function PneumaticNetworkLayer({
           const isOpen =
             runtimeState?.accessories[node.id]?.open ??
             node.accessory.normallyOpen;
+          const isInteractive = Boolean(INTERACTIVE_MANUAL_VALVES[node.id]);
+          const interactiveLabel = INTERACTIVE_MANUAL_VALVES[node.id];
 
           return (
             <ValveNode
@@ -716,6 +776,9 @@ export function PneumaticNetworkLayer({
               angle={angle}
               isOpen={isOpen}
               colorMode={colorMode}
+              isInteractive={isInteractive}
+              interactiveLabel={interactiveLabel}
+              onToggle={() => toggleManualValve(node.id)}
             />
           );
         })}

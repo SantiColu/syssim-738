@@ -13,6 +13,7 @@ import {
   PneumaticNetworkLayer,
   PneumaticSourceLegendIcon,
 } from "./pneumatic-network-layer";
+import { OverheatSensorsLayer } from "./overheat-sensors-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -121,6 +122,12 @@ export function PneumaticSchematic() {
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
+
+    // Prevent map drag/pointer capture when clicking on interactive sensors
+    const target = event.target as Element | null;
+    if (target?.closest?.("[data-sensor-id], [data-interactive=true]")) {
+      return;
+    }
 
     const point = getSvgPoint(
       event.currentTarget,
@@ -254,8 +261,9 @@ export function PneumaticSchematic() {
             runtimeState={runtimeState}
             colorMode={colorMode}
           />
+          <OverheatSensorsLayer />
           <use
-            className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1"
+            className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1 pointer-events-none"
             href="#boeing-737-800-outline"
           />
         </g>

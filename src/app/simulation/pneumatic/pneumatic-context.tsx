@@ -51,7 +51,37 @@ export interface PneumaticContextValue {
   leftDuctPressurePsi: number;
   rightDuctPressurePsi: number;
   isDualBleed: boolean;
+  overheatSensors: Record<number, boolean>;
+  toggleOverheatSensor: (id: number) => void;
+  resetOverheatSensors: () => void;
+  isLeftWingBodyOverheat: boolean;
+  isRightWingBodyOverheat: boolean;
+  bleedTripSensors: Record<string, boolean>;
+  toggleBleedTripSensor: (id: string) => void;
+  resetBleedTripSensors: () => void;
+  isLeftBleedTripOff: boolean;
+  isRightBleedTripOff: boolean;
+  manualValves: Record<string, boolean>;
+  toggleManualValve: (valveId: string) => void;
 }
+
+export const INTERACTIVE_MANUAL_VALVES: Record<string, string> = {
+  "valve-322-230": "Válvula Starter Motor 1",
+  "valve-438-230": "Válvula Starter Motor 2",
+  "valve-351-260": "Válvula Wing Anti-Ice (Wing TAI) Izquierda",
+  "valve-409-260": "Válvula Wing Anti-Ice (Wing TAI) Derecha",
+  "valve-314-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 1",
+  "valve-447-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 2",
+};
+
+const INITIAL_MANUAL_VALVES: Record<string, boolean> = {
+  "valve-322-230": false,
+  "valve-438-230": false,
+  "valve-351-260": false,
+  "valve-409-260": false,
+  "valve-314-245": false,
+  "valve-447-245": false,
+};
 
 const INITIAL_SWITCHES: PneumaticSwitchesState = {
   lPack: "AUTO",
@@ -69,9 +99,28 @@ const INITIAL_SOURCES: PneumaticSourcesState = {
   gndAirConnected: false,
 };
 
+const INITIAL_OVERHEAT_SENSORS: Record<number, boolean> = {
+  1: false,
+  2: false,
+  3: false,
+  4: false,
+  5: false,
+  6: false,
+  7: false,
+  8: false,
+};
+
+const INITIAL_BLEED_TRIP_SENSORS: Record<string, boolean> = {
+  "eng1-upstream": false,
+  "eng1-downstream": false,
+  "eng2-upstream": false,
+  "eng2-downstream": false,
+};
+
 function computeRuntimeState(
   switches: PneumaticSwitchesState,
   sourcesState: PneumaticSourcesState,
+  manualValves?: Record<string, boolean>,
 ): PneumaticRuntimeState {
   // Isolation valve is controlled directly by its switch: OPEN is open, CLOSE/AUTO is closed
   const isIsoOpen = switches.isolationValve === "OPEN";
@@ -123,21 +172,28 @@ function computeRuntimeState(
     };
   }
 
-  // The 6 valves mapped to the 6 switches:
+  // The 6 valves mapped to the 6 switches + 6 interactive manual valves:
   // 1. L PACK Valve -> valve-362-232
   // 2. ISOLATION Valve -> valve-372-243
   // 3. R PACK Valve -> valve-397-231
-  // 4. ENG 1 BLEED Valve (PRSOV) -> valve-326-253
+  // 4. ENG 1 BLEED Valve (PRSOV) -> valve-329-253
   // 5. APU BLEED Valve -> valve-371-496
-  // 6. ENG 2 BLEED Valve (PRSOV) -> valve-435-254
+  // 6. ENG 2 BLEED Valve (PRSOV) -> valve-431-254
   const accessories: PneumaticRuntimeState["accessories"] = {
     ...MAIN_PNEUMATIC_SYSTEM.initialState.accessories,
     "valve-362-232": { open: switches.lPack !== "OFF" },
     "valve-372-243": { open: isIsoOpen },
     "valve-397-231": { open: switches.rPack !== "OFF" },
-    "valve-326-253": { open: switches.eng1Bleed },
+    "valve-329-253": { open: switches.eng1Bleed },
     "valve-371-496": { open: switches.apuBleed },
-    "valve-435-254": { open: switches.eng2Bleed },
+    "valve-431-254": { open: switches.eng2Bleed },
+    // Manual interactive valves (Starter, Wing TAI, Cowl TAI):
+    "valve-322-230": { open: Boolean(manualValves?.["valve-322-230"]) },
+    "valve-438-230": { open: Boolean(manualValves?.["valve-438-230"]) },
+    "valve-351-260": { open: Boolean(manualValves?.["valve-351-260"]) },
+    "valve-409-260": { open: Boolean(manualValves?.["valve-409-260"]) },
+    "valve-314-245": { open: Boolean(manualValves?.["valve-314-245"]) },
+    "valve-447-245": { open: Boolean(manualValves?.["valve-447-245"]) },
   };
 
   return { sources, accessories };
@@ -180,9 +236,19 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const toggleGndAir = () =>
     setSourcesState((s) => ({ ...s, gndAirConnected: !s.gndAirConnected }));
 
+  const [manualValves, setManualValves] =
+    useState<Record<string, boolean>>(INITIAL_MANUAL_VALVES);
+
+  const toggleManualValve = (valveId: string) => {
+    setManualValves((prev) => ({
+      ...prev,
+      [valveId]: !prev[valveId],
+    }));
+  };
+
   const runtimeState = useMemo(
-    () => computeRuntimeState(switches, sourcesState),
-    [switches, sourcesState],
+    () => computeRuntimeState(switches, sourcesState, manualValves),
+    [switches, sourcesState, manualValves],
   );
 
   const solution = useMemo(
@@ -216,6 +282,46 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     sourcesState.apuRunning &&
     (switches.eng1Bleed || (switches.eng2Bleed && isIsoOpen));
 
+  const [overheatSensors, setOverheatSensors] =
+    useState<Record<number, boolean>>(INITIAL_OVERHEAT_SENSORS);
+
+  const toggleOverheatSensor = (id: number) =>
+    setOverheatSensors((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const resetOverheatSensors = () =>
+    setOverheatSensors(INITIAL_OVERHEAT_SENSORS);
+
+  const isLeftWingBodyOverheat = Boolean(
+    overheatSensors[1] ||
+      overheatSensors[2] ||
+      overheatSensors[3] ||
+      overheatSensors[4] ||
+      overheatSensors[5],
+  );
+
+  const isRightWingBodyOverheat = Boolean(
+    overheatSensors[6] ||
+      overheatSensors[7] ||
+      overheatSensors[8],
+  );
+
+  const [bleedTripSensors, setBleedTripSensors] =
+    useState<Record<string, boolean>>(INITIAL_BLEED_TRIP_SENSORS);
+
+  const toggleBleedTripSensor = (id: string) =>
+    setBleedTripSensors((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const resetBleedTripSensors = () =>
+    setBleedTripSensors(INITIAL_BLEED_TRIP_SENSORS);
+
+  const isLeftBleedTripOff = Boolean(
+    bleedTripSensors["eng1-upstream"] || bleedTripSensors["eng1-downstream"],
+  );
+
+  const isRightBleedTripOff = Boolean(
+    bleedTripSensors["eng2-upstream"] || bleedTripSensors["eng2-downstream"],
+  );
+
   const value: PneumaticContextValue = useMemo(
     () => ({
       switches,
@@ -240,6 +346,18 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       leftDuctPressurePsi,
       rightDuctPressurePsi,
       isDualBleed,
+      overheatSensors,
+      toggleOverheatSensor,
+      resetOverheatSensors,
+      isLeftWingBodyOverheat,
+      isRightWingBodyOverheat,
+      bleedTripSensors,
+      toggleBleedTripSensor,
+      resetBleedTripSensors,
+      isLeftBleedTripOff,
+      isRightBleedTripOff,
+      manualValves,
+      toggleManualValve,
     }),
     [
       switches,
@@ -249,6 +367,13 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       leftDuctPressurePsi,
       rightDuctPressurePsi,
       isDualBleed,
+      overheatSensors,
+      isLeftWingBodyOverheat,
+      isRightWingBodyOverheat,
+      bleedTripSensors,
+      isLeftBleedTripOff,
+      isRightBleedTripOff,
+      manualValves,
     ],
   );
 
@@ -289,6 +414,18 @@ const fallbackValue: PneumaticContextValue = {
   leftDuctPressurePsi: fallbackSolution.nodes["junction-362-228"]?.pressurePsi ?? 0,
   rightDuctPressurePsi: fallbackSolution.nodes["junction-397-228"]?.pressurePsi ?? 0,
   isDualBleed: false,
+  overheatSensors: INITIAL_OVERHEAT_SENSORS,
+  toggleOverheatSensor: () => {},
+  resetOverheatSensors: () => {},
+  isLeftWingBodyOverheat: false,
+  isRightWingBodyOverheat: false,
+  bleedTripSensors: INITIAL_BLEED_TRIP_SENSORS,
+  toggleBleedTripSensor: () => {},
+  resetBleedTripSensors: () => {},
+  isLeftBleedTripOff: false,
+  isRightBleedTripOff: false,
+  manualValves: INITIAL_MANUAL_VALVES,
+  toggleManualValve: () => {},
 };
 
 export function usePneumatic(): PneumaticContextValue {

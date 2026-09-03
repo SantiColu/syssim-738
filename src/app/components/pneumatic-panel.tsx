@@ -116,7 +116,7 @@ function ToggleSwitch({
 function Annunciator({
   color,
   children,
-  lit = true,
+  lit = false,
 }: {
   color: "amber" | "blue";
   children: React.ReactNode;
@@ -151,6 +151,12 @@ export function PneumaticPanel() {
     leftDuctPressurePsi,
     rightDuctPressurePsi,
     isDualBleed,
+    isLeftWingBodyOverheat,
+    isRightWingBodyOverheat,
+    resetOverheatSensors,
+    isLeftBleedTripOff,
+    isRightBleedTripOff,
+    resetBleedTripSensors,
   } = usePneumatic();
 
   const lNeedleAngle =
@@ -430,26 +436,30 @@ export function PneumaticPanel() {
 
         {/* Annunciators Grid */}
         <div className="absolute top-90 left-35 -translate-x-1/2 flex flex-col gap-0.5 z-10">
-          <Annunciator color="amber">PACK</Annunciator>
           <Annunciator color="amber" lit={isOvhtTest}>
+            PACK
+          </Annunciator>
+          <Annunciator color="amber" lit={isOvhtTest || isLeftWingBodyOverheat}>
             WING-BODY
             <br />
             OVERHEAT
           </Annunciator>
-          <Annunciator color="amber">
+          <Annunciator color="amber" lit={isOvhtTest || isLeftBleedTripOff}>
             BLEED
             <br />
             TRIP OFF
           </Annunciator>
         </div>
         <div className="absolute top-90 left-65 -translate-x-1/2 flex flex-col gap-0.5 z-10">
-          <Annunciator color="amber">PACK</Annunciator>
           <Annunciator color="amber" lit={isOvhtTest}>
+            PACK
+          </Annunciator>
+          <Annunciator color="amber" lit={isOvhtTest || isRightWingBodyOverheat}>
             WING-BODY
             <br />
             OVERHEAT
           </Annunciator>
-          <Annunciator color="amber">
+          <Annunciator color="amber" lit={isOvhtTest || isRightBleedTripOff}>
             BLEED
             <br />
             TRIP OFF
@@ -458,7 +468,15 @@ export function PneumaticPanel() {
 
         {/* TRIP RESET Button */}
         <div className="absolute top-101.75 left-50 -translate-x-1/2">
-          <AircraftPushButton labelTop="TRIP" labelBottom="RESET" size={36} />
+          <AircraftPushButton
+            labelTop="TRIP"
+            labelBottom="RESET"
+            size={36}
+            onClick={() => {
+              resetOverheatSensors();
+              resetBleedTripSensors();
+            }}
+          />
         </div>
 
         {/* Wing Anti Ice Labels */}
