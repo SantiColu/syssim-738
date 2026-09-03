@@ -38,7 +38,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-water-tank", [
     [363, 400],
-    [380, 400],
+    [392, 400],
   ]),
   legacyLine("legacy-02", [
     [376, 518],

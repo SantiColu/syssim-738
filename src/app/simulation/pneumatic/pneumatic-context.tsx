@@ -72,6 +72,8 @@ export const INTERACTIVE_MANUAL_VALVES: Record<string, string> = {
   "valve-409-260": "Válvula Wing Anti-Ice (Wing TAI) Derecha",
   "valve-314-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 1",
   "valve-447-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 2",
+  "valve-326-236": "Válvula Fan Air (FAV) Motor 1",
+  "valve-434-236": "Válvula Fan Air (FAV) Motor 2",
 };
 
 const INITIAL_MANUAL_VALVES: Record<string, boolean> = {
@@ -81,6 +83,8 @@ const INITIAL_MANUAL_VALVES: Record<string, boolean> = {
   "valve-409-260": false,
   "valve-314-245": false,
   "valve-447-245": false,
+  "valve-326-236": false,
+  "valve-434-236": false,
 };
 
 const INITIAL_SWITCHES: PneumaticSwitchesState = {
@@ -187,13 +191,15 @@ function computeRuntimeState(
     "valve-329-253": { open: switches.eng1Bleed },
     "valve-371-496": { open: switches.apuBleed },
     "valve-431-254": { open: switches.eng2Bleed },
-    // Manual interactive valves (Starter, Wing TAI, Cowl TAI):
+    // Manual interactive valves (Starter, Wing TAI, Cowl TAI, Fan Air):
     "valve-322-230": { open: Boolean(manualValves?.["valve-322-230"]) },
     "valve-438-230": { open: Boolean(manualValves?.["valve-438-230"]) },
     "valve-351-260": { open: Boolean(manualValves?.["valve-351-260"]) },
     "valve-409-260": { open: Boolean(manualValves?.["valve-409-260"]) },
     "valve-314-245": { open: Boolean(manualValves?.["valve-314-245"]) },
     "valve-447-245": { open: Boolean(manualValves?.["valve-447-245"]) },
+    "valve-326-236": { open: Boolean(manualValves?.["valve-326-236"]) },
+    "valve-434-236": { open: Boolean(manualValves?.["valve-434-236"]) },
   };
 
   return { sources, accessories };

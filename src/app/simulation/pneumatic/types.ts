@@ -60,7 +60,7 @@ export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
     fullLabel: "Nitrogen Generation System (Center Tank Inerting)",
     category: "fuel-inerting",
   },
-  "sink-380-400": {
+  "sink-392-400": {
     label: "Water Tank",
     fullLabel: "Potable Water Tank Pressurization",
     category: "potable-water",

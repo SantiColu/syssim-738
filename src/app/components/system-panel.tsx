@@ -9,40 +9,11 @@ import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 
 type SystemView = "main" | "side";
 
-const systemViews: { id: SystemView; label: string }[] = [
-  { id: "main", label: "MAIN" },
-  { id: "side", label: "SIDE" },
-];
-
 export function SystemPanel() {
   const panelRef = useRef<HTMLElement>(null);
-  const [activeView, setActiveView] = useState<SystemView>("main");
+  const [activeView] = useState<SystemView>("main");
   const { sourcesState, toggleEng1, toggleEng2, toggleApu, toggleGndAir } =
     usePneumatic();
-
-  const selectView = (view: SystemView) => {
-    setActiveView(view);
-    document.getElementById(`system-tab-${view}`)?.focus();
-  };
-
-  const handleTabKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ) => {
-    let nextIndex = index;
-
-    if (event.key === "ArrowRight")
-      nextIndex = (index + 1) % systemViews.length;
-    if (event.key === "ArrowLeft") {
-      nextIndex = (index - 1 + systemViews.length) % systemViews.length;
-    }
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = systemViews.length - 1;
-    if (nextIndex === index) return;
-
-    event.preventDefault();
-    selectView(systemViews[nextIndex].id);
-  };
 
   return (
     <section
