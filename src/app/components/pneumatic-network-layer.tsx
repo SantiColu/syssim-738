@@ -1,5 +1,6 @@
 import {
   getTemperatureColor,
+  KNOWN_CONSUMERS,
   type PneumaticLayout,
   type PneumaticNetwork,
   type PneumaticNode,
@@ -416,6 +417,71 @@ function SourceInletNode({
   );
 }
 
+function ConsumerNode({
+  node,
+  point,
+  solved,
+}: {
+  node: Extract<PneumaticNode, { kind: "sink" }>;
+  point: Point;
+  solved: SolvedNodeState;
+}) {
+  const consumer = KNOWN_CONSUMERS[node.id];
+  if (!consumer) return null;
+
+  const isEnergized = solved.energized && solved.pressurePsi > 0;
+  const isPack = node.id.includes("172");
+  const offsetX =
+    node.id === "sink-362-172" ? 6 : node.id === "sink-397-172" ? -6 : 0;
+
+  const width = isPack ? 18 : 22;
+  const height = isPack ? 8.5 : 8.5;
+  const rx = 1.8;
+
+  return (
+    <g
+      data-node-id={node.id}
+      data-node-kind="sink"
+      data-consumer-id={node.id}
+      data-energized={isEnergized}
+      transform={`translate(${point.x + offsetX} ${point.y})`}
+      className="cursor-pointer group select-none"
+    >
+      <title>
+        {`${consumer.fullLabel} · ${
+          isEnergized
+            ? `ACTIVE (${solved.pressurePsi} PSI · ${solved.temperatureC} °C)`
+            : "OFF / UNPRESSURIZED"
+        }`}
+      </title>
+
+      {/* Clean card body matching technical sketch */}
+      <rect
+        x={-width / 2}
+        y={-height / 2}
+        width={width}
+        height={height}
+        rx={rx}
+        fill="#090d16"
+        stroke="#ffffff"
+        strokeWidth="0.65"
+      />
+
+      {/* Centered technical label */}
+      <text
+        x={0}
+        y={0.8}
+        textAnchor="middle"
+        fontSize={isPack ? 2.4 : 2.1}
+        fontWeight="bold"
+        className="fill-white font-sim-sans tracking-wide"
+      >
+        {consumer.label}
+      </text>
+    </g>
+  );
+}
+
 export function PneumaticNetworkLayer({
   network,
   layout,
@@ -532,6 +598,26 @@ export function PneumaticNetworkLayer({
 
           return (
             <SourceInletNode
+              key={node.id}
+              node={node}
+              point={point}
+              solved={solved}
+            />
+          );
+        })}
+
+      {/* 5. Consumer / Sink Blocks: PACK L, PACK R, Hyd Resv B, Hyd Resv A, NGS, Water Tank */}
+      {network.nodes
+        .filter(
+          (node): node is Extract<PneumaticNode, { kind: "sink" }> =>
+            node.kind === "sink" && Boolean(KNOWN_CONSUMERS[node.id]),
+        )
+        .map((node) => {
+          const point = layout.nodePositions[node.id];
+          const solved = solution.nodes[node.id];
+
+          return (
+            <ConsumerNode
               key={node.id}
               node={node}
               point={point}

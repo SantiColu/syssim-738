@@ -16,14 +16,29 @@ function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
 
 const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-01", [
-    [362, 191],
+    [362, 172],
     [362, 217, "on-off"],
     [362, 228],
     [362, 253],
+    [363, 325],
+    [363, 365],
+    [363, 410],
     [363, 435],
     [366, 475, "check-valve-reverse"],
     [371, 496, "solenoid"],
     [376, 518],
+  ]),
+  legacyLine("legacy-hyd-a", [
+    [363, 325],
+    [380, 325],
+  ]),
+  legacyLine("legacy-ngs", [
+    [363, 365],
+    [380, 365],
+  ]),
+  legacyLine("legacy-water-tank", [
+    [363, 410],
+    [380, 410],
   ]),
   legacyLine("legacy-02", [
     [376, 518],
@@ -47,12 +62,13 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-06", [
     [397, 228],
     [397, 216, "on-off"],
-    [397, 191],
+    [397, 172],
   ]),
   legacyLine("legacy-07", [
     [397, 228],
     [397, 254],
-    [397, 310],
+    [397, 285],
+    [380, 285],
   ]),
   legacyLine("legacy-08", [
     [362, 253],

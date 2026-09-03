@@ -20,6 +20,45 @@ export type ValveKind =
   | "shutoff-valve"
   | "starter-turbine";
 
+export type ConsumerInfo = {
+  label: string;
+  fullLabel: string;
+  category: "air-conditioning" | "hydraulics" | "fuel-inerting" | "potable-water";
+};
+
+export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
+  "sink-362-172": {
+    label: "pack L",
+    fullLabel: "Left Air Conditioning Pack (ACM)",
+    category: "air-conditioning",
+  },
+  "sink-397-172": {
+    label: "pack R",
+    fullLabel: "Right Air Conditioning Pack (ACM)",
+    category: "air-conditioning",
+  },
+  "sink-380-285": {
+    label: "Hyd Resv B",
+    fullLabel: "Hydraulic System B Reservoir Pressurization",
+    category: "hydraulics",
+  },
+  "sink-380-325": {
+    label: "Hyd Resv A",
+    fullLabel: "Hydraulic System A Reservoir Pressurization",
+    category: "hydraulics",
+  },
+  "sink-380-365": {
+    label: "NGS",
+    fullLabel: "Nitrogen Generation System (Center Tank Inerting)",
+    category: "fuel-inerting",
+  },
+  "sink-380-410": {
+    label: "Water Tank",
+    fullLabel: "Potable Water Tank Pressurization",
+    category: "potable-water",
+  },
+};
+
 export type PneumaticNode =
   | {
       id: string;

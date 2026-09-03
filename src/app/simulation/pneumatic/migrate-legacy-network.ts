@@ -1,11 +1,12 @@
-import type {
-  LegacyPneumaticLine,
-  MigratedPneumaticNetwork,
-  PneumaticLink,
-  PneumaticNode,
-  Point,
-  SourceDefinition,
-  ValveKind,
+import {
+  KNOWN_CONSUMERS,
+  type LegacyPneumaticLine,
+  type MigratedPneumaticNetwork,
+  type PneumaticLink,
+  type PneumaticNode,
+  type Point,
+  type SourceDefinition,
+  type ValveKind,
 } from "./types";
 
 const pointKey = ({ x, y }: Point) => `${x},${y}`;
@@ -105,7 +106,12 @@ export function migrateLegacyNetwork(
         accessory: { kind: valveKind, normallyOpen: true },
       });
     } else if (degree <= 1) {
-      nodes.push({ id, kind: "sink", label: sinkLabel(sinkIndex) });
+      const consumer = KNOWN_CONSUMERS[id];
+      nodes.push({
+        id,
+        kind: "sink",
+        label: consumer ? consumer.label : sinkLabel(sinkIndex),
+      });
       sinkIndex += 1;
     } else {
       nodes.push({ id, kind: "junction" });
