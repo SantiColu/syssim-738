@@ -19,6 +19,8 @@ export interface PneumaticSwitchesState {
   eng1Bleed: boolean;
   apuBleed: boolean;
   eng2Bleed: boolean;
+  lRecircFan: boolean;
+  rRecircFan: boolean;
 }
 
 export interface PneumaticSourcesState {
@@ -37,6 +39,8 @@ export interface PneumaticContextValue {
   setEng1Bleed: (on: boolean) => void;
   setApuBleed: (on: boolean) => void;
   setEng2Bleed: (on: boolean) => void;
+  setLRecircFan: (on: boolean) => void;
+  setRRecircFan: (on: boolean) => void;
   setEng1Running: (running: boolean) => void;
   setEng2Running: (running: boolean) => void;
   setApuRunning: (running: boolean) => void;
@@ -98,6 +102,8 @@ const INITIAL_SWITCHES: PneumaticSwitchesState = {
   eng1Bleed: true,
   apuBleed: false,
   eng2Bleed: true,
+  lRecircFan: true,
+  rRecircFan: true,
 };
 
 const INITIAL_SOURCES: PneumaticSourcesState = {
@@ -129,9 +135,38 @@ function computeRuntimeState(
   switches: PneumaticSwitchesState,
   sourcesState: PneumaticSourcesState,
   manualValves?: Record<string, boolean>,
+  bleedTripSensors?: Record<string, boolean>,
 ): PneumaticRuntimeState {
-  // Isolation valve is controlled directly by its switch: OPEN is open, CLOSE/AUTO is closed
-  const isIsoOpen = switches.isolationValve === "OPEN";
+  // Isolation valve logic per Boeing FCOM 2.10.2 & 2.20.2:
+  // - CLOSE: closes isolation valve
+  // - OPEN: opens isolation valve
+  // - AUTO:
+  //   * closes isolation valve if both engine BLEED air switches are ON
+  //     and both air conditioning PACK switches are AUTO or HIGH.
+  //   * opens isolation valve automatically if either engine BLEED air or
+  //     air conditioning PACK switch is positioned OFF.
+  //   * isolation valve position is not affected by the APU bleed air switch.
+  let isIsoOpen = false;
+  if (switches.isolationValve === "OPEN") {
+    isIsoOpen = true;
+  } else if (switches.isolationValve === "CLOSE") {
+    isIsoOpen = false;
+  } else {
+    // AUTO
+    const bothEnginesBleedOn = switches.eng1Bleed && switches.eng2Bleed;
+    const bothPacksActive = switches.lPack !== "OFF" && switches.rPack !== "OFF";
+    const shouldAutoClose = bothEnginesBleedOn && bothPacksActive;
+    isIsoOpen = !shouldAutoClose;
+  }
+
+  // Bleed trip conditions per Boeing FCOM 2.10.3 & 2.20.1:
+  // Overpressure or overtemperature causes respective engine bleed valve to close automatically.
+  const isLeftBleedTripped = Boolean(
+    bleedTripSensors?.["eng1-upstream"] || bleedTripSensors?.["eng1-downstream"],
+  );
+  const isRightBleedTripped = Boolean(
+    bleedTripSensors?.["eng2-upstream"] || bleedTripSensors?.["eng2-downstream"],
+  );
 
   // Configure pneumatic sources based on simulation engine/APU/GND air status
   const sources: PneumaticRuntimeState["sources"] = {
@@ -182,19 +217,25 @@ function computeRuntimeState(
 
   // The 6 valves mapped to the 6 switches + interactive manual valves:
   // 1. L PACK Valve -> valve-362-232
-  // 2. ISOLATION Valve -> valve-372-243
+  // 2. ISOLATION Valve -> valve-372-243 (governed by CLOSE/AUTO/OPEN logic)
   // 3. R PACK Valve -> valve-397-231
-  // 4. ENG 1 BLEED Valve (PRSOV) -> valve-329-253
-  // 5. APU BLEED Valve -> valve-371-496
-  // 6. ENG 2 BLEED Valve (PRSOV) -> valve-431-254
+  // 4. ENG 1 BLEED Valve (PRSOV) -> valve-329-253 (pressure-operated & tripped by bleed trip)
+  // 5. APU BLEED Valve -> valve-371-496 (pressure-operated, closes when APU is shut down)
+  // 6. ENG 2 BLEED Valve (PRSOV) -> valve-431-254 (pressure-operated & tripped by bleed trip)
   const accessories: PneumaticRuntimeState["accessories"] = {
     ...MAIN_PNEUMATIC_SYSTEM.initialState.accessories,
     "valve-362-232": { open: switches.lPack !== "OFF" },
     "valve-372-243": { open: isIsoOpen },
     "valve-397-231": { open: switches.rPack !== "OFF" },
-    "valve-329-253": { open: switches.eng1Bleed },
-    "valve-371-496": { open: switches.apuBleed },
-    "valve-431-254": { open: switches.eng2Bleed },
+    "valve-329-253": {
+      open: switches.eng1Bleed && !isLeftBleedTripped,
+    },
+    "valve-371-496": {
+      open: switches.apuBleed,
+    },
+    "valve-431-254": {
+      open: switches.eng2Bleed && !isRightBleedTripped,
+    },
     // Manual interactive valves (Starter, Wing TAI, Cowl TAI, Fan Air, HP stage):
     "valve-322-230": { open: Boolean(manualValves?.["valve-322-230"]) },
     "valve-438-230": { open: Boolean(manualValves?.["valve-438-230"]) },
@@ -229,6 +270,10 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     setSwitches((s) => ({ ...s, apuBleed: on }));
   const setEng2Bleed = (on: boolean) =>
     setSwitches((s) => ({ ...s, eng2Bleed: on }));
+  const setLRecircFan = (on: boolean) =>
+    setSwitches((s) => ({ ...s, lRecircFan: on }));
+  const setRRecircFan = (on: boolean) =>
+    setSwitches((s) => ({ ...s, rRecircFan: on }));
 
   const setEng1Running = (running: boolean) =>
     setSourcesState((s) => ({ ...s, eng1Running: running }));
@@ -257,42 +302,6 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       [valveId]: !prev[valveId],
     }));
   };
-
-  const runtimeState = useMemo(
-    () => computeRuntimeState(switches, sourcesState, manualValves),
-    [switches, sourcesState, manualValves],
-  );
-
-  const solution = useMemo(
-    () =>
-      solvePneumaticNetwork(
-        MAIN_PNEUMATIC_SYSTEM.network,
-        runtimeState,
-        MAIN_PNEUMATIC_SYSTEM.layout,
-      ),
-    [runtimeState],
-  );
-
-  // Pressure readings for DUCT PRESS gauge
-  // Left manifold at junction-362-243 or valve-362-232
-  const leftDuctPressurePsi =
-    solution.nodes["junction-362-243"]?.pressurePsi ??
-    solution.nodes["valve-372-243"]?.pressurePsi ??
-    0;
-
-  // Right manifold at junction-397-243 or valve-397-231
-  const rightDuctPressurePsi =
-    solution.nodes["junction-397-243"]?.pressurePsi ??
-    solution.nodes["valve-397-231"]?.pressurePsi ??
-    0;
-
-  // DUAL BLEED annunciator logic:
-  // APU bleed valve is open AND APU is running AND (eng 1 bleed on OR (eng 2 bleed on AND isolation valve open))
-  const isIsoOpen = runtimeState.accessories["valve-372-243"]?.open ?? false;
-  const isDualBleed =
-    switches.apuBleed &&
-    sourcesState.apuRunning &&
-    (switches.eng1Bleed || (switches.eng2Bleed && isIsoOpen));
 
   const [overheatSensors, setOverheatSensors] =
     useState<Record<number, boolean>>(INITIAL_OVERHEAT_SENSORS);
@@ -334,6 +343,49 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     bleedTripSensors["eng2-upstream"] || bleedTripSensors["eng2-downstream"],
   );
 
+  const runtimeState = useMemo(
+    () =>
+      computeRuntimeState(
+        switches,
+        sourcesState,
+        manualValves,
+        bleedTripSensors,
+      ),
+    [switches, sourcesState, manualValves, bleedTripSensors],
+  );
+
+  const solution = useMemo(
+    () =>
+      solvePneumaticNetwork(
+        MAIN_PNEUMATIC_SYSTEM.network,
+        runtimeState,
+        MAIN_PNEUMATIC_SYSTEM.layout,
+      ),
+    [runtimeState],
+  );
+
+  // Pressure readings for DUCT PRESS gauge
+  // Left manifold at junction-362-243 or valve-362-232
+  const leftDuctPressurePsi =
+    solution.nodes["junction-362-243"]?.pressurePsi ??
+    solution.nodes["valve-372-243"]?.pressurePsi ??
+    0;
+
+  // Right manifold at junction-397-243 or valve-397-231
+  const rightDuctPressurePsi =
+    solution.nodes["junction-397-243"]?.pressurePsi ??
+    solution.nodes["valve-397-231"]?.pressurePsi ??
+    0;
+
+  // DUAL BLEED annunciator logic per Boeing FCOM 2.10.2:
+  // Illuminated (amber) – APU bleed air valve open and engine No. 1 BLEED air switch ON,
+  // or engine No. 2 BLEED air switch ON, APU bleed air valve and isolation valve open.
+  const isIsoOpen = runtimeState.accessories["valve-372-243"]?.open ?? false;
+  const isApuValveOpen = runtimeState.accessories["valve-371-496"]?.open ?? false;
+  const isDualBleed =
+    isApuValveOpen &&
+    (switches.eng1Bleed || (switches.eng2Bleed && isIsoOpen));
+
   const value: PneumaticContextValue = useMemo(
     () => ({
       switches,
@@ -344,6 +396,8 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       setEng1Bleed,
       setApuBleed,
       setEng2Bleed,
+      setLRecircFan,
+      setRRecircFan,
       setEng1Running,
       setEng2Running,
       setApuRunning,
@@ -412,6 +466,8 @@ const fallbackValue: PneumaticContextValue = {
   setEng1Bleed: () => {},
   setApuBleed: () => {},
   setEng2Bleed: () => {},
+  setLRecircFan: () => {},
+  setRRecircFan: () => {},
   setEng1Running: () => {},
   setEng2Running: () => {},
   setApuRunning: () => {},
@@ -423,8 +479,8 @@ const fallbackValue: PneumaticContextValue = {
   runtimeState: fallbackRuntime,
   solution: fallbackSolution,
   network: MAIN_PNEUMATIC_SYSTEM.network,
-  leftDuctPressurePsi: fallbackSolution.nodes["junction-362-228"]?.pressurePsi ?? 0,
-  rightDuctPressurePsi: fallbackSolution.nodes["junction-397-228"]?.pressurePsi ?? 0,
+  leftDuctPressurePsi: fallbackSolution.nodes["junction-362-243"]?.pressurePsi ?? 0,
+  rightDuctPressurePsi: fallbackSolution.nodes["junction-397-243"]?.pressurePsi ?? 0,
   isDualBleed: false,
   overheatSensors: INITIAL_OVERHEAT_SENSORS,
   toggleOverheatSensor: () => {},

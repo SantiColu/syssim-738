@@ -148,6 +148,8 @@ export function PneumaticPanel() {
     setEng1Bleed,
     setApuBleed,
     setEng2Bleed,
+    setLRecircFan,
+    setRRecircFan,
     leftDuctPressurePsi,
     rightDuctPressurePsi,
     isDualBleed,
@@ -233,7 +235,8 @@ export function PneumaticPanel() {
           <ToggleSwitch
             labelTop="L RECIRC FAN"
             positions={["OFF", "AUTO"]}
-            activePos={1}
+            activePos={switches.lRecircFan ? 1 : 0}
+            onChange={(p) => setLRecircFan(p === 1)}
             align="right"
             circleColor="red"
           />
@@ -242,7 +245,8 @@ export function PneumaticPanel() {
           <ToggleSwitch
             labelTop="R RECIRC FAN"
             positions={["OFF", "AUTO"]}
-            activePos={1}
+            activePos={switches.rRecircFan ? 1 : 0}
+            onChange={(p) => setRRecircFan(p === 1)}
             align="left"
             circleColor="red"
           />
