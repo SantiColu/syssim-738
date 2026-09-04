@@ -74,6 +74,8 @@ export const INTERACTIVE_MANUAL_VALVES: Record<string, string> = {
   "valve-447-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 2",
   "valve-326-236": "Válvula Fan Air (FAV) Motor 1",
   "valve-434-236": "Válvula Fan Air (FAV) Motor 2",
+  "valve-314-253": "Válvula de alta presión (9.ª etapa) Motor 1",
+  "valve-447-254": "Válvula de alta presión (9.ª etapa) Motor 2",
 };
 
 const INITIAL_MANUAL_VALVES: Record<string, boolean> = {
@@ -85,6 +87,8 @@ const INITIAL_MANUAL_VALVES: Record<string, boolean> = {
   "valve-447-245": false,
   "valve-326-236": false,
   "valve-434-236": false,
+  "valve-314-253": true,
+  "valve-447-254": true,
 };
 
 const INITIAL_SWITCHES: PneumaticSwitchesState = {
@@ -176,7 +180,7 @@ function computeRuntimeState(
     };
   }
 
-  // The 6 valves mapped to the 6 switches + 6 interactive manual valves:
+  // The 6 valves mapped to the 6 switches + interactive manual valves:
   // 1. L PACK Valve -> valve-362-232
   // 2. ISOLATION Valve -> valve-372-243
   // 3. R PACK Valve -> valve-397-231
@@ -191,7 +195,7 @@ function computeRuntimeState(
     "valve-329-253": { open: switches.eng1Bleed },
     "valve-371-496": { open: switches.apuBleed },
     "valve-431-254": { open: switches.eng2Bleed },
-    // Manual interactive valves (Starter, Wing TAI, Cowl TAI, Fan Air):
+    // Manual interactive valves (Starter, Wing TAI, Cowl TAI, Fan Air, HP stage):
     "valve-322-230": { open: Boolean(manualValves?.["valve-322-230"]) },
     "valve-438-230": { open: Boolean(manualValves?.["valve-438-230"]) },
     "valve-351-260": { open: Boolean(manualValves?.["valve-351-260"]) },
@@ -200,6 +204,8 @@ function computeRuntimeState(
     "valve-447-245": { open: Boolean(manualValves?.["valve-447-245"]) },
     "valve-326-236": { open: Boolean(manualValves?.["valve-326-236"]) },
     "valve-434-236": { open: Boolean(manualValves?.["valve-434-236"]) },
+    "valve-314-253": { open: Boolean(manualValves?.["valve-314-253"]) },
+    "valve-447-254": { open: Boolean(manualValves?.["valve-447-254"]) },
   };
 
   return { sources, accessories };

@@ -144,6 +144,16 @@ function loadSvgImage(svg: SVGSVGElement) {
   });
 }
 
+function loadDataUrlImage(url: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () =>
+      reject(new Error("No se pudo cargar un panel del cockpit"));
+    image.src = url;
+  });
+}
+
 export async function renderCockpitSvgToPng(
   svg: SVGSVGElement,
   viewport: SvgViewport,
@@ -193,29 +203,26 @@ export async function renderCockpitSvgToPng(
   const clonedPanels = Array.from(clone.querySelectorAll("foreignObject"));
   const { toPng } = await import("html-to-image");
 
-  await Promise.all(
+  const renderedPanels = await Promise.all(
     sourcePanels.map(async (sourcePanel, index) => {
       const clonedPanel = clonedPanels[index];
       const content = sourcePanel.firstElementChild;
-      if (!(content instanceof HTMLElement) || !clonedPanel) return;
+      if (!(content instanceof HTMLElement) || !clonedPanel) return null;
 
       const panelImageUrl = await toPng(content, {
         pixelRatio: EXPORT_PIXEL_RATIO,
         cacheBust: true,
         skipFonts: true,
       });
-      const image = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "image",
-      );
+      clonedPanel.remove();
 
-      ["x", "y", "width", "height"].forEach((attribute) => {
-        const value = sourcePanel.getAttribute(attribute);
-        if (value !== null) image.setAttribute(attribute, value);
-      });
-      image.setAttribute("href", panelImageUrl);
-      image.setAttribute("preserveAspectRatio", "none");
-      clonedPanel.replaceWith(image);
+      return {
+        image: await loadDataUrlImage(panelImageUrl),
+        x: Number(sourcePanel.getAttribute("x") ?? 0),
+        y: Number(sourcePanel.getAttribute("y") ?? 0),
+        width: Number(sourcePanel.getAttribute("width") ?? 0),
+        height: Number(sourcePanel.getAttribute("height") ?? 0),
+      };
     }),
   );
 
@@ -261,6 +268,18 @@ export async function renderCockpitSvgToPng(
     context.stroke();
   }
   context.drawImage(image, 0, 0, width, height);
+
+  renderedPanels.forEach((panel) => {
+    if (!panel) return;
+
+    context.drawImage(
+      panel.image,
+      ((panel.x - viewport.x) / viewport.width) * width,
+      ((panel.y - viewport.y) / viewport.height) * height,
+      (panel.width / viewport.width) * width,
+      (panel.height / viewport.height) * height,
+    );
+  });
 
   return canvas.toDataURL("image/png");
 }

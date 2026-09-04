@@ -275,8 +275,33 @@ export function CockpitView() {
         className="top-2 right-2.5"
         createPng={() => {
           const svg = cockpitSvgRef.current;
-          if (!svg) return Promise.reject(new Error("Cockpit no disponible"));
-          return renderCockpitSvgToPng(svg, visibleArea, viewport);
+          const container = containerRef.current;
+          if (!svg || !container) {
+            return Promise.reject(new Error("Cockpit no disponible"));
+          }
+
+          const rect = container.getBoundingClientRect();
+          const current = transformRef.current;
+          const exportViewport = {
+            x:
+              COCKPIT_SVG_VIEWBOX_X +
+              (-current.x / current.scale) *
+                (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
+            y:
+              (-current.y / current.scale) *
+              (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
+            width:
+              (rect.width / current.scale) *
+              (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
+            height:
+              (rect.height / current.scale) *
+              (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
+          };
+
+          return renderCockpitSvgToPng(svg, exportViewport, {
+            width: rect.width,
+            height: rect.height,
+          });
         }}
       />
       <div
