@@ -22,6 +22,17 @@ export interface BleedTripSensorDefinition {
   side: "left" | "right";
 }
 
+export interface AntiIceSensorDefinition {
+  id: "eng1-cowl" | "eng2-cowl" | "wing-left" | "wing-right";
+  name: string;
+  zone: string;
+  x: number;
+  y: number;
+  rotation: number;
+  side: "left" | "right";
+  system: "cowl" | "wing";
+}
+
 /**
  * Wing-Body Overheat Sensors:
  * Compact solid white filled dots (half radius: r=1.2px) with a dashed ring on hover.
@@ -149,14 +160,69 @@ export const BLEED_TRIP_SENSORS: BleedTripSensorDefinition[] = [
 ];
 
 /**
- * Bleed Trip Off Sensor Probe Glyph:
+ * Cowl Anti-Ice Sensors (Boeing 737 FCOM 3.10.4):
+ * Pressure sensor located downstream of the cowl anti-ice valve.
+ * Illuminated (amber) COWL ANTI-ICE indicates an overpressure condition in the duct.
+ */
+export const COWL_ANTI_ICE_SENSORS: AntiIceSensorDefinition[] = [
+  {
+    id: "eng1-cowl",
+    name: "ENG 1 Cowl Anti-Ice Pressure Sensor",
+    zone: "Ducto Cowl Anti-Ice Motor 1 (Entre válvula TAI y labio de góndola)",
+    x: 303,
+    y: 228,
+    rotation: 90, // Base on vertical pipe x=303, stem points left
+    side: "left",
+    system: "cowl",
+  },
+  {
+    id: "eng2-cowl",
+    name: "ENG 2 Cowl Anti-Ice Pressure Sensor",
+    zone: "Ducto Cowl Anti-Ice Motor 2 (Entre válvula TAI y labio de góndola)",
+    x: 457,
+    y: 228,
+    rotation: -90, // Base on vertical pipe x=457, stem points right
+    side: "right",
+    system: "cowl",
+  },
+];
+
+/**
+ * Wing Anti-Ice Thermal Switches (Boeing 737 FCOM 3.10.5):
+ * Thermal switches located in the leading edge duct monitor temperature.
+ * On the ground, if duct temperature exceeds limits (>125°C / 257°F), the WING ANTI-ICE switch trips to OFF.
+ * Note: No direct overheat light on the cockpit panel.
+ */
+export const WING_ANTI_ICE_SENSORS: AntiIceSensorDefinition[] = [
+  {
+    id: "wing-left",
+    name: "Left Wing Anti-Ice Thermal Switch",
+    zone: "Ducto de borde de ataque alar izquierdo (Aguas abajo de válvula WAI)",
+    x: 338,
+    y: 268,
+    rotation: 0, // Base on horizontal pipe y=268, stem hangs down
+    side: "left",
+    system: "wing",
+  },
+  {
+    id: "wing-right",
+    name: "Right Wing Anti-Ice Thermal Switch",
+    zone: "Ducto de borde de ataque alar derecho (Aguas abajo de válvula WAI)",
+    x: 422,
+    y: 268,
+    rotation: 0, // Base on horizontal pipe y=268, stem hangs down
+    side: "right",
+    system: "wing",
+  },
+];
+
+/**
+ * Probe Glyph:
  * - Simple solid filled "T" shape
  * - Bottom/stem entirely solid filled (no gaps or split lines)
- * - All protruding lines (top pin, side tab) removed
- * - Flipped with respect to the X-axis (hangs down below the pipe line)
  * - Solid white in normal state, solid amber when tripped
  */
-function BleedTripProbeGlyph({ isTripped }: { isTripped: boolean }) {
+function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
   const color = isTripped ? "#ffb300" : "#ffffff";
 
   return (
@@ -209,13 +275,17 @@ export function OverheatSensorsLayer() {
     toggleOverheatSensor,
     bleedTripSensors,
     toggleBleedTripSensor,
+    cowlOverpressure,
+    toggleCowlOverpressure,
+    wingThermalOvertemp,
+    toggleWingThermalOvertemp,
   } = usePneumatic();
 
   return (
     <g
       id="pneumatic-sensors-layer"
       className="select-none"
-      aria-label="Sensores de Wing-Body Overheat y Bleed Trip Off"
+      aria-label="Sensores de sobrecalentamiento, sangrado y antihielo"
     >
       {/* 1. WING-BODY OVERHEAT SENSORS (compact solid white dots with dashed hover ring) */}
       {WING_BODY_OVERHEAT_SENSORS.map((sensor) => {
@@ -244,6 +314,9 @@ export function OverheatSensorsLayer() {
               e.stopPropagation();
             }}
             onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerUp={(e) => {
               e.stopPropagation();
             }}
             onClick={handleClick}
@@ -335,6 +408,9 @@ Estado: ${isOverheated ? "¡SOBRETEMPERATURA ACTIVA!" : "NORMAL"}
             onMouseDown={(e) => {
               e.stopPropagation();
             }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+            }}
             onClick={handleClick}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -359,8 +435,134 @@ Estado: ${isTripped ? "¡BLEED TRIP OFF DISPARADO!" : "NORMAL"}
               fill="transparent"
             />
 
-            {/* Símbolo técnico de sonda de bleed trip en forma de T sólida invertida */}
-            <BleedTripProbeGlyph isTripped={isTripped} />
+            {/* Símbolo técnico de sonda en forma de T sólida invertida */}
+            <ProbeGlyph isTripped={isTripped} />
+          </g>
+        );
+      })}
+
+      {/* 3. COWL ANTI-ICE SENSORS (T probe for duct overpressure) */}
+      {COWL_ANTI_ICE_SENSORS.map((sensor) => {
+        const engKey = sensor.id === "eng1-cowl" ? "eng1" : "eng2";
+        const isTripped = Boolean(cowlOverpressure[engKey]);
+
+        const handleClick = (e: React.SyntheticEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleCowlOverpressure(engKey);
+        };
+
+        return (
+          <g
+            key={`cowl-${sensor.id}`}
+            data-sensor-id={`cowl-${sensor.id}`}
+            data-interactive="true"
+            data-sensor-side={sensor.side}
+            data-tripped={isTripped}
+            transform={`translate(${sensor.x} ${sensor.y}) rotate(${sensor.rotation})`}
+            className="cursor-pointer group focus:outline-none"
+            tabIndex={0}
+            role="button"
+            aria-pressed={isTripped}
+            aria-label={`${sensor.name}. ${isTripped ? "Sobrepresión de ducto activa" : "Normal"}. Click para alternar.`}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+            }}
+            onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                handleClick(e);
+              }
+            }}
+          >
+            <title>
+              {`${sensor.name}
+Zona: ${sensor.zone}
+Luz de cabina asociada: COWL ANTI-ICE (${sensor.side === "left" ? "MOTOR 1" : "MOTOR 2"})
+Estado: ${isTripped ? "¡SOBREPRESIÓN EN DUCTO ACTIVA!" : "NORMAL"}
+(Haz clic para ${isTripped ? "restablecer normal" : "simular sobrepresión y encender luz ámbar COWL ANTI-ICE"})`}
+            </title>
+
+            {/* Hitbox amplio transparente para facilitar el click */}
+            <rect
+              x="-2.5"
+              y="-0.5"
+              width="5.0"
+              height="4.5"
+              fill="transparent"
+            />
+
+            {/* Símbolo técnico de sonda en forma de T sólida */}
+            <ProbeGlyph isTripped={isTripped} />
+          </g>
+        );
+      })}
+
+      {/* 4. WING ANTI-ICE SENSORS (T probe thermal switch per Boeing FCOM) */}
+      {WING_ANTI_ICE_SENSORS.map((sensor) => {
+        const sideKey = sensor.side;
+        const isTripped = Boolean(wingThermalOvertemp[sideKey]);
+
+        const handleClick = (e: React.SyntheticEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleWingThermalOvertemp(sideKey);
+        };
+
+        return (
+          <g
+            key={`wai-${sensor.id}`}
+            data-sensor-id={`wai-${sensor.id}`}
+            data-interactive="true"
+            data-sensor-side={sensor.side}
+            data-tripped={isTripped}
+            transform={`translate(${sensor.x} ${sensor.y}) rotate(${sensor.rotation})`}
+            className="cursor-pointer group focus:outline-none"
+            tabIndex={0}
+            role="button"
+            aria-pressed={isTripped}
+            aria-label={`${sensor.name}. ${isTripped ? "Sobretemperatura alar activa (Switch WAI disparado a OFF)" : "Normal"}. Click para alternar.`}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+            }}
+            onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                handleClick(e);
+              }
+            }}
+          >
+            <title>
+              {`${sensor.name}
+Zona: ${sensor.zone}
+Lógica FCOM: Sin luces en panel. Dispara el interruptor WING ANTI-ICE a OFF por sobretemperatura en tierra (>125°C).
+Estado: ${isTripped ? "¡SOBRETEMPERATURA EN DUCTO ACTIVA (Switch WAI disparado a OFF)!" : "NORMAL (<125°C)"}
+(Haz clic para ${isTripped ? "enfriar y restablecer normal" : "simular sobretemperatura en tierra y disparar switch WAI a OFF"})`}
+            </title>
+
+            {/* Hitbox amplio transparente para facilitar el click */}
+            <rect
+              x="-2.5"
+              y="-0.5"
+              width="5.0"
+              height="4.5"
+              fill="transparent"
+            />
+
+            {/* Símbolo técnico de sonda en forma de T sólida */}
+            <ProbeGlyph isTripped={isTripped} />
           </g>
         );
       })}

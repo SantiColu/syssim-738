@@ -5,7 +5,11 @@ import {
   CabinAltitudeControlPanel,
   CabinAltitudePanel,
   EquipmentCoolingPanel,
+  LeftWiperPanel,
+  RightWiperPanel,
   TemperaturePanel,
+  WindowHeatPanel,
+  WingAntiIcePanel,
 } from "./aircraft-panels";
 import { PneumaticPanel } from "./pneumatic-panel";
 import {
@@ -23,11 +27,15 @@ const MIN_COCKPIT_ZOOM = 0.1;
 const MAX_COCKPIT_ZOOM = 3;
 const COCKPIT_ZOOM_STEP = 0.25;
 const COCKPIT_FOREIGN_OBJECTS = [
+  { x: 1760, y: 882, width: 330, height: 339 },
+  { x: 1760, y: 1225, width: 330, height: 191 },
   { x: 2094, y: 965, width: 330, height: 342 },
   { x: 2097, y: 1311, width: 324, height: 467 },
   { x: 2094, y: 1782, width: 330, height: 436 },
   { x: 1760, y: 1880, width: 330, height: 338 },
   { x: 1616, y: 1447, width: 140, height: 160 },
+  { x: 1472, y: 2066, width: 140, height: 152 },
+  { x: 1616, y: 2066, width: 140, height: 152 },
 ] as const;
 
 function clampCockpitZoom(scale: number) {
@@ -57,6 +65,7 @@ function isCockpitCommand(target: Element) {
 export function CockpitView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const cockpitSvgRef = useRef<SVGSVGElement>(null);
+
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.3 });
   const transformRef = useRef(transform);
   const transformFrameRef = useRef<number | null>(null);
@@ -747,6 +756,34 @@ export function CockpitView() {
 
             {/* Populated React Panels as ForeignObjects */}
 
+            {/* Window & Probe Heat Panel in svg_11 (Left of Voice Recorder / Air Temp) */}
+            <foreignObject x="1760" y="882" width="330" height="339">
+              <div className="w-full h-full flex items-center justify-center">
+                <div
+                  style={{
+                    width: "330px",
+                    height: "339px",
+                  }}
+                >
+                  <WindowHeatPanel />
+                </div>
+              </div>
+            </foreignObject>
+
+            {/* Wing & Engine Anti-Ice Panel in svg_14 (Below Window Heat) */}
+            <foreignObject x="1760" y="1225" width="330" height="191">
+              <div className="w-full h-full flex items-center justify-center">
+                <div
+                  style={{
+                    width: "330px",
+                    height: "191px",
+                  }}
+                >
+                  <WingAntiIcePanel />
+                </div>
+              </div>
+            </foreignObject>
+
             {/* Temperature Panel in svg_13 (Top Right) */}
             <foreignObject x="2094" y="965" width="330" height="342">
               <div className="w-full h-full flex items-center justify-center">
@@ -816,6 +853,34 @@ export function CockpitView() {
                   }}
                 >
                   <EquipmentCoolingPanel />
+                </div>
+              </div>
+            </foreignObject>
+
+            {/* Left Windshield Wiper Panel (Bottom-right corner of adjacent left panel svg_19) */}
+            <foreignObject x="1472" y="2066" width="140" height="152">
+              <div className="w-full h-full flex items-center justify-center">
+                <div
+                  style={{
+                    width: "140px",
+                    height: "152px",
+                  }}
+                >
+                  <LeftWiperPanel />
+                </div>
+              </div>
+            </foreignObject>
+
+            {/* Right Windshield Wiper Panel (Fitted into tall elongated panel svg_22) */}
+            <foreignObject x="1616" y="2066" width="140" height="152">
+              <div className="w-full h-full flex items-center justify-center">
+                <div
+                  style={{
+                    width: "140px",
+                    height: "152px",
+                  }}
+                >
+                  <RightWiperPanel />
                 </div>
               </div>
             </foreignObject>

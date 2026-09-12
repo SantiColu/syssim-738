@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { MAIN_PNEUMATIC_SYSTEM } from "./main-network";
 import { solvePneumaticNetwork } from "./solve-network";
 import type {
@@ -12,6 +19,13 @@ import type {
 export type PackPosition = "OFF" | "AUTO" | "HIGH";
 export type IsoValvePosition = "CLOSE" | "AUTO" | "OPEN";
 
+export interface WindowHeatSwitches {
+  sideL: boolean;
+  fwdL: boolean;
+  fwdR: boolean;
+  sideR: boolean;
+}
+
 export interface PneumaticSwitchesState {
   lPack: PackPosition;
   isolationValve: IsoValvePosition;
@@ -21,6 +35,10 @@ export interface PneumaticSwitchesState {
   eng2Bleed: boolean;
   lRecircFan: boolean;
   rRecircFan: boolean;
+  wingAntiIce: boolean;
+  eng1AntiIce: boolean;
+  eng2AntiIce: boolean;
+  windowHeat: WindowHeatSwitches;
 }
 
 export interface PneumaticSourcesState {
@@ -41,6 +59,17 @@ export interface PneumaticContextValue {
   setEng2Bleed: (on: boolean) => void;
   setLRecircFan: (on: boolean) => void;
   setRRecircFan: (on: boolean) => void;
+  setWingAntiIce: (on: boolean) => void;
+  setEng1AntiIce: (on: boolean) => void;
+  setEng2AntiIce: (on: boolean) => void;
+  windowHeat: WindowHeatSwitches;
+  setWindowHeat: (key: keyof WindowHeatSwitches, on: boolean) => void;
+  toggleWindowHeat: (key: keyof WindowHeatSwitches) => void;
+  windowOverheat: WindowHeatSwitches;
+  toggleWindowOverheat: (key: keyof WindowHeatSwitches) => void;
+  windowHeatTest: "OVHT" | "CENTER" | "PWR TEST";
+  setWindowHeatTest: (pos: "OVHT" | "CENTER" | "PWR TEST") => void;
+  triggerWindowHeatTest: (pos: "OVHT" | "PWR TEST") => void;
   setEng1Running: (running: boolean) => void;
   setEng2Running: (running: boolean) => void;
   setApuRunning: (running: boolean) => void;
@@ -67,15 +96,18 @@ export interface PneumaticContextValue {
   isRightBleedTripOff: boolean;
   manualValves: Record<string, boolean>;
   toggleManualValve: (valveId: string) => void;
+  setManualValve: (valveId: string, open: boolean) => void;
+  cowlOverpressure: { eng1: boolean; eng2: boolean };
+  toggleCowlOverpressure: (eng: "eng1" | "eng2") => void;
+  setCowlOverpressure: (eng: "eng1" | "eng2", overpressure: boolean) => void;
+  wingThermalOvertemp: { left: boolean; right: boolean };
+  toggleWingThermalOvertemp: (side: "left" | "right") => void;
+  setWingThermalOvertemp: (side: "left" | "right", overtemp: boolean) => void;
 }
 
 export const INTERACTIVE_MANUAL_VALVES: Record<string, string> = {
   "valve-322-230": "Válvula Starter Motor 1",
   "valve-438-230": "Válvula Starter Motor 2",
-  "valve-351-260": "Válvula Wing Anti-Ice (Wing TAI) Izquierda",
-  "valve-409-260": "Válvula Wing Anti-Ice (Wing TAI) Derecha",
-  "valve-314-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 1",
-  "valve-447-245": "Válvula Cowl Anti-Ice (Cowl TAI) Motor 2",
   "valve-326-236": "Válvula Fan Air (FAV) Motor 1",
   "valve-434-236": "Válvula Fan Air (FAV) Motor 2",
   "valve-314-253": "Válvula de alta presión (9.ª etapa) Motor 1",
@@ -85,10 +117,6 @@ export const INTERACTIVE_MANUAL_VALVES: Record<string, string> = {
 const INITIAL_MANUAL_VALVES: Record<string, boolean> = {
   "valve-322-230": false,
   "valve-438-230": false,
-  "valve-351-260": false,
-  "valve-409-260": false,
-  "valve-314-245": false,
-  "valve-447-245": false,
   "valve-326-236": false,
   "valve-434-236": false,
   "valve-314-253": true,
@@ -104,6 +132,15 @@ const INITIAL_SWITCHES: PneumaticSwitchesState = {
   eng2Bleed: true,
   lRecircFan: true,
   rRecircFan: true,
+  wingAntiIce: false,
+  eng1AntiIce: false,
+  eng2AntiIce: false,
+  windowHeat: {
+    sideL: false,
+    fwdL: false,
+    fwdR: false,
+    sideR: false,
+  },
 };
 
 const INITIAL_SOURCES: PneumaticSourcesState = {
@@ -239,10 +276,18 @@ function computeRuntimeState(
     // Manual interactive valves (Starter, Wing TAI, Cowl TAI, Fan Air, HP stage):
     "valve-322-230": { open: Boolean(manualValves?.["valve-322-230"]) },
     "valve-438-230": { open: Boolean(manualValves?.["valve-438-230"]) },
-    "valve-351-260": { open: Boolean(manualValves?.["valve-351-260"]) },
-    "valve-409-260": { open: Boolean(manualValves?.["valve-409-260"]) },
-    "valve-314-245": { open: Boolean(manualValves?.["valve-314-245"]) },
-    "valve-447-245": { open: Boolean(manualValves?.["valve-447-245"]) },
+    "valve-351-260": {
+      open: Boolean(switches.wingAntiIce),
+    },
+    "valve-409-260": {
+      open: Boolean(switches.wingAntiIce),
+    },
+    "valve-314-245": {
+      open: Boolean(switches.eng1AntiIce),
+    },
+    "valve-447-245": {
+      open: Boolean(switches.eng2AntiIce),
+    },
     "valve-326-236": { open: Boolean(manualValves?.["valve-326-236"]) },
     "valve-434-236": { open: Boolean(manualValves?.["valve-434-236"]) },
     "valve-314-253": { open: Boolean(manualValves?.["valve-314-253"]) },
@@ -257,6 +302,73 @@ const PneumaticContext = createContext<PneumaticContextValue | null>(null);
 export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const [switches, setSwitches] = useState<PneumaticSwitchesState>(INITIAL_SWITCHES);
   const [sourcesState, setSourcesState] = useState<PneumaticSourcesState>(INITIAL_SOURCES);
+  const [manualValves, setManualValves] =
+    useState<Record<string, boolean>>(INITIAL_MANUAL_VALVES);
+  const [overheatSensors, setOverheatSensors] =
+    useState<Record<number, boolean>>(INITIAL_OVERHEAT_SENSORS);
+  const [bleedTripSensors, setBleedTripSensors] =
+    useState<Record<string, boolean>>(INITIAL_BLEED_TRIP_SENSORS);
+  const [windowOverheat, setWindowOverheat] = useState<WindowHeatSwitches>({
+    sideL: false,
+    fwdL: false,
+    fwdR: false,
+    sideR: false,
+  });
+  const [windowHeatTest, setWindowHeatTestState] = useState<
+    "OVHT" | "CENTER" | "PWR TEST"
+  >("CENTER");
+  const windowTestTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [cowlOverpressure, setCowlOverpressureState] = useState<{
+    eng1: boolean;
+    eng2: boolean;
+  }>({
+    eng1: false,
+    eng2: false,
+  });
+
+  const [wingThermalOvertemp, setWingThermalOvertempState] = useState<{
+    left: boolean;
+    right: boolean;
+  }>({
+    left: false,
+    right: false,
+  });
+
+  const setCowlOverpressure = (eng: "eng1" | "eng2", overpressure: boolean) => {
+    setCowlOverpressureState((prev) => ({
+      ...prev,
+      [eng]: overpressure,
+    }));
+  };
+
+  const toggleCowlOverpressure = (eng: "eng1" | "eng2") => {
+    setCowlOverpressureState((prev) => ({
+      ...prev,
+      [eng]: !prev[eng],
+    }));
+  };
+
+  const setWingThermalOvertemp = (side: "left" | "right", overtemp: boolean) => {
+    setWingThermalOvertempState((prev) => {
+      const next = { ...prev, [side]: overtemp };
+      if (overtemp) {
+        setSwitches((s) => ({ ...s, wingAntiIce: false }));
+      }
+      return next;
+    });
+  };
+
+  const toggleWingThermalOvertemp = (side: "left" | "right") => {
+    setWingThermalOvertempState((prev) => {
+      const nextVal = !prev[side];
+      const next = { ...prev, [side]: nextVal };
+      if (nextVal) {
+        setSwitches((s) => ({ ...s, wingAntiIce: false }));
+      }
+      return next;
+    });
+  };
 
   const setLPack = (pos: PackPosition) =>
     setSwitches((s) => ({ ...s, lPack: pos }));
@@ -274,6 +386,25 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     setSwitches((s) => ({ ...s, lRecircFan: on }));
   const setRRecircFan = (on: boolean) =>
     setSwitches((s) => ({ ...s, rRecircFan: on }));
+
+  const setWingAntiIce = useCallback(
+    (on: boolean) => {
+      if (on && (wingThermalOvertemp.left || wingThermalOvertemp.right)) {
+        setSwitches((s) => ({ ...s, wingAntiIce: false }));
+        return;
+      }
+      setSwitches((s) => ({ ...s, wingAntiIce: on }));
+    },
+    [wingThermalOvertemp],
+  );
+
+  const setEng1AntiIce = (on: boolean) => {
+    setSwitches((s) => ({ ...s, eng1AntiIce: on }));
+  };
+
+  const setEng2AntiIce = (on: boolean) => {
+    setSwitches((s) => ({ ...s, eng2AntiIce: on }));
+  };
 
   const setEng1Running = (running: boolean) =>
     setSourcesState((s) => ({ ...s, eng1Running: running }));
@@ -293,9 +424,6 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const toggleGndAir = () =>
     setSourcesState((s) => ({ ...s, gndAirConnected: !s.gndAirConnected }));
 
-  const [manualValves, setManualValves] =
-    useState<Record<string, boolean>>(INITIAL_MANUAL_VALVES);
-
   const toggleManualValve = (valveId: string) => {
     setManualValves((prev) => ({
       ...prev,
@@ -303,8 +431,12 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const [overheatSensors, setOverheatSensors] =
-    useState<Record<number, boolean>>(INITIAL_OVERHEAT_SENSORS);
+  const setManualValve = (valveId: string, open: boolean) => {
+    setManualValves((prev) => ({
+      ...prev,
+      [valveId]: open,
+    }));
+  };
 
   const toggleOverheatSensor = (id: number) =>
     setOverheatSensors((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -325,9 +457,6 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       overheatSensors[7] ||
       overheatSensors[8],
   );
-
-  const [bleedTripSensors, setBleedTripSensors] =
-    useState<Record<string, boolean>>(INITIAL_BLEED_TRIP_SENSORS);
 
   const toggleBleedTripSensor = (id: string) =>
     setBleedTripSensors((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -364,6 +493,52 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     [runtimeState],
   );
 
+  const setWindowHeat = useCallback(
+    (key: keyof WindowHeatSwitches, on: boolean) => {
+      setSwitches((prev) => ({
+        ...prev,
+        windowHeat: {
+          ...prev.windowHeat,
+          [key]: on,
+        },
+      }));
+    },
+    [],
+  );
+
+  const toggleWindowHeat = useCallback((key: keyof WindowHeatSwitches) => {
+    setSwitches((prev) => ({
+      ...prev,
+      windowHeat: {
+        ...prev.windowHeat,
+        [key]: !prev.windowHeat[key],
+      },
+    }));
+  }, []);
+
+  const toggleWindowOverheat = useCallback((key: keyof WindowHeatSwitches) => {
+    setWindowOverheat((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  }, []);
+
+  const setWindowHeatTest = useCallback(
+    (pos: "OVHT" | "CENTER" | "PWR TEST") => {
+      if (windowTestTimerRef.current) clearTimeout(windowTestTimerRef.current);
+      setWindowHeatTestState(pos);
+    },
+    [],
+  );
+
+  const triggerWindowHeatTest = useCallback((pos: "OVHT" | "PWR TEST") => {
+    if (windowTestTimerRef.current) clearTimeout(windowTestTimerRef.current);
+    setWindowHeatTestState(pos);
+    windowTestTimerRef.current = setTimeout(() => {
+      setWindowHeatTestState("CENTER");
+    }, 1100);
+  }, []);
+
   // Pressure readings for DUCT PRESS gauge
   // Left manifold at junction-362-243 or valve-362-232
   const leftDuctPressurePsi =
@@ -398,6 +573,17 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       setEng2Bleed,
       setLRecircFan,
       setRRecircFan,
+      setWingAntiIce,
+      setEng1AntiIce,
+      setEng2AntiIce,
+      windowHeat: switches.windowHeat,
+      setWindowHeat,
+      toggleWindowHeat,
+      windowOverheat,
+      toggleWindowOverheat,
+      windowHeatTest,
+      setWindowHeatTest,
+      triggerWindowHeatTest,
       setEng1Running,
       setEng2Running,
       setApuRunning,
@@ -424,6 +610,13 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       isRightBleedTripOff,
       manualValves,
       toggleManualValve,
+      setManualValve,
+      cowlOverpressure,
+      toggleCowlOverpressure,
+      setCowlOverpressure,
+      wingThermalOvertemp,
+      toggleWingThermalOvertemp,
+      setWingThermalOvertemp,
     }),
     [
       switches,
@@ -440,6 +633,16 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       isLeftBleedTripOff,
       isRightBleedTripOff,
       manualValves,
+      windowOverheat,
+      windowHeatTest,
+      setWindowHeat,
+      toggleWindowHeat,
+      toggleWindowOverheat,
+      setWindowHeatTest,
+      triggerWindowHeatTest,
+      cowlOverpressure,
+      wingThermalOvertemp,
+      setWingAntiIce,
     ],
   );
 
@@ -468,6 +671,22 @@ const fallbackValue: PneumaticContextValue = {
   setEng2Bleed: () => {},
   setLRecircFan: () => {},
   setRRecircFan: () => {},
+  setWingAntiIce: () => {},
+  setEng1AntiIce: () => {},
+  setEng2AntiIce: () => {},
+  windowHeat: INITIAL_SWITCHES.windowHeat,
+  setWindowHeat: () => {},
+  toggleWindowHeat: () => {},
+  windowOverheat: {
+    sideL: false,
+    fwdL: false,
+    fwdR: false,
+    sideR: false,
+  },
+  toggleWindowOverheat: () => {},
+  windowHeatTest: "CENTER",
+  setWindowHeatTest: () => {},
+  triggerWindowHeatTest: () => {},
   setEng1Running: () => {},
   setEng2Running: () => {},
   setApuRunning: () => {},
@@ -494,6 +713,13 @@ const fallbackValue: PneumaticContextValue = {
   isRightBleedTripOff: false,
   manualValves: INITIAL_MANUAL_VALVES,
   toggleManualValve: () => {},
+  setManualValve: () => {},
+  cowlOverpressure: { eng1: false, eng2: false },
+  toggleCowlOverpressure: () => {},
+  setCowlOverpressure: () => {},
+  wingThermalOvertemp: { left: false, right: false },
+  toggleWingThermalOvertemp: () => {},
+  setWingThermalOvertemp: () => {},
 };
 
 export function usePneumatic(): PneumaticContextValue {

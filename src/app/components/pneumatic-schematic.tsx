@@ -14,6 +14,7 @@ import {
   PneumaticSourceLegendIcon,
 } from "./pneumatic-network-layer";
 import { OverheatSensorsLayer } from "./overheat-sensors-layer";
+import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -122,9 +123,13 @@ export function PneumaticSchematic() {
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
 
-    // Prevent map drag/pointer capture when clicking on interactive sensors
+    // Prevent map drag/pointer capture when clicking on interactive sensors or flight deck windows
     const target = event.target as Element | null;
-    if (target?.closest?.("[data-sensor-id], [data-interactive=true]")) {
+    if (
+      target?.closest?.(
+        "[data-sensor-id], [data-interactive=true], [data-window-heat]",
+      )
+    ) {
       return;
     }
 
@@ -258,6 +263,7 @@ export function PneumaticSchematic() {
             colorMode={colorMode}
           />
           <OverheatSensorsLayer />
+          <FlightDeckWindowsLayer />
           <use
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1 pointer-events-none"
             href="#boeing-737-800-outline"

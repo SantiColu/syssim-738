@@ -7,6 +7,9 @@ import {
   CabinAltitudePanel,
   EquipmentCoolingPanel,
   TemperaturePanel,
+  WindshieldWiperPanel,
+  WindowHeatPanel,
+  WingAntiIcePanel,
 } from "./aircraft-panels";
 import { PneumaticPanel } from "./pneumatic-panel";
 
@@ -48,6 +51,24 @@ const panels: Panel[] = [
     code: "AIR CONDITIONING",
     component: TemperaturePanel,
   },
+  {
+    id: "window-heat",
+    name: "Window & probe heat",
+    code: "ANTI-ICE, RAIN",
+    component: WindowHeatPanel,
+  },
+  {
+    id: "wing-anti-ice",
+    name: "Wing & engine anti-ice",
+    code: "ANTI-ICE, BLEED AIR",
+    component: WingAntiIcePanel,
+  },
+  {
+    id: "windshield-wiper",
+    name: "Windshield wipers",
+    code: "ANTI-ICE, RAIN",
+    component: WindshieldWiperPanel,
+  },
 ];
 
 const panelCardClassName =
@@ -57,11 +78,14 @@ const panelVisualClassName =
   "absolute inset-0 flex items-center justify-center [&>img]:block [&>img]:h-auto [&>img]:max-h-full [&>img]:w-auto [&>img]:max-w-full [&>img]:object-contain [&>img]:drop-shadow-[0_12px_15px_var(--color-sim-shadow)]";
 
 const previewPositionClassNames = [
-  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_-_150px)] scale-[0.18] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_-_145px)] max-[900px]:scale-[0.23] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_-_150px)] max-[560px]:scale-[0.15]",
-  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_+_5px)] scale-[0.18] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:-translate-y-1/2 max-[900px]:scale-[0.23] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:-translate-y-1/2 max-[560px]:scale-[0.15]",
-  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_+_160px)] scale-[0.18] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_+_145px)] max-[900px]:scale-[0.23] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_+_150px)] max-[560px]:scale-[0.15]",
-  "translate-x-[calc(-50%_+_245px)] translate-y-[calc(-50%_+_115px)] scale-[0.18] max-[900px]:translate-x-[calc(-50%_+_300px)] max-[900px]:translate-y-[calc(-50%_+_100px)] max-[900px]:scale-[0.23] max-[560px]:translate-x-[calc(-50%_+_215px)] max-[560px]:translate-y-[calc(-50%_+_105px)] max-[560px]:scale-[0.15]",
-  "translate-x-[calc(-50%_+_245px)] translate-y-[calc(-50%_-_115px)] scale-[0.18] max-[900px]:translate-x-[calc(-50%_+_300px)] max-[900px]:translate-y-[calc(-50%_-_100px)] max-[900px]:scale-[0.23] max-[560px]:translate-x-[calc(-50%_+_215px)] max-[560px]:translate-y-[calc(-50%_-_105px)] max-[560px]:scale-[0.15]",
+  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_-_165px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_-_160px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_-_160px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_-_55px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_-_55px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_-_55px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_+_55px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_+_55px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_+_55px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_-_245px)] translate-y-[calc(-50%_+_165px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_-_300px)] max-[900px]:translate-y-[calc(-50%_+_160px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_-_215px)] max-[560px]:translate-y-[calc(-50%_+_160px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_+_245px)] translate-y-[calc(-50%_-_165px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_+_300px)] max-[900px]:translate-y-[calc(-50%_-_160px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_+_215px)] max-[560px]:translate-y-[calc(-50%_-_160px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_+_245px)] translate-y-[calc(-50%_-_55px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_+_300px)] max-[900px]:translate-y-[calc(-50%_-_55px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_+_215px)] max-[560px]:translate-y-[calc(-50%_-_55px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_+_245px)] translate-y-[calc(-50%_+_55px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_+_300px)] max-[900px]:translate-y-[calc(-50%_+_55px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_+_215px)] max-[560px]:translate-y-[calc(-50%_+_55px)] max-[560px]:scale-[0.14]",
+  "translate-x-[calc(-50%_+_245px)] translate-y-[calc(-50%_+_165px)] scale-[0.16] max-[900px]:translate-x-[calc(-50%_+_300px)] max-[900px]:translate-y-[calc(-50%_+_160px)] max-[900px]:scale-[0.20] max-[560px]:translate-x-[calc(-50%_+_215px)] max-[560px]:translate-y-[calc(-50%_+_160px)] max-[560px]:scale-[0.14]",
 ];
 
 export function CockpitPanelSelector() {

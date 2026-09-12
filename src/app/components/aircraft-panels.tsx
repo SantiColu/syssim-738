@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import {
+  usePneumatic,
+  type WindowHeatSwitches,
+} from "../simulation/pneumatic/pneumatic-context";
 
 function Screw({ className = "" }: { className?: string }) {
   return <i className={`ap-screw ${className}`} />;
@@ -2285,94 +2289,155 @@ function TempSourceLabels() {
 export function RoundHeadToggle({
   position = "OFF",
   onToggle,
+  onClick,
+  onPointerDown,
+  onPointerUp,
+  onWheelStep,
+  size = 50,
+  title,
 }: {
-  position?: "ON" | "OFF";
+  position?: "ON" | "OFF" | "UP" | "CENTER" | "DOWN" | "AUTO" | "OVHT" | "PWR TEST";
   onToggle?: () => void;
+  onClick?: () => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onWheelStep?: (direction: number) => void;
+  size?: number;
+  title?: string;
 }) {
-  const isOff = position === "OFF";
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !onWheelStep) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      onWheelStep(e.deltaY < 0 ? -1 : 1);
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [onWheelStep]);
+
+  const isUp =
+    position === "OFF" ||
+    position === "UP" ||
+    position === "AUTO" ||
+    position === "OVHT";
+  const isCenter = position === "CENTER";
+  const targetY = isUp ? -7 : isCenter ? 0 : 8;
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else if (onToggle) {
+      onToggle();
+    }
+  };
+
   return (
-    <svg
-      viewBox="0 0 60 60"
-      onClick={onToggle}
+    <div
+      ref={containerRef}
+      onClick={handleClick}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
       style={{
-        width: "50px",
-        height: "50px",
-        overflow: "visible",
-        cursor: onToggle ? "pointer" : "default",
+        width: `${size}px`,
+        height: `${size}px`,
+        cursor: onClick || onToggle || onPointerDown ? "pointer" : "default",
+        userSelect: "none",
+        position: "relative",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
+      title={title || "Interruptor basculante (Rueda del ratón o clic para alternar)"}
     >
-      <defs>
-        <radialGradient id="bezel-grad" cx="50%" cy="50%" r="50%">
-          <stop offset="60%" stopColor="#4a5053" />
-          <stop offset="90%" stopColor="#25282a" />
-          <stop offset="100%" stopColor="#151718" />
-        </radialGradient>
-        <radialGradient id="cavity-grad" cx="50%" cy="40%" r="50%">
-          <stop offset="0%" stopColor="#1a1d1e" />
-          <stop offset="70%" stopColor="#2c3033" />
-          <stop offset="100%" stopColor="#111314" />
-        </radialGradient>
-        <radialGradient id="ball-grad" cx="35%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="30%" stopColor="#ede7d5" />
-          <stop offset="75%" stopColor="#c5bea8" />
-          <stop offset="100%" stopColor="#968f7a" />
-        </radialGradient>
-      </defs>
-
-      {/* Base Bezel */}
-      <circle
-        cx="30"
-        cy="30"
-        r="22"
-        fill="url(#bezel-grad)"
-        stroke="#606669"
-        strokeWidth="1.5"
-      />
-      <circle
-        cx="30"
-        cy="30"
-        r="16"
-        fill="url(#cavity-grad)"
-        stroke="#111314"
-        strokeWidth="1"
-      />
-
-      {/* Crescent / arc track underneath */}
-      <path
-        d="M 17 34 A 14 14 0 0 0 43 34"
-        fill="none"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-
-      {/* Stem & Round Head */}
-      <g
-        transform={isOff ? "translate(0, -6)" : "translate(0, 8)"}
+      <svg
+        viewBox="0 0 60 60"
         style={{
-          transition: "transform 0.15s ease-out",
-          filter: "drop-shadow(0px 2px 2px rgba(10, 10, 10, 0.8))",
+          width: "100%",
+          height: "100%",
+          overflow: "visible",
+          pointerEvents: "none",
         }}
       >
-        {/* Metal stem */}
-        <path
-          d="M 28 32 L 28 26 L 32 26 L 32 32 Z"
-          fill="#b0b5b8"
-          stroke="#505558"
-          strokeWidth="0.5"
-        />
-        {/* Round Head Ball */}
+        <defs>
+          <radialGradient id="bezel-grad" cx="50%" cy="50%" r="50%">
+            <stop offset="60%" stopColor="#4a5053" />
+            <stop offset="90%" stopColor="#25282a" />
+            <stop offset="100%" stopColor="#151718" />
+          </radialGradient>
+          <radialGradient id="cavity-grad" cx="50%" cy="40%" r="50%">
+            <stop offset="0%" stopColor="#1a1d1e" />
+            <stop offset="70%" stopColor="#2c3033" />
+            <stop offset="100%" stopColor="#111314" />
+          </radialGradient>
+          <radialGradient id="ball-grad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="30%" stopColor="#ede7d5" />
+            <stop offset="75%" stopColor="#c5bea8" />
+            <stop offset="100%" stopColor="#968f7a" />
+          </radialGradient>
+        </defs>
+
+        {/* Base Bezel */}
         <circle
           cx="30"
-          cy="24"
-          r="11"
-          fill="url(#ball-grad)"
-          stroke="#8c8573"
-          strokeWidth="0.8"
+          cy="30"
+          r="22"
+          fill="url(#bezel-grad)"
+          stroke="#606669"
+          strokeWidth="1.5"
         />
-      </g>
-    </svg>
+        <circle
+          cx="30"
+          cy="30"
+          r="16"
+          fill="url(#cavity-grad)"
+          stroke="#111314"
+          strokeWidth="1"
+        />
+
+        {/* Crescent / arc track underneath */}
+        <path
+          d="M 17 34 A 14 14 0 0 0 43 34"
+          fill="none"
+          stroke="white"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+
+        {/* Stem & Round Head */}
+        <g
+          transform={`translate(0, ${targetY})`}
+          style={{
+            transition: "transform 0.15s ease-out",
+            filter: "drop-shadow(0px 2px 2px rgba(10, 10, 10, 0.8))",
+          }}
+        >
+          {/* Metal stem */}
+          <path
+            d="M 28 32 L 28 26 L 32 26 L 32 32 Z"
+            fill="#b0b5b8"
+            stroke="#505558"
+            strokeWidth="0.5"
+          />
+          {/* Round Head Ball */}
+          <circle
+            cx="30"
+            cy="24"
+            r="11"
+            fill="url(#ball-grad)"
+            stroke="#8c8573"
+            strokeWidth="0.8"
+          />
+        </g>
+      </svg>
+    </div>
   );
 }
 
@@ -2875,5 +2940,945 @@ export function TemperaturePanel() {
       <Screw className="s3" />
       <Screw className="s4" />
     </section>
+  );
+}
+
+export function WindowHeatPanel() {
+  const pneumatic = usePneumatic();
+
+  // Read window heat switches, overheats, and test status from pneumatic context
+  const switches = pneumatic.switches.windowHeat;
+  const overheats = pneumatic.windowOverheat;
+  const testPos = pneumatic.windowHeatTest;
+
+  // Probe Heat switches: "AUTO" (UP) | "ON" (DOWN)
+  const [probeA, setProbeA] = useState<"AUTO" | "ON">("AUTO");
+  const [probeB, setProbeB] = useState<"AUTO" | "ON">("AUTO");
+
+  const eng1Running = Boolean(pneumatic?.sourcesState?.eng1Running);
+  const eng2Running = Boolean(pneumatic?.sourcesState?.eng2Running);
+  const isEitherEngineRunning = eng1Running || eng2Running;
+
+  // Probe Heat logic per FCOM 3.10.3:
+  // "AUTO - power is automatically supplied to both A and B probe heat systems when either engine is running."
+  // "ON - power is supplied to heat related system."
+  // "Illuminated (amber) - related probe not heated."
+  const isProbeAHeated = probeA === "ON" || (probeA === "AUTO" && isEitherEngineRunning);
+  const isProbeBHeated = probeB === "ON" || (probeB === "AUTO" && isEitherEngineRunning);
+
+  // Window Heat test overrides
+  const isOvhtTesting = testPos === "OVHT";
+  const isPwrTesting = testPos === "PWR TEST";
+
+  // Overheat lights (amber): illuminated on genuine overheat or OVHT confidence test
+  const isSideLOvhtLit = overheats.sideL || isOvhtTesting;
+  const isFwdLOvhtLit = overheats.fwdL || isOvhtTesting;
+  const isFwdROvhtLit = overheats.fwdR || isOvhtTesting;
+  const isSideROvhtLit = overheats.sideR || isOvhtTesting;
+
+  // ON lights (green): illuminated when window heat applied and not overheated, or during PWR TEST
+  const isSideLOnLit = isPwrTesting || (switches.sideL && !isSideLOvhtLit);
+  const isFwdLOnLit = isPwrTesting || (switches.fwdL && !isFwdLOvhtLit);
+  const isFwdROnLit = isPwrTesting || (switches.fwdR && !isFwdROvhtLit);
+  const isSideROnLit = isPwrTesting || (switches.sideR && !isSideROvhtLit);
+
+  const toggleWindowSwitch = (key: keyof WindowHeatSwitches) => {
+    pneumatic.toggleWindowHeat(key);
+  };
+
+  const setWindowSwitch = (key: keyof WindowHeatSwitches, pos: "OFF" | "ON") => {
+    pneumatic.setWindowHeat(key, pos === "ON");
+  };
+
+  const triggerMomentaryTest = (pos: "OVHT" | "PWR TEST") => {
+    pneumatic.triggerWindowHeatTest(pos);
+  };
+
+  const handleTestPointerDown = (pos: "OVHT" | "PWR TEST") => {
+    pneumatic.setWindowHeatTest(pos);
+  };
+
+  const handleTestPointerUp = () => {
+    pneumatic.setWindowHeatTest("CENTER");
+  };
+
+  return (
+    <section
+      className="aircraft-panel window-heat-panel"
+      aria-label="Window heat and probe heat panel"
+    >
+      {/* Top 4 pairs of annunciators: OVERHEAT (amber) / ON (green) */}
+      <div className="wh-annunciator-grid">
+        {/* Column 1: L SIDE */}
+        <div className="wh-annunciator-pair">
+          <div
+            className={`wh-annunciator amber ${isSideLOvhtLit ? "lit" : ""}`}
+            title="L SIDE OVERHEAT"
+          >
+            OVERHEAT
+          </div>
+          <div
+            className={`wh-annunciator green ${isSideLOnLit ? "lit" : ""}`}
+            title="L SIDE ON"
+          >
+            ON
+          </div>
+        </div>
+
+        {/* Column 2: L FWD */}
+        <div className="wh-annunciator-pair">
+          <div
+            className={`wh-annunciator amber ${isFwdLOvhtLit ? "lit" : ""}`}
+            title="L FWD OVERHEAT"
+          >
+            OVERHEAT
+          </div>
+          <div
+            className={`wh-annunciator green ${isFwdLOnLit ? "lit" : ""}`}
+            title="L FWD ON"
+          >
+            ON
+          </div>
+        </div>
+
+        {/* Column 3: R FWD */}
+        <div className="wh-annunciator-pair">
+          <div
+            className={`wh-annunciator amber ${isFwdROvhtLit ? "lit" : ""}`}
+            title="R FWD OVERHEAT"
+          >
+            OVERHEAT
+          </div>
+          <div
+            className={`wh-annunciator green ${isFwdROnLit ? "lit" : ""}`}
+            title="R FWD ON"
+          >
+            ON
+          </div>
+        </div>
+
+        {/* Column 4: R SIDE */}
+        <div className="wh-annunciator-pair">
+          <div
+            className={`wh-annunciator amber ${isSideROvhtLit ? "lit" : ""}`}
+            title="R SIDE OVERHEAT"
+          >
+            OVERHEAT
+          </div>
+          <div
+            className={`wh-annunciator green ${isSideROnLit ? "lit" : ""}`}
+            title="R SIDE ON"
+          >
+            ON
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Subplate: Window Heat Controls */}
+      <div className="wh-subplate">
+        <div className="wh-title-row">
+          <span>L</span>
+          <span>WINDOW HEAT</span>
+          <span>R</span>
+        </div>
+
+        <div className="wh-switches-row">
+          {/* L SIDE switch */}
+          <div className="wh-switch-cell">
+            <span className="switch-sublabel">SIDE</span>
+            <div className="relative flex items-center justify-center">
+              <AircraftToggleSwitch
+                position={switches.sideL ? "DOWN" : "UP"}
+                circleColor="black"
+                onClick={() => toggleWindowSwitch("sideL")}
+                onWheelStep={(d) => setWindowSwitch("sideL", d < 0 ? "OFF" : "ON")}
+                size={38}
+              />
+              <div className="pos-labels">
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("sideL", "OFF")}
+                >
+                  OFF
+                </span>
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("sideL", "ON")}
+                >
+                  ON
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* L FWD switch */}
+          <div className="wh-switch-cell">
+            <span className="switch-sublabel">FWD</span>
+            <div className="relative flex items-center justify-center">
+              <AircraftToggleSwitch
+                position={switches.fwdL ? "DOWN" : "UP"}
+                circleColor="black"
+                onClick={() => toggleWindowSwitch("fwdL")}
+                onWheelStep={(d) => setWindowSwitch("fwdL", d < 0 ? "OFF" : "ON")}
+                size={38}
+              />
+              <div className="pos-labels">
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("fwdL", "OFF")}
+                >
+                  OFF
+                </span>
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("fwdL", "ON")}
+                >
+                  ON
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Center TEST switch (spring-loaded to neutral) */}
+          <div className="wh-switch-cell" style={{ width: "58px" }}>
+            <span
+              className="switch-sublabel cursor-pointer select-none hover:text-sim-accent"
+              onPointerDown={() => handleTestPointerDown("OVHT")}
+              onPointerUp={handleTestPointerUp}
+              onClick={() => triggerMomentaryTest("OVHT")}
+              title="Test Overheat (mantener o clic)"
+            >
+              OVHT
+            </span>
+            <div className="relative flex items-center justify-center">
+              <AircraftToggleSwitch
+                position={testPos === "OVHT" ? "UP" : testPos === "PWR TEST" ? "DOWN" : "CENTER"}
+                circleColor="black"
+                onClick={() =>
+                  triggerMomentaryTest(testPos === "OVHT" ? "PWR TEST" : "OVHT")
+                }
+                onWheelStep={(d) =>
+                  triggerMomentaryTest(d < 0 ? "OVHT" : "PWR TEST")
+                }
+                size={38}
+              />
+            </div>
+            <span
+              className="switch-sublabel cursor-pointer select-none hover:text-sim-accent whitespace-nowrap"
+              style={{ marginTop: "1px" }}
+              onPointerDown={() => handleTestPointerDown("PWR TEST")}
+              onPointerUp={handleTestPointerUp}
+              onClick={() => triggerMomentaryTest("PWR TEST")}
+              title="Power Confidence Test (mantener o clic)"
+            >
+              PWR TEST
+            </span>
+          </div>
+
+          {/* R FWD switch */}
+          <div className="wh-switch-cell">
+            <span className="switch-sublabel">FWD</span>
+            <div className="relative flex items-center justify-center">
+              <AircraftToggleSwitch
+                position={switches.fwdR ? "DOWN" : "UP"}
+                circleColor="black"
+                onClick={() => toggleWindowSwitch("fwdR")}
+                onWheelStep={(d) => setWindowSwitch("fwdR", d < 0 ? "OFF" : "ON")}
+                size={38}
+              />
+              <div className="pos-labels">
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("fwdR", "OFF")}
+                >
+                  OFF
+                </span>
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("fwdR", "ON")}
+                >
+                  ON
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* R SIDE switch */}
+          <div className="wh-switch-cell">
+            <span className="switch-sublabel">SIDE</span>
+            <div className="relative flex items-center justify-center">
+              <AircraftToggleSwitch
+                position={switches.sideR ? "DOWN" : "UP"}
+                circleColor="black"
+                onClick={() => toggleWindowSwitch("sideR")}
+                onWheelStep={(d) => setWindowSwitch("sideR", d < 0 ? "OFF" : "ON")}
+                size={38}
+              />
+              <div className="pos-labels">
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("sideR", "OFF")}
+                >
+                  OFF
+                </span>
+                <span
+                  className="cursor-pointer"
+                  onClick={() => setWindowSwitch("sideR", "ON")}
+                >
+                  ON
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lower Section: Probe Heat */}
+      <div className="probe-heat-section">
+        {/* Left Column: System A Probes */}
+        <div className="probe-annunciator-col">
+          <div
+            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
+            title="CAPT PITOT"
+          >
+            <span>CAPT</span>
+            <span>PITOT</span>
+          </div>
+          <div
+            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
+            title="L ELEV PITOT"
+          >
+            <span>L ELEV</span>
+            <span>PITOT</span>
+          </div>
+          <div
+            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
+            title="L ALPHA VANE"
+          >
+            <span>L ALPHA</span>
+            <span>VANE</span>
+          </div>
+          <div
+            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
+            title="TEMP PROBE"
+          >
+            <span>TEMP</span>
+            <span>PROBE</span>
+          </div>
+        </div>
+
+        {/* Center Plate: Probe Heat Controls */}
+        <div className="probe-center-plate">
+          <span className="probe-header">PROBE</span>
+          <div className="probe-circuits">
+            <span>A</span>
+            <span>B</span>
+          </div>
+          <span className="probe-pos-label">AUTO</span>
+          <div className="probe-switches-row">
+            <div className="probe-switch-cell">
+              <AircraftToggleSwitch
+                position={probeA === "AUTO" ? "UP" : "DOWN"}
+                circleColor="black"
+                onClick={() => setProbeA((p) => (p === "AUTO" ? "ON" : "AUTO"))}
+                onWheelStep={(d) => setProbeA(d < 0 ? "AUTO" : "ON")}
+                size={38}
+              />
+            </div>
+            <div className="probe-switch-cell">
+              <AircraftToggleSwitch
+                position={probeB === "AUTO" ? "UP" : "DOWN"}
+                circleColor="black"
+                onClick={() => setProbeB((p) => (p === "AUTO" ? "ON" : "AUTO"))}
+                onWheelStep={(d) => setProbeB(d < 0 ? "AUTO" : "ON")}
+                size={38}
+              />
+            </div>
+          </div>
+          <span className="probe-pos-label">ON</span>
+          <span className="probe-footer">HEAT</span>
+        </div>
+
+        {/* Right Column: System B Probes */}
+        <div className="probe-annunciator-col">
+          <div
+            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
+            title="F/O PITOT"
+          >
+            <span>F/O</span>
+            <span>PITOT</span>
+          </div>
+          <div
+            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
+            title="R ELEV PITOT"
+          >
+            <span>R ELEV</span>
+            <span>PITOT</span>
+          </div>
+          <div
+            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
+            title="R ALPHA VANE"
+          >
+            <span>R ALPHA</span>
+            <span>VANE</span>
+          </div>
+          <div
+            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
+            title="AUX PITOT"
+          >
+            <span>AUX</span>
+            <span>PITOT</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Corner Screws */}
+      <Screw className="s1" />
+      <Screw className="s2" />
+      <Screw className="s3" />
+      <Screw className="s4" />
+    </section>
+  );
+}
+
+export function WingAntiIcePanel() {
+  const {
+    switches,
+    setWingAntiIce,
+    setEng1AntiIce,
+    setEng2AntiIce,
+    runtimeState,
+    cowlOverpressure,
+    toggleCowlOverpressure,
+  } = usePneumatic();
+
+  const isWingSwitchOn = Boolean(switches?.wingAntiIce);
+  const isEng1SwitchOn = Boolean(switches?.eng1AntiIce);
+  const isEng2SwitchOn = Boolean(switches?.eng2AntiIce);
+
+  // Real valve positions in the pneumatic simulation
+  const isWingLValveOpen = Boolean(runtimeState?.accessories?.["valve-351-260"]?.open);
+  const isWingRValveOpen = Boolean(runtimeState?.accessories?.["valve-409-260"]?.open);
+  const isEng1ValveOpen = Boolean(runtimeState?.accessories?.["valve-314-245"]?.open);
+  const isEng2ValveOpen = Boolean(runtimeState?.accessories?.["valve-447-245"]?.open);
+
+  // Transit indicators (bright blue during valve transition ~1200ms)
+  const [wingInTransit, setWingInTransit] = useState(false);
+  const [eng1InTransit, setEng1InTransit] = useState(false);
+  const [eng2InTransit, setEng2InTransit] = useState(false);
+
+  const wingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const eng1TimerRef = useRef<NodeJS.Timeout | null>(null);
+  const eng2TimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (wingTimerRef.current) clearTimeout(wingTimerRef.current);
+      if (eng1TimerRef.current) clearTimeout(eng1TimerRef.current);
+      if (eng2TimerRef.current) clearTimeout(eng2TimerRef.current);
+    };
+  }, []);
+
+  const handleWingToggle = (targetState?: boolean) => {
+    const nextState = targetState !== undefined ? targetState : !isWingSwitchOn;
+    if (nextState === isWingSwitchOn) return;
+    setWingAntiIce(nextState);
+    setWingInTransit(true);
+    if (wingTimerRef.current) clearTimeout(wingTimerRef.current);
+    wingTimerRef.current = setTimeout(() => {
+      setWingInTransit(false);
+    }, 1200);
+  };
+
+  const handleEng1Toggle = (targetState?: boolean) => {
+    const nextState = targetState !== undefined ? targetState : !isEng1SwitchOn;
+    if (nextState === isEng1SwitchOn) return;
+    setEng1AntiIce(nextState);
+    setEng1InTransit(true);
+    if (eng1TimerRef.current) clearTimeout(eng1TimerRef.current);
+    eng1TimerRef.current = setTimeout(() => {
+      setEng1InTransit(false);
+    }, 1000);
+  };
+
+  const handleEng2Toggle = (targetState?: boolean) => {
+    const nextState = targetState !== undefined ? targetState : !isEng2SwitchOn;
+    if (nextState === isEng2SwitchOn) return;
+    setEng2AntiIce(nextState);
+    setEng2InTransit(true);
+    if (eng2TimerRef.current) clearTimeout(eng2TimerRef.current);
+    eng2TimerRef.current = setTimeout(() => {
+      setEng2InTransit(false);
+    }, 1000);
+  };
+
+  // Boeing FCOM 3.10.4 & 3.10.5:
+  // - bright blue: valve in transit OR valve position disagrees with switch position
+  // - dim blue: switch ON and valve OPEN
+  // - extinguished: switch OFF and valve CLOSED
+  const getValveLightClass = (
+    inTransit: boolean,
+    switchOn: boolean,
+    valveOpen: boolean,
+  ) => {
+    if (inTransit || switchOn !== valveOpen) {
+      return "blue bright";
+    }
+    if (switchOn && valveOpen) {
+      return "blue dim";
+    }
+    return "";
+  };
+
+  return (
+    <section
+      className="aircraft-panel wing-anti-ice-panel"
+      aria-label="Wing and engine anti-ice panel"
+    >
+      <div className="wai-grid">
+        {/* Subtle center divider line */}
+        <div className="wai-divider" />
+
+        {/* Left Column: Wing Anti-Ice */}
+        <div className="wai-column">
+          <div className="wai-annunciators-wing-container">
+            <div className="wai-annunciators-wing">
+              <div
+                className={`wai-annunciator ${getValveLightClass(wingInTransit, isWingSwitchOn, isWingLValveOpen)}`}
+                title="L VALVE OPEN (Azul brillante en tránsito/desacuerdo, azul tenue abierta)"
+              >
+                <span>L VALVE</span>
+                <span>OPEN</span>
+              </div>
+              <div
+                className={`wai-annunciator ${getValveLightClass(wingInTransit, isWingSwitchOn, isWingRValveOpen)}`}
+                title="R VALVE OPEN (Azul brillante en tránsito/desacuerdo, azul tenue abierta)"
+              >
+                <span>R VALVE</span>
+                <span>OPEN</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="wai-subplate">
+            <span className="wai-subplate-title">WING ANTI - ICE</span>
+            <span
+              className="wai-pos-label cursor-pointer"
+              onClick={() => handleWingToggle(false)}
+            >
+              OFF
+            </span>
+            <div className="wai-switches-row">
+              <AircraftToggleSwitch
+                position={isWingSwitchOn ? "DOWN" : "UP"}
+                circleColor="black"
+                onClick={() => handleWingToggle()}
+                onWheelStep={(d) => handleWingToggle(d > 0)}
+                size={38}
+              />
+            </div>
+            <span
+              className="wai-pos-label cursor-pointer"
+              onClick={() => handleWingToggle(true)}
+            >
+              ON
+            </span>
+          </div>
+        </div>
+
+        {/* Right Column: Engine Anti-Ice */}
+        <div className="wai-column">
+          <div className="wai-annunciators-eng">
+            {/* Top row: Amber COWL ANTI-ICE */}
+            <div
+              className={`wai-annunciator amber ${cowlOverpressure.eng1 ? "lit" : ""}`}
+              onClick={() => toggleCowlOverpressure("eng1")}
+              title="ENG 1 COWL ANTI-ICE (Clic para simular sobrepresión)"
+            >
+              <span>COWL</span>
+              <span>ANTI-ICE</span>
+            </div>
+            <div
+              className={`wai-annunciator amber ${cowlOverpressure.eng2 ? "lit" : ""}`}
+              onClick={() => toggleCowlOverpressure("eng2")}
+              title="ENG 2 COWL ANTI-ICE (Clic para simular sobrepresión)"
+            >
+              <span>COWL</span>
+              <span>ANTI-ICE</span>
+            </div>
+
+            {/* Bottom row: Blue COWL VALVE OPEN */}
+            <div
+              className={`wai-annunciator ${getValveLightClass(eng1InTransit, isEng1SwitchOn, isEng1ValveOpen)}`}
+              title="ENG 1 COWL VALVE OPEN (Azul brillante en tránsito/desacuerdo, tenue abierta)"
+            >
+              <span>COWL VALVE</span>
+              <span>OPEN</span>
+            </div>
+            <div
+              className={`wai-annunciator ${getValveLightClass(eng2InTransit, isEng2SwitchOn, isEng2ValveOpen)}`}
+              title="ENG 2 COWL VALVE OPEN (Azul brillante en tránsito/desacuerdo, tenue abierta)"
+            >
+              <span>COWL VALVE</span>
+              <span>OPEN</span>
+            </div>
+          </div>
+
+          <div className="wai-subplate">
+            <span className="wai-subplate-title">ENG ANTI - ICE</span>
+            <span
+              className="wai-pos-label cursor-pointer"
+              onClick={() => {
+                handleEng1Toggle(false);
+                handleEng2Toggle(false);
+              }}
+            >
+              OFF
+            </span>
+            <div className="wai-switches-row">
+              <div className="wai-switch-cell">
+                <AircraftToggleSwitch
+                  position={isEng1SwitchOn ? "DOWN" : "UP"}
+                  circleColor="black"
+                  onClick={() => handleEng1Toggle()}
+                  onWheelStep={(d) => handleEng1Toggle(d > 0)}
+                  size={38}
+                />
+                <span className="wai-switch-num">
+                  1
+                </span>
+              </div>
+              <div className="wai-switch-cell">
+                <AircraftToggleSwitch
+                  position={isEng2SwitchOn ? "DOWN" : "UP"}
+                  circleColor="black"
+                  onClick={() => handleEng2Toggle()}
+                  onWheelStep={(d) => handleEng2Toggle(d > 0)}
+                  size={38}
+                />
+                <span className="wai-switch-num">
+                  2
+                </span>
+              </div>
+            </div>
+            <span
+              className="wai-pos-label cursor-pointer"
+              onClick={() => {
+                handleEng1Toggle(true);
+                handleEng2Toggle(true);
+              }}
+            >
+              ON
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Corner Screws */}
+      <Screw className="s1" />
+      <Screw className="s2" />
+      <Screw className="s3" />
+      <Screw className="s4" />
+    </section>
+  );
+}
+
+export type WiperPosition = "PARK" | "INT" | "LOW" | "HIGH";
+
+const WIPER_POSITIONS: WiperPosition[] = ["PARK", "INT", "LOW", "HIGH"];
+const WIPER_ANGLES: Record<WiperPosition, number> = {
+  PARK: 0,
+  INT: 45,
+  LOW: 90,
+  HIGH: 135,
+};
+
+const wiperStore: Record<"L" | "R", WiperPosition> = {
+  L: "PARK",
+  R: "PARK",
+};
+const wiperListeners = new Set<() => void>();
+
+export function useWiperState(side: "L" | "R") {
+  const [position, setPosition] = useState<WiperPosition>(wiperStore[side]);
+
+  useEffect(() => {
+    const listener = () => {
+      setPosition(wiperStore[side]);
+    };
+    wiperListeners.add(listener);
+    return () => {
+      wiperListeners.delete(listener);
+    };
+  }, [side]);
+
+  const updatePosition = useCallback(
+    (newPos: WiperPosition) => {
+      wiperStore[side] = newPos;
+      wiperListeners.forEach((l) => l());
+    },
+    [side],
+  );
+
+  return [position, updatePosition] as const;
+}
+
+function WiperDial({
+  label,
+  position,
+  onChange,
+}: {
+  label: string;
+  position: WiperPosition;
+  onChange: (newPos: WiperPosition) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const angle = WIPER_ANGLES[position];
+
+  const handleStep = useCallback(
+    (direction: number) => {
+      const currentIndex = WIPER_POSITIONS.indexOf(position);
+      const nextIndex = Math.max(
+        0,
+        Math.min(WIPER_POSITIONS.length - 1, currentIndex + direction),
+      );
+      onChange(WIPER_POSITIONS[nextIndex]);
+    },
+    [position, onChange],
+  );
+
+  const handleClick = () => {
+    const currentIndex = WIPER_POSITIONS.indexOf(position);
+    const nextIndex = (currentIndex + 1) % WIPER_POSITIONS.length;
+    onChange(WIPER_POSITIONS[nextIndex]);
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      handleStep(e.deltaY < 0 ? 1 : -1);
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [handleStep]);
+
+  return (
+    <>
+      <span className="wiper-title">{label}</span>
+      <div
+        ref={containerRef}
+        onClick={handleClick}
+        className="wiper-dial-container cursor-pointer select-none"
+        title={`${label} (${position}) - Clic o rueda para cambiar posición`}
+      >
+        <svg
+          viewBox="-54 -54 108 108"
+          style={{ width: "100%", height: "100%", overflow: "visible" }}
+        >
+          {/* Base dish ring under the knob */}
+          <circle
+            cx="0"
+            cy="0"
+            r="23"
+            fill="#eff2f4"
+            stroke="#4a4e50"
+            strokeWidth="1.8"
+          />
+
+          {/* Tick lines from dish border outwards */}
+          {/* PARK (0° - straight up) */}
+          <line
+            x1="0"
+            y1="-23"
+            x2="0"
+            y2="-32"
+            stroke="#ffffff"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          {/* INT (45° clockwise) */}
+          <line
+            x1="16.26"
+            y1="-16.26"
+            x2="23.33"
+            y2="-23.33"
+            stroke="#ffffff"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          {/* LOW (90° clockwise - horizontal right) */}
+          <line
+            x1="23"
+            y1="0"
+            x2="32"
+            y2="0"
+            stroke="#ffffff"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          {/* HIGH (135° clockwise) */}
+          <line
+            x1="16.26"
+            y1="16.26"
+            x2="23.33"
+            y2="23.33"
+            stroke="#ffffff"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+
+          {/* Position Text Labels */}
+          <text
+            x="0"
+            y="-35"
+            textAnchor="middle"
+            fill="#ffffff"
+            fontFamily="Arial, sans-serif"
+            fontSize="8.5"
+            fontWeight="bold"
+            letterSpacing="0.04em"
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("PARK");
+            }}
+          >
+            PARK
+          </text>
+          <text
+            x="30"
+            y="-20"
+            textAnchor="start"
+            fill="#ffffff"
+            fontFamily="Arial, sans-serif"
+            fontSize="8.5"
+            fontWeight="bold"
+            letterSpacing="0.04em"
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("INT");
+            }}
+          >
+            INT
+          </text>
+          <text
+            x="37"
+            y="3"
+            textAnchor="start"
+            fill="#ffffff"
+            fontFamily="Arial, sans-serif"
+            fontSize="8.5"
+            fontWeight="bold"
+            letterSpacing="0.04em"
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("LOW");
+            }}
+          >
+            LOW
+          </text>
+          <text
+            x="30"
+            y="26"
+            textAnchor="start"
+            fill="#ffffff"
+            fontFamily="Arial, sans-serif"
+            fontSize="8.5"
+            fontWeight="bold"
+            letterSpacing="0.04em"
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("HIGH");
+            }}
+          >
+            HIGH
+          </text>
+
+          {/* Rotating Boeing Pointer Knob */}
+          <g
+            transform={`rotate(${angle})`}
+            style={{
+              transition: "transform 0.15s cubic-bezier(0.2, 0, 1, 1)",
+              filter: "drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.7))",
+            }}
+          >
+            {/* Pointer body */}
+            <path
+              d="M -13 18 L -13 -7 L -5 -23 L 5 -23 L 13 -7 L 13 18 A 9 9 0 0 1 4 27 L -4 27 A 9 9 0 0 1 -13 18 Z"
+              fill="#eff2f4"
+              stroke="#4a4e50"
+              strokeWidth="2"
+            />
+            {/* Shading facet on right of nose */}
+            <polygon
+              points="0,-23 5,-23 13,-7 0,-7"
+              fill="#dfe3e6"
+            />
+            {/* White stripe with crisp black outline */}
+            <rect
+              x="-2"
+              y="-21"
+              width="4"
+              height="44"
+              fill="#ffffff"
+              stroke="#000000"
+              strokeWidth="1.2"
+              rx="0.5"
+            />
+          </g>
+        </svg>
+      </div>
+    </>
+  );
+}
+
+export function SingleWiperPanel({
+  side,
+  className = "",
+}: {
+  side: "L" | "R";
+  className?: string;
+}) {
+  const [position, setPosition] = useWiperState(side);
+  const label = `${side} WIPER`;
+
+  return (
+    <section
+      className={`aircraft-panel single-wiper-panel ${className}`}
+      aria-label={`${label} control`}
+    >
+      <WiperDial
+        label={label}
+        position={position}
+        onChange={setPosition}
+      />
+      {/* Boeing Diagonal Screws: Top-Right & Bottom-Left */}
+      <Screw className="wiper-screw-tr" />
+      <Screw className="wiper-screw-bl" />
+    </section>
+  );
+}
+
+export function LeftWiperPanel(props: { className?: string }) {
+  return <SingleWiperPanel side="L" {...props} />;
+}
+
+export function RightWiperPanel(props: { className?: string }) {
+  return <SingleWiperPanel side="R" {...props} />;
+}
+
+export function WindshieldWiperPanel() {
+  return (
+    <div className="windshield-wiper-dual-container">
+      <LeftWiperPanel />
+      <RightWiperPanel />
+    </div>
   );
 }
