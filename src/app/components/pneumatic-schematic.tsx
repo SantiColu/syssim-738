@@ -15,6 +15,7 @@ import {
 } from "./pneumatic-network-layer";
 import { OverheatSensorsLayer } from "./overheat-sensors-layer";
 import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
+import { WindshieldWipersLayer } from "./windshield-wipers-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -264,6 +265,7 @@ export function PneumaticSchematic() {
           />
           <OverheatSensorsLayer />
           <FlightDeckWindowsLayer />
+          <WindshieldWipersLayer />
           <use
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1 pointer-events-none"
             href="#boeing-737-800-outline"
