@@ -2951,20 +2951,15 @@ export function WindowHeatPanel() {
   const overheats = pneumatic.windowOverheat;
   const testPos = pneumatic.windowHeatTest;
 
-  // Probe Heat switches: "AUTO" (UP) | "ON" (DOWN)
-  const [probeA, setProbeA] = useState<"AUTO" | "ON">("AUTO");
-  const [probeB, setProbeB] = useState<"AUTO" | "ON">("AUTO");
-
-  const eng1Running = Boolean(pneumatic?.sourcesState?.eng1Running);
-  const eng2Running = Boolean(pneumatic?.sourcesState?.eng2Running);
-  const isEitherEngineRunning = eng1Running || eng2Running;
-
-  // Probe Heat logic per FCOM 3.10.3:
-  // "AUTO - power is automatically supplied to both A and B probe heat systems when either engine is running."
-  // "ON - power is supplied to heat related system."
-  // "Illuminated (amber) - related probe not heated."
-  const isProbeAHeated = probeA === "ON" || (probeA === "AUTO" && isEitherEngineRunning);
-  const isProbeBHeated = probeB === "ON" || (probeB === "AUTO" && isEitherEngineRunning);
+  // Probe Heat state from pneumatic simulation
+  const {
+    probeHeatSwitches,
+    setProbeHeatSwitch,
+    isProbeHeated,
+    toggleProbeFailure,
+  } = pneumatic;
+  const probeA = probeHeatSwitches.a;
+  const probeB = probeHeatSwitches.b;
 
   // Window Heat test overrides
   const isOvhtTesting = testPos === "OVHT";
@@ -3238,29 +3233,33 @@ export function WindowHeatPanel() {
         {/* Left Column: System A Probes */}
         <div className="probe-annunciator-col">
           <div
-            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
-            title="CAPT PITOT"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("captPitot") ? "lit" : ""}`}
+            title="CAPT PITOT (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("captPitot")}
           >
             <span>CAPT</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
-            title="L ELEV PITOT"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("lElevPitot") ? "lit" : ""}`}
+            title="L ELEV PITOT (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("lElevPitot")}
           >
             <span>L ELEV</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
-            title="L ALPHA VANE"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("lAlphaVane") ? "lit" : ""}`}
+            title="L ALPHA VANE (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("lAlphaVane")}
           >
             <span>L ALPHA</span>
             <span>VANE</span>
           </div>
           <div
-            className={`probe-annunciator amber ${!isProbeAHeated ? "lit" : ""}`}
-            title="TEMP PROBE"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("tempProbe") ? "lit" : ""}`}
+            title="TEMP PROBE (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("tempProbe")}
           >
             <span>TEMP</span>
             <span>PROBE</span>
@@ -3280,8 +3279,8 @@ export function WindowHeatPanel() {
               <AircraftToggleSwitch
                 position={probeA === "AUTO" ? "UP" : "DOWN"}
                 circleColor="black"
-                onClick={() => setProbeA((p) => (p === "AUTO" ? "ON" : "AUTO"))}
-                onWheelStep={(d) => setProbeA(d < 0 ? "AUTO" : "ON")}
+                onClick={() => setProbeHeatSwitch("a", probeA === "AUTO" ? "ON" : "AUTO")}
+                onWheelStep={(d) => setProbeHeatSwitch("a", d < 0 ? "AUTO" : "ON")}
                 size={38}
               />
             </div>
@@ -3289,8 +3288,8 @@ export function WindowHeatPanel() {
               <AircraftToggleSwitch
                 position={probeB === "AUTO" ? "UP" : "DOWN"}
                 circleColor="black"
-                onClick={() => setProbeB((p) => (p === "AUTO" ? "ON" : "AUTO"))}
-                onWheelStep={(d) => setProbeB(d < 0 ? "AUTO" : "ON")}
+                onClick={() => setProbeHeatSwitch("b", probeB === "AUTO" ? "ON" : "AUTO")}
+                onWheelStep={(d) => setProbeHeatSwitch("b", d < 0 ? "AUTO" : "ON")}
                 size={38}
               />
             </div>
@@ -3302,29 +3301,33 @@ export function WindowHeatPanel() {
         {/* Right Column: System B Probes */}
         <div className="probe-annunciator-col">
           <div
-            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
-            title="F/O PITOT"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("foPitot") ? "lit" : ""}`}
+            title="F/O PITOT (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("foPitot")}
           >
             <span>F/O</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
-            title="R ELEV PITOT"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("rElevPitot") ? "lit" : ""}`}
+            title="R ELEV PITOT (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("rElevPitot")}
           >
             <span>R ELEV</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
-            title="R ALPHA VANE"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("rAlphaVane") ? "lit" : ""}`}
+            title="R ALPHA VANE (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("rAlphaVane")}
           >
             <span>R ALPHA</span>
             <span>VANE</span>
           </div>
           <div
-            className={`probe-annunciator amber ${!isProbeBHeated ? "lit" : ""}`}
-            title="AUX PITOT"
+            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("auxPitot") ? "lit" : ""}`}
+            title="AUX PITOT (Clic para simular falla)"
+            onClick={() => toggleProbeFailure("auxPitot")}
           >
             <span>AUX</span>
             <span>PITOT</span>

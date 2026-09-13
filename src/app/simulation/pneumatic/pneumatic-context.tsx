@@ -48,6 +48,27 @@ export interface PneumaticSourcesState {
   gndAirConnected: boolean;
 }
 
+export type ProbeId =
+  | "captPitot"
+  | "lElevPitot"
+  | "lAlphaVane"
+  | "tempProbe"
+  | "foPitot"
+  | "rElevPitot"
+  | "rAlphaVane"
+  | "auxPitot";
+
+export const PROBE_SYSTEM_MAP: Record<ProbeId, "A" | "B"> = {
+  captPitot: "A",
+  lElevPitot: "A",
+  lAlphaVane: "A",
+  tempProbe: "A",
+  foPitot: "B",
+  rElevPitot: "B",
+  rAlphaVane: "B",
+  auxPitot: "B",
+};
+
 export interface PneumaticContextValue {
   switches: PneumaticSwitchesState;
   sourcesState: PneumaticSourcesState;
@@ -103,6 +124,12 @@ export interface PneumaticContextValue {
   wingThermalOvertemp: { left: boolean; right: boolean };
   toggleWingThermalOvertemp: (side: "left" | "right") => void;
   setWingThermalOvertemp: (side: "left" | "right", overtemp: boolean) => void;
+  probeHeatSwitches: { a: "AUTO" | "ON"; b: "AUTO" | "ON" };
+  setProbeHeatSwitch: (sys: "a" | "b", pos: "AUTO" | "ON") => void;
+  probeFailures: Record<ProbeId, boolean>;
+  toggleProbeFailure: (id: ProbeId) => void;
+  setProbeFailure: (id: ProbeId, failed: boolean) => void;
+  isProbeHeated: (id: ProbeId) => boolean;
 }
 
 export const INTERACTIVE_MANUAL_VALVES: Record<string, string> = {
@@ -370,6 +397,54 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const [probeHeatSwitches, setProbeHeatSwitches] = useState<{
+    a: "AUTO" | "ON";
+    b: "AUTO" | "ON";
+  }>({
+    a: "AUTO",
+    b: "AUTO",
+  });
+
+  const [probeFailures, setProbeFailures] = useState<Record<ProbeId, boolean>>({
+    captPitot: false,
+    lElevPitot: false,
+    lAlphaVane: false,
+    tempProbe: false,
+    foPitot: false,
+    rElevPitot: false,
+    rAlphaVane: false,
+    auxPitot: false,
+  });
+
+  const setProbeHeatSwitch = (sys: "a" | "b", pos: "AUTO" | "ON") => {
+    setProbeHeatSwitches((prev) => ({ ...prev, [sys]: pos }));
+  };
+
+  const toggleProbeFailure = (id: ProbeId) => {
+    setProbeFailures((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const setProbeFailure = (id: ProbeId, failed: boolean) => {
+    setProbeFailures((prev) => ({ ...prev, [id]: failed }));
+  };
+
+  const isEitherEngineRunning = sourcesState.eng1Running || sourcesState.eng2Running;
+  const isSysAPowered =
+    probeHeatSwitches.a === "ON" ||
+    (probeHeatSwitches.a === "AUTO" && isEitherEngineRunning);
+  const isSysBPowered =
+    probeHeatSwitches.b === "ON" ||
+    (probeHeatSwitches.b === "AUTO" && isEitherEngineRunning);
+
+  const isProbeHeated = useCallback(
+    (id: ProbeId): boolean => {
+      const sys = PROBE_SYSTEM_MAP[id];
+      const isPowered = sys === "A" ? isSysAPowered : isSysBPowered;
+      return isPowered && !probeFailures[id];
+    },
+    [isSysAPowered, isSysBPowered, probeFailures],
+  );
+
   const setLPack = (pos: PackPosition) =>
     setSwitches((s) => ({ ...s, lPack: pos }));
   const setIsolationValve = (pos: IsoValvePosition) =>
@@ -617,6 +692,12 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       wingThermalOvertemp,
       toggleWingThermalOvertemp,
       setWingThermalOvertemp,
+      probeHeatSwitches,
+      setProbeHeatSwitch,
+      probeFailures,
+      toggleProbeFailure,
+      setProbeFailure,
+      isProbeHeated,
     }),
     [
       switches,
@@ -643,6 +724,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       cowlOverpressure,
       wingThermalOvertemp,
       setWingAntiIce,
+      probeHeatSwitches,
+      probeFailures,
+      isProbeHeated,
     ],
   );
 
@@ -720,6 +804,21 @@ const fallbackValue: PneumaticContextValue = {
   wingThermalOvertemp: { left: false, right: false },
   toggleWingThermalOvertemp: () => {},
   setWingThermalOvertemp: () => {},
+  probeHeatSwitches: { a: "AUTO", b: "AUTO" },
+  setProbeHeatSwitch: () => {},
+  probeFailures: {
+    captPitot: false,
+    lElevPitot: false,
+    lAlphaVane: false,
+    tempProbe: false,
+    foPitot: false,
+    rElevPitot: false,
+    rAlphaVane: false,
+    auxPitot: false,
+  },
+  toggleProbeFailure: () => {},
+  setProbeFailure: () => {},
+  isProbeHeated: () => false,
 };
 
 export function usePneumatic(): PneumaticContextValue {

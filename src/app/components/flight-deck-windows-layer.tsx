@@ -117,6 +117,7 @@ export function FlightDeckWindowsLayer() {
   };
 
   const hoveredConfig = WINDOW_CONFIGS.find((c) => c.key === hoveredWindowKey);
+  void hoveredConfig;
 
   return (
     <g
@@ -127,6 +128,16 @@ export function FlightDeckWindowsLayer() {
       style={{ pointerEvents: "auto" }}
     >
       <defs>
+        {/* Eliminate browser focus ring/bounding box when window is clicked */}
+        <style>{`
+          #flight-deck-windows-layer g:focus,
+          #flight-deck-windows-layer *:focus,
+          #flight-deck-windows-layer g:focus-visible,
+          #flight-deck-windows-layer *:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+          }
+        `}</style>
         {/* Heating conductive grid pattern */}
         <pattern
           id="fd-window-heat-grid"
@@ -174,10 +185,10 @@ export function FlightDeckWindowsLayer() {
               data-window-heat="true"
               data-window-key={win.key}
               role="button"
-              tabIndex={0}
+              tabIndex={-1}
               aria-label={`Ventana ${win.name} (${win.number})`}
-              className="cursor-pointer"
-              style={{ pointerEvents: "all" }}
+              className="cursor-pointer outline-none focus:outline-none focus:ring-0 select-none"
+              style={{ pointerEvents: "all", outline: "none" }}
               onMouseEnter={() => setHoveredWindowKey(win.key)}
               onMouseLeave={() => setHoveredWindowKey(null)}
               onPointerDown={(e) => {
@@ -218,6 +229,7 @@ export function FlightDeckWindowsLayer() {
       </g>
 
       {/* Interactive Tooltip on hover */}
+      {/*
       {hoveredConfig && (
         <g
           transform="translate(380 44)"
@@ -259,6 +271,7 @@ export function FlightDeckWindowsLayer() {
           </text>
         </g>
       )}
+      */}
     </g>
   );
 }

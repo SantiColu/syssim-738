@@ -16,11 +16,12 @@ import {
 import { OverheatSensorsLayer } from "./overheat-sensors-layer";
 import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
 import { WindshieldWipersLayer } from "./windshield-wipers-layer";
+import { AirDataProbesLayer } from "./air-data-probes-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 5;
+const MAX_ZOOM = 6;
 const BUTTON_ZOOM_STEP = 0.5;
 const WHEEL_ZOOM_STEP = 0.25;
 const COLOR_SCALE_VALUES: Record<PneumaticColorMode, number[]> = {
@@ -270,6 +271,7 @@ export function PneumaticSchematic() {
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1 pointer-events-none"
             href="#boeing-737-800-outline"
           />
+          <AirDataProbesLayer />
         </g>
       </svg>
 
