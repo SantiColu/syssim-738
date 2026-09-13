@@ -23,7 +23,7 @@ const COCKPIT_SVG_VIEWBOX_X = 750;
 const COCKPIT_SVG_VIEWBOX_WIDTH = 1800;
 const COCKPIT_SVG_VIEWBOX_HEIGHT = 4500;
 const COCKPIT_RENDERED_SVG_HEIGHT = 6000;
-const MIN_COCKPIT_ZOOM = 0.1;
+const MIN_COCKPIT_ZOOM = 0.05;
 const MAX_COCKPIT_ZOOM = 3;
 const COCKPIT_ZOOM_STEP = 0.25;
 const COCKPIT_FOREIGN_OBJECTS = [
@@ -105,6 +105,16 @@ export function CockpitView() {
     transformRef.current = initialTransform;
     setTransform(initialTransform);
 
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setViewport({ width, height });
+        }
+      }
+    });
+    resizeObserver.observe(container);
+
     const handleWheel = (e: WheelEvent) => {
       // Controls inside foreignObjects own the wheel gesture (knobs, selectors,
       // etc.). Let their handler consume it without also zooming the cockpit.
@@ -116,14 +126,15 @@ export function CockpitView() {
       }
       e.preventDefault();
 
+      const currentRect = container.getBoundingClientRect();
       const scaleAdjustment = e.deltaY * -0.001;
       scheduleTransform((prev) => {
         let newScale = prev.scale + scaleAdjustment;
         newScale = clampCockpitZoom(newScale);
 
         // Calculate mouse position relative to container
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        const mouseX = e.clientX - currentRect.left;
+        const mouseY = e.clientY - currentRect.top;
 
         // Calculate point in unscaled coordinates
         const pointX = (mouseX - prev.x) / prev.scale;
@@ -139,6 +150,7 @@ export function CockpitView() {
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
+      resizeObserver.disconnect();
       container.removeEventListener("wheel", handleWheel);
       if (transformFrameRef.current !== null) {
         cancelAnimationFrame(transformFrameRef.current);
@@ -271,7 +283,7 @@ export function CockpitView() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full select-none overflow-hidden bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] cursor-grab active:cursor-grabbing"
+      className="relative size-full select-none overflow-hidden bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] cursor-grab active:cursor-grabbing touch-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

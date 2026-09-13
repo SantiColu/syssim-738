@@ -3,7 +3,7 @@ const Icon = ({ children }: { children: React.ReactNode }) => (
 );
 export function SimulatorHeader() {
   return (
-    <header className="h-19.25 border-b border-sim-border-subtle bg-sim-bg">
+    <header className="border-b border-sim-border-subtle bg-sim-bg">
       <div className="flex h-9 gap-3.75 border-b border-sim-border-subtle">
         <div className="flex items-center gap-2 pl-3.5 text-sim-text-strong max-[560px]:pl-1.75">
           <span>
@@ -26,8 +26,8 @@ export function SimulatorHeader() {
           <button>NAVCOM</button>
         </nav>
       </div>
-      <div className="flex h-10.25 items-center [&>button]:h-8.5 [&>button]:border-0 [&>button]:border-r [&>button]:border-sim-border-subtle [&>button]:bg-transparent [&>button]:px-3.25 [&>button]:text-[9px] [&>button]:tracking-[0.1em] [&>button]:text-sim-text-muted">
-        <button className="ml-2.5 max-[900px]:hidden">
+      <div className="hidden min-[900px]:flex h-10.25 items-center [&>button]:h-8.5 [&>button]:border-0 [&>button]:border-r [&>button]:border-sim-border-subtle [&>button]:bg-transparent [&>button]:px-3.25 [&>button]:text-[9px] [&>button]:tracking-[0.1em] [&>button]:text-sim-text-muted">
+        <button className="ml-2.5">
           <Icon>△</Icon> INSERT FAILURE
         </button>
       </div>

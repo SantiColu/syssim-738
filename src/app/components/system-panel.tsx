@@ -18,14 +18,14 @@ export function SystemPanel() {
   return (
     <section
       ref={panelRef}
-      className="relative overflow-hidden border-l border-sim-border-subtle bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] max-[900px]:h-137.5"
+      className="relative size-full overflow-hidden bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px]"
       aria-label="Vistas del sistema neumático del avión"
     >
       <PanelExportButton
         panelRef={panelRef}
         fileName={`system-${activeView}-panel.png`}
         label="panel SYSTEM"
-        className="top-2 left-1/2 -translate-x-1/2"
+        className="top-2 left-2.5"
       />
       {/* Center View Switcher Tabs: MAIN / SIDE */}
       {/* <div
