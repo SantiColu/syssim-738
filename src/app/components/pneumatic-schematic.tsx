@@ -79,12 +79,25 @@ function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
 
 export function PneumaticSchematic() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
+  const viewRef = useRef(view);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
   const [isDragging, setIsDragging] = useState(false);
   const [colorMode, setColorMode] = useState<PneumaticColorMode>("temperature");
   const { solution, runtimeState } = usePneumatic();
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);
+  const activePointersRef = useRef<Map<number, { clientX: number; clientY: number }>>(
+    new Map(),
+  );
+  const pinchRef = useRef<{
+    initialDistance: number;
+    initialScale: number;
+    artboardPoint: { x: number; y: number };
+  } | null>(null);
 
   const changeZoom = useCallback(
     (amount: number, anchor?: { x: number; y: number }) => {
@@ -127,52 +140,142 @@ export function PneumaticSchematic() {
 
     // Prevent map drag/pointer capture when clicking on interactive sensors or flight deck windows
     const target = event.target as Element | null;
-    if (
+    const isInteractive = Boolean(
       target?.closest?.(
         "[data-sensor-id], [data-interactive=true], [data-window-heat]",
-      )
-    ) {
+      ),
+    );
+    if (isInteractive && activePointersRef.current.size === 0) {
       return;
     }
 
-    const point = getSvgPoint(
-      event.currentTarget,
-      event.clientX,
-      event.clientY,
-    );
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      pointerId: event.pointerId,
-      originX: point.x,
-      originY: point.y,
-      viewX: view.x,
-      viewY: view.y,
-    };
-    setIsDragging(true);
+    activePointersRef.current.set(event.pointerId, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore
+    }
+
+    if (activePointersRef.current.size === 1) {
+      const point = getSvgPoint(
+        event.currentTarget,
+        event.clientX,
+        event.clientY,
+      );
+      dragRef.current = {
+        pointerId: event.pointerId,
+        originX: point.x,
+        originY: point.y,
+        viewX: viewRef.current.x,
+        viewY: viewRef.current.y,
+      };
+      pinchRef.current = null;
+      setIsDragging(true);
+    } else if (activePointersRef.current.size >= 2) {
+      const points = Array.from(activePointersRef.current.values());
+      const p1 = points[0];
+      const p2 = points[1];
+      const distance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+      const midX = (p1.clientX + p2.clientX) / 2;
+      const midY = (p1.clientY + p2.clientY) / 2;
+
+      const svgPoint = getSvgPoint(event.currentTarget, midX, midY);
+      const currentView = viewRef.current;
+      const artboardX = (svgPoint.x - currentView.x) / currentView.scale;
+      const artboardY = (svgPoint.y - currentView.y) / currentView.scale;
+
+      pinchRef.current = {
+        initialDistance: Math.max(10, distance),
+        initialScale: currentView.scale,
+        artboardPoint: { x: artboardX, y: artboardY },
+      };
+      dragRef.current = null;
+      setIsDragging(true);
+    }
   };
 
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!activePointersRef.current.has(event.pointerId)) return;
+    activePointersRef.current.set(event.pointerId, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
 
-    const point = getSvgPoint(
-      event.currentTarget,
-      event.clientX,
-      event.clientY,
-    );
-    setView((current) =>
-      constrainView({
-        scale: current.scale,
-        x: drag.viewX + point.x - drag.originX,
-        y: drag.viewY + point.y - drag.originY,
-      }),
-    );
+    if (activePointersRef.current.size >= 2 && pinchRef.current) {
+      const points = Array.from(activePointersRef.current.values());
+      const p1 = points[0];
+      const p2 = points[1];
+      const distance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+      const midX = (p1.clientX + p2.clientX) / 2;
+      const midY = (p1.clientY + p2.clientY) / 2;
+
+      const svgPoint = getSvgPoint(event.currentTarget, midX, midY);
+      const pinch = pinchRef.current;
+      const ratio = distance / pinch.initialDistance;
+      const newScale = clamp(pinch.initialScale * ratio, MIN_ZOOM, MAX_ZOOM);
+
+      const newX = svgPoint.x - pinch.artboardPoint.x * newScale;
+      const newY = svgPoint.y - pinch.artboardPoint.y * newScale;
+
+      setView(
+        constrainView({
+          scale: newScale,
+          x: newX,
+          y: newY,
+        }),
+      );
+    } else if (activePointersRef.current.size === 1 && dragRef.current) {
+      const drag = dragRef.current;
+      const point = getSvgPoint(
+        event.currentTarget,
+        event.clientX,
+        event.clientY,
+      );
+      setView(
+        constrainView({
+          scale: viewRef.current.scale,
+          x: drag.viewX + point.x - drag.originX,
+          y: drag.viewY + point.y - drag.originY,
+        }),
+      );
+    }
   };
 
   const finishDragging = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    setIsDragging(false);
+    activePointersRef.current.delete(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // Ignore
+      }
+    }
+
+    if (activePointersRef.current.size === 1) {
+      const [remainingPointerId, remainingPos] = activePointersRef.current
+        .entries()
+        .next().value!;
+      const point = getSvgPoint(
+        event.currentTarget,
+        remainingPos.clientX,
+        remainingPos.clientY,
+      );
+      dragRef.current = {
+        pointerId: remainingPointerId,
+        originX: point.x,
+        originY: point.y,
+        viewX: viewRef.current.x,
+        viewY: viewRef.current.y,
+      };
+      pinchRef.current = null;
+    } else if (activePointersRef.current.size === 0) {
+      dragRef.current = null;
+      pinchRef.current = null;
+      setIsDragging(false);
+    }
   };
 
   const navigateFromMinimap = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -236,6 +339,7 @@ export function PneumaticSchematic() {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={finishDragging}
+        onPointerLeave={finishDragging}
         onPointerCancel={finishDragging}
       >
         <defs>

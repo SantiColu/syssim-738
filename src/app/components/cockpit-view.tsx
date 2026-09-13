@@ -72,6 +72,15 @@ export function CockpitView() {
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const isDragging = useRef(false);
   const startPan = useRef({ x: 0, y: 0 });
+  const activePointers = useRef<Map<number, { clientX: number; clientY: number }>>(
+    new Map(),
+  );
+  const pinchRef = useRef<{
+    initialDistance: number;
+    initialScale: number;
+    pointX: number;
+    pointY: number;
+  } | null>(null);
 
   const scheduleTransform = useCallback(
     (update: (current: typeof transform) => typeof transform) => {
@@ -195,31 +204,122 @@ export function CockpitView() {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     const target = e.target as Element;
-    if ((e.button !== 0 && e.button !== 1) || isCockpitCommand(target)) {
+    const isCommand = isCockpitCommand(target);
+    if (
+      (e.button !== 0 && e.button !== 1) ||
+      (isCommand && activePointers.current.size === 0)
+    ) {
       return;
     }
 
-    isDragging.current = true;
-    startPan.current = {
-      x: e.clientX - transformRef.current.x,
-      y: e.clientY - transformRef.current.y,
-    };
-    (e.target as Element).setPointerCapture(e.pointerId);
+    const container = containerRef.current;
+    if (!container) return;
+
+    activePointers.current.set(e.pointerId, {
+      clientX: e.clientX,
+      clientY: e.clientY,
+    });
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if setPointerCapture fails on some browsers
+    }
+
+    if (activePointers.current.size === 1) {
+      isDragging.current = true;
+      startPan.current = {
+        x: e.clientX - transformRef.current.x,
+        y: e.clientY - transformRef.current.y,
+      };
+      pinchRef.current = null;
+    } else if (activePointers.current.size >= 2) {
+      const points = Array.from(activePointers.current.values());
+      const p1 = points[0];
+      const p2 = points[1];
+      const distance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+      const midX = (p1.clientX + p2.clientX) / 2;
+      const midY = (p1.clientY + p2.clientY) / 2;
+
+      const rect = container.getBoundingClientRect();
+      const current = transformRef.current;
+      const mouseX = midX - rect.left;
+      const mouseY = midY - rect.top;
+
+      const pointX = (mouseX - current.x) / current.scale;
+      const pointY = (mouseY - current.y) / current.scale;
+
+      pinchRef.current = {
+        initialDistance: Math.max(10, distance),
+        initialScale: current.scale,
+        pointX,
+        pointY,
+      };
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    scheduleTransform((prev) => ({
-      ...prev,
-      x: e.clientX - startPan.current.x,
-      y: e.clientY - startPan.current.y,
-    }));
+    if (!activePointers.current.has(e.pointerId)) return;
+    activePointers.current.set(e.pointerId, {
+      clientX: e.clientX,
+      clientY: e.clientY,
+    });
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (activePointers.current.size >= 2 && pinchRef.current) {
+      const points = Array.from(activePointers.current.values());
+      const p1 = points[0];
+      const p2 = points[1];
+      const distance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+      const midX = (p1.clientX + p2.clientX) / 2;
+      const midY = (p1.clientY + p2.clientY) / 2;
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = midX - rect.left;
+      const mouseY = midY - rect.top;
+
+      const pinch = pinchRef.current;
+      const ratio = distance / pinch.initialDistance;
+      const newScale = clampCockpitZoom(pinch.initialScale * ratio);
+
+      const newX = mouseX - pinch.pointX * newScale;
+      const newY = mouseY - pinch.pointY * newScale;
+
+      scheduleTransform(() => ({
+        x: newX,
+        y: newY,
+        scale: newScale,
+      }));
+    } else if (activePointers.current.size === 1 && isDragging.current) {
+      scheduleTransform((prev) => ({
+        ...prev,
+        x: e.clientX - startPan.current.x,
+        y: e.clientY - startPan.current.y,
+      }));
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    isDragging.current = false;
-    if ((e.target as Element).hasPointerCapture(e.pointerId)) {
-      (e.target as Element).releasePointerCapture(e.pointerId);
+    activePointers.current.delete(e.pointerId);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // Ignore
+      }
+    }
+
+    if (activePointers.current.size === 1) {
+      const [remaining] = Array.from(activePointers.current.values());
+      startPan.current = {
+        x: remaining.clientX - transformRef.current.x,
+        y: remaining.clientY - transformRef.current.y,
+      };
+      pinchRef.current = null;
+    } else if (activePointers.current.size === 0) {
+      isDragging.current = false;
+      pinchRef.current = null;
     }
   };
 
@@ -288,6 +388,7 @@ export function CockpitView() {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <PanelExportButton
         panelRef={containerRef}
