@@ -2956,7 +2956,6 @@ export function WindowHeatPanel() {
     probeHeatSwitches,
     setProbeHeatSwitch,
     isProbeHeated,
-    toggleProbeFailure,
   } = pneumatic;
   const probeA = probeHeatSwitches.a;
   const probeB = probeHeatSwitches.b;
@@ -3233,33 +3232,29 @@ export function WindowHeatPanel() {
         {/* Left Column: System A Probes */}
         <div className="probe-annunciator-col">
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("captPitot") ? "lit" : ""}`}
-            title="CAPT PITOT (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("captPitot")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("captPitot") ? "lit" : ""}`}
+            title="CAPT PITOT"
           >
             <span>CAPT</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("lElevPitot") ? "lit" : ""}`}
-            title="L ELEV PITOT (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("lElevPitot")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("lElevPitot") ? "lit" : ""}`}
+            title="L ELEV PITOT"
           >
             <span>L ELEV</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("lAlphaVane") ? "lit" : ""}`}
-            title="L ALPHA VANE (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("lAlphaVane")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("lAlphaVane") ? "lit" : ""}`}
+            title="L ALPHA VANE"
           >
             <span>L ALPHA</span>
             <span>VANE</span>
           </div>
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("tempProbe") ? "lit" : ""}`}
-            title="TEMP PROBE (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("tempProbe")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("tempProbe") ? "lit" : ""}`}
+            title="TEMP PROBE"
           >
             <span>TEMP</span>
             <span>PROBE</span>
@@ -3301,33 +3296,29 @@ export function WindowHeatPanel() {
         {/* Right Column: System B Probes */}
         <div className="probe-annunciator-col">
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("foPitot") ? "lit" : ""}`}
-            title="F/O PITOT (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("foPitot")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("foPitot") ? "lit" : ""}`}
+            title="F/O PITOT"
           >
             <span>F/O</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("rElevPitot") ? "lit" : ""}`}
-            title="R ELEV PITOT (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("rElevPitot")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("rElevPitot") ? "lit" : ""}`}
+            title="R ELEV PITOT"
           >
             <span>R ELEV</span>
             <span>PITOT</span>
           </div>
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("rAlphaVane") ? "lit" : ""}`}
-            title="R ALPHA VANE (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("rAlphaVane")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("rAlphaVane") ? "lit" : ""}`}
+            title="R ALPHA VANE"
           >
             <span>R ALPHA</span>
             <span>VANE</span>
           </div>
           <div
-            className={`probe-annunciator amber cursor-pointer select-none ${!isProbeHeated("auxPitot") ? "lit" : ""}`}
-            title="AUX PITOT (Clic para simular falla)"
-            onClick={() => toggleProbeFailure("auxPitot")}
+            className={`probe-annunciator amber select-none ${!isProbeHeated("auxPitot") ? "lit" : ""}`}
+            title="AUX PITOT"
           >
             <span>AUX</span>
             <span>PITOT</span>

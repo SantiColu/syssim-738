@@ -129,8 +129,8 @@ export function AirDataProbesLayer() {
             box-shadow: none !important;
           }
         `}</style>
-        {/* Glow filter for unheated/fault probe indicator */}
-        <filter id="probe-fault-glow" x="-50%" y="-50%" width="200%" height="200%">
+        {/* Glow filter for heated probe indicator */}
+        <filter id="probe-heat-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="0.6" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
@@ -145,21 +145,21 @@ export function AirDataProbesLayer() {
         const isLeft = probe.side === "L";
         const sign = isLeft ? -1 : 1;
 
-        // Visual coloring
+        // Visual coloring: orange when heated, slate/gray when deactivated (lost color)
         const strokeColor = heated
           ? isHovered
-            ? "#e2e8f0"
-            : "#94a3b8"
+            ? "#ffb74d"
+            : "#ff9800"
           : isHovered
-            ? "#ff3b30"
-            : "#ffaa00";
+            ? "#94a3b8"
+            : "#64748b";
         const fillColor = heated
           ? isHovered
-            ? "#1e293b"
-            : "#0f172a"
+            ? "#ea580c"
+            : "#9a3412"
           : isHovered
-            ? "#7f1d1d"
-            : "#451a03";
+            ? "#1e293b"
+            : "#0f172a";
 
         return (
           <g
@@ -185,6 +185,7 @@ export function AirDataProbesLayer() {
               }
             }}
           >
+            <title>{`${probe.name} (Sistema ${probe.circuit}) - ${heated ? "Calefacción activa (Clic para desactivar)" : "Calefacción desactivada (Clic para activar)"}`}</title>
             {/* Generous invisible circular hitbox for effortless clicking */}
             <circle
               cx={probe.x}
@@ -197,7 +198,7 @@ export function AirDataProbesLayer() {
 
             {/* Visual Glyphs according to probe type */}
             {probe.type === "pitot" && (
-              <g filter={!heated ? "url(#probe-fault-glow)" : undefined}>
+              <g filter={heated ? "url(#probe-heat-glow)" : undefined}>
                 {/* Base skin flange */}
                 <ellipse
                   cx={probe.x}
@@ -205,7 +206,7 @@ export function AirDataProbesLayer() {
                   rx={0.6}
                   ry={1.0}
                   fill={strokeColor}
-                  opacity={0.7}
+                  opacity={0.8}
                 />
                 {/* Pylon mast extending outward */}
                 <line
@@ -232,13 +233,13 @@ export function AirDataProbesLayer() {
                   cx={probe.x + sign * 1.5}
                   cy={probe.y - 2.2}
                   r={0.16}
-                  fill={heated ? "#0f172a" : "#ffaa00"}
+                  fill={heated ? (isHovered ? "#ffffff" : "#ffedd5") : "#334155"}
                 />
               </g>
             )}
 
             {probe.type === "tat" && (
-              <g filter={!heated ? "url(#probe-fault-glow)" : undefined}>
+              <g filter={heated ? "url(#probe-heat-glow)" : undefined}>
                 {/* Base mounting pad */}
                 <ellipse
                   cx={probe.x}
@@ -246,7 +247,7 @@ export function AirDataProbesLayer() {
                   rx={0.6}
                   ry={0.9}
                   fill={strokeColor}
-                  opacity={0.7}
+                  opacity={0.8}
                 />
                 {/* Aerodynamic strut */}
                 <line
@@ -274,13 +275,13 @@ export function AirDataProbesLayer() {
                   cx={probe.x + sign * 1.35}
                   cy={probe.y - 1.2}
                   r={0.14}
-                  fill={heated ? "#0f172a" : "#ffaa00"}
+                  fill={heated ? (isHovered ? "#ffffff" : "#ffedd5") : "#334155"}
                 />
               </g>
             )}
 
             {probe.type === "vane" && (
-              <g filter={!heated ? "url(#probe-fault-glow)" : undefined}>
+              <g filter={heated ? "url(#probe-heat-glow)" : undefined}>
                 {/* Circular base bezel */}
                 <circle
                   cx={probe.x}
@@ -308,13 +309,13 @@ export function AirDataProbesLayer() {
                   cx={probe.x}
                   cy={probe.y}
                   r={0.22}
-                  fill={heated ? "#0f172a" : "#ffaa00"}
+                  fill={heated ? (isHovered ? "#ffffff" : "#ffedd5") : "#334155"}
                 />
               </g>
             )}
 
             {probe.type === "elevPitot" && (
-              <g filter={!heated ? "url(#probe-fault-glow)" : undefined}>
+              <g filter={heated ? "url(#probe-heat-glow)" : undefined}>
                 {/* Oval mounting base plate on vertical fin skin */}
                 <ellipse
                   cx={probe.x}
@@ -322,7 +323,7 @@ export function AirDataProbesLayer() {
                   rx={0.5}
                   ry={0.9}
                   fill={strokeColor}
-                  opacity={0.65}
+                  opacity={0.8}
                 />
                 {/* Curved elbow mast */}
                 <path
@@ -337,7 +338,7 @@ export function AirDataProbesLayer() {
                   cx={probe.x + sign * 1.4}
                   cy={probe.y - 2.2}
                   r={0.16}
-                  fill={heated ? "#0f172a" : "#ffaa00"}
+                  fill={heated ? (isHovered ? "#ffffff" : "#ffedd5") : "#334155"}
                 />
               </g>
             )}
