@@ -155,7 +155,6 @@ export function PneumaticPanel() {
     isDualBleed,
     isLeftWingBodyOverheat,
     isRightWingBodyOverheat,
-    resetOverheatSensors,
     isLeftBleedTripOff,
     isRightBleedTripOff,
     resetBleedTripSensors,
@@ -477,7 +476,6 @@ export function PneumaticPanel() {
             labelBottom="RESET"
             size={36}
             onClick={() => {
-              resetOverheatSensors();
               resetBleedTripSensors();
             }}
           />

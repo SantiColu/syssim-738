@@ -330,8 +330,8 @@ export function OverheatSensorsLayer() {
               {`Sensor Wing-Body Overheat ${sensor.id}: ${sensor.name}
 Zona: ${sensor.zone}
 Luz de cabina asociada: WING-BODY OVERHEAT (${sensor.side === "left" ? "IZQUIERDA" : "DERECHA"})
-Estado: ${isOverheated ? "¡SOBRETEMPERATURA ACTIVA!" : "NORMAL"}
-(Haz clic para ${isOverheated ? "restablecer" : "simular sobretemperatura y encender luz"})`}
+Estado: ${isOverheated ? "¡SOBRETEMPERATURA ACTIVA (FUGA DE DUCTO)!" : "NORMAL"}
+(Haz clic para ${isOverheated ? "enfriar y restablecer" : "simular sobretemperatura por fuga y encender luz"}. No se resetea con TRIP RESET)`}
             </title>
 
             {/* Hitbox amplio transparente para facilitar el click */}
