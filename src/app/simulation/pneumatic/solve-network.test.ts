@@ -148,6 +148,13 @@ describe("stage mixing and precooling", () => {
     expect(node(N.eng2StageJunction).temperatureC).toBe(295);
   });
 
+  it("delivers 5th stage temperature with the high stage valve closed", () => {
+    const { node } = solve({
+      manualValves: { [N.eng1HighStageValve]: false },
+    });
+    expect(node(N.eng1StageJunction).temperatureC).toBe(200);
+  });
+
   it("does not cool bleed air while the fan air valve is closed", () => {
     const { node } = solve();
     expect(node(N.eng1Precooler).temperatureC).toBe(295);

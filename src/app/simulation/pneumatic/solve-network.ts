@@ -75,6 +75,46 @@ function solvePrecoolerOutlet(
   };
 }
 
+/**
+ * Where two bleed stages of one engine merge, the air is a blend of both, but
+ * only at nodes that air from every stage actually reaches (e.g. closing the
+ * high stage valve leaves 5th stage air alone downstream).
+ */
+function getMixedTemperatures(
+  network: PneumaticNetwork,
+  runtime: PneumaticRuntimeState,
+) {
+  const mixedTemperatureByNode = new Map<string, number>();
+  if (network.mixingZones.length === 0) return mixedTemperatureByNode;
+
+  const unmixedNetwork = { ...network, mixingZones: [] };
+  for (const zone of network.mixingZones) {
+    const zoneSources = zone.sourceIds.map((id) => runtime.sources[id]);
+    if (!zoneSources.every((source) => source?.enabled)) continue;
+
+    // Solve once per stage on its own to see which nodes it reaches.
+    const reachedBy = zone.sourceIds.map((sourceId) => {
+      const sources = Object.fromEntries(
+        Object.entries(runtime.sources).map(([id, source]) => [
+          id,
+          source && { ...source, enabled: id === sourceId },
+        ]),
+      );
+      return solvePneumaticNetwork(unmixedNetwork, { ...runtime, sources }).nodes;
+    });
+
+    const average =
+      zoneSources.reduce((sum, source) => sum + source!.temperatureC, 0) /
+      zoneSources.length;
+    for (const nodeId of zone.nodeIds) {
+      if (reachedBy.every((nodes) => nodes[nodeId]?.energized)) {
+        mixedTemperatureByNode.set(nodeId, Math.round(average));
+      }
+    }
+  }
+  return mixedTemperatureByNode;
+}
+
 export function solvePneumaticNetwork(
   network: PneumaticNetwork,
   runtime: PneumaticRuntimeState,
@@ -115,18 +155,7 @@ export function solvePneumaticNetwork(
     queue.push(node.id);
   }
 
-  // Where two bleed stages of one engine merge, the air is a blend of both.
-  const mixedTemperatureByNode = new Map<string, number>();
-  for (const zone of network.mixingZones) {
-    const zoneSources = zone.sourceIds.map((id) => runtime.sources[id]);
-    if (!zoneSources.every((source) => source?.enabled)) continue;
-    const average =
-      zoneSources.reduce((sum, source) => sum + source!.temperatureC, 0) /
-      zoneSources.length;
-    for (const nodeId of zone.nodeIds) {
-      mixedTemperatureByNode.set(nodeId, Math.round(average));
-    }
-  }
+  const mixedTemperatureByNode = getMixedTemperatures(network, runtime);
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
