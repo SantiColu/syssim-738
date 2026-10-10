@@ -22,8 +22,8 @@ function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
 const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-01", [
     [362, 209],
-    [362, 232, "on-off"],
-    [362, 243],
+    [362, 240, "on-off"],
+    [362, 247],
     [362, 253],
     [363, 300],
     [363, 320],
@@ -54,23 +54,23 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [381, 518],
   ]),
   legacyLine("legacy-04", [
-    [362, 243],
-    [372, 243, "on-off"],
-    [384, 243],
-    [397, 243],
+    [362, 247],
+    [372, 247, "on-off"],
+    [384, 247],
+    [397, 247],
   ]),
   legacyLine("legacy-05", [
-    [384, 243],
+    [384, 247],
     [384, 256, "check-valve-reverse"],
     [384, 275]
   ]),
   legacyLine("legacy-06", [
-    [397, 243],
-    [397, 231, "on-off"],
+    [397, 247],
+    [397, 240, "on-off"],
     [397, 209],
   ]),
   legacyLine("legacy-07", [
-    [397, 243],
+    [397, 247],
     [397, 254],
     [397, 285],
     [380, 285],
@@ -213,9 +213,9 @@ const NODE_POINTS = {
   groundAir: { x: 384, y: 275 },
 
   // Switch-driven valves
-  lPackValve: { x: 362, y: 232 },
-  rPackValve: { x: 397, y: 231 },
-  isolationValve: { x: 372, y: 243 },
+  lPackValve: { x: 362, y: 240 },
+  rPackValve: { x: 397, y: 240 },
+  isolationValve: { x: 372, y: 247 },
   eng1BleedValve: { x: 329, y: 253 },
   eng2BleedValve: { x: 431, y: 254 },
   apuBleedValve: { x: 371, y: 496 },
@@ -241,8 +241,8 @@ const NODE_POINTS = {
   eng2Precooler: { x: 424, y: 254 },
 
   // Junctions
-  leftManifold: { x: 362, y: 243 },
-  rightManifold: { x: 397, y: 243 },
+  leftManifold: { x: 362, y: 247 },
+  rightManifold: { x: 397, y: 247 },
   eng1StageJunction: { x: 320, y: 253 },
   eng1CowlJunction: { x: 320, y: 245 },
   eng2StageJunction: { x: 440, y: 254 },
