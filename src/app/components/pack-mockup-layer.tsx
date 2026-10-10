@@ -43,19 +43,29 @@ const T = {
   ram: 15,
 };
 
-// Right pack layout (network coordinates); the left pack mirrors it.
+// Fore-aft shift of the pack set (packs and mix manifold) so the ram exhaust
+// sits just forward of the main gear wheels. The layout constants below keep
+// the original positions; the pack valves in the network moved by the same
+// amount. The ram inlets stay at the wing root and reach the HX by a duct.
+const PACKS_OFFSET_Y = 30;
+
+// Right pack layout (network coordinates before PACKS_OFFSET_Y); the left pack
+// mirrors it.
 const HX_X = 402;
-const HX2_Y = 218.1;
-const HX1_Y = 223.1;
+const HX2_Y = 215.1;
+const HX1_Y = 220.1;
+// Ram plenum walls around the HX stack
+const PLENUM_TOP = HX2_Y - 3.5;
+const PLENUM_BOTTOM = HX1_Y + 3.9;
 const SHAFT_X = 391;
 const TURBINE_Y = 206.5;
 const COMPRESSOR_Y = 212.5;
-const FAN_Y = 220.5;
+const FAN_Y = 226.5;
 const TCV_LANE_X = 386.2;
 const MIX: P = [379.5, 196];
 
 // Pack supply → HX1, hot TCV bypass to the turbine outlet, turbine → mix manifold
-const BLEED_IN: P[] = [[397, 240], [397, 224.3], [400, 224.3]];
+const BLEED_IN: P[] = [[397, 240], [397, HX1_Y + 1.2], [400, HX1_Y + 1.2]];
 const TCV_BYPASS: P[] = [[397, 234], [TCV_LANE_X, 234], [TCV_LANE_X, 202], [SHAFT_X, 202]];
 const TURBINE_OUT: P[] = [[SHAFT_X, 204.5], [SHAFT_X, 200.5], [MIX[0] + 2, MIX[1] + 0.6]];
 
@@ -251,26 +261,45 @@ function ModulatingValve({
   );
 }
 
-// Ram inlet opening in the fuselage skin, facing HX2.
+// Ram inlet opening in the fuselage skin at the wing root (absolute
+// coordinates: the doors are not shifted with the packs).
 const OPENING_TOP = 215.4;
 const OPENING_BOTTOM = 220.6;
 const SKIN_X = 405;
 
 /**
- * Ram air plenum inside the fuselage that holds both heat exchangers. Its
- * outboard wall is open where the inlet opening cuts the fuselage skin.
+ * Ram air plenum inside the fuselage that holds both heat exchangers, fed by
+ * a duct from the inlet opening at the wing root. Drawn in pack coordinates,
+ * so the inlet end sits PACKS_OFFSET_Y forward of its absolute position.
  */
-function RamPlenum() {
+function RamPlenum({ ramOff }: { ramOff: boolean }) {
+  const top = OPENING_TOP - PACKS_OFFSET_Y;
+  const bottom = OPENING_BOTTOM - PACKS_OFFSET_Y;
+  const outline = [
+    // Inlet scoop, full opening width at the skin
+    `M 404.4 ${top} L 399.2 ${top} L 399.2 ${bottom + 1.3}`,
+    // Narrower ram duct down to the plenum
+    `L 400 ${bottom + 2.8} L 400 ${PLENUM_TOP} L 399.2 ${PLENUM_TOP}`,
+    // Plenum around HX2 and HX1
+    `L 399.2 ${PLENUM_BOTTOM} L 404.4 ${PLENUM_BOTTOM} L 404.4 ${PLENUM_TOP} L 403.6 ${PLENUM_TOP}`,
+    `L 403.6 ${bottom + 2.8} L 404.4 ${bottom + 1.3} L 404.4 ${bottom}`,
+  ].join(" ");
   return (
     <g>
-      <title>Ram air plenum con HX secundario y primario</title>
-      <rect x="399.2" y="214.6" width="5.2" height="12.4" rx="0.6" className="fill-sim-surface" />
+      <title>Ram air duct y plenum con HX secundario y primario</title>
+      <path d={`${outline} Z`} className="fill-sim-surface" />
       <path
-        d={`M 404.4 ${OPENING_TOP} L 404.4 214.6 L 399.2 214.6 L 399.2 227 L 404.4 227 L 404.4 ${OPENING_BOTTOM}`}
+        d={outline}
         className="fill-none stroke-white"
         strokeWidth="0.55"
         strokeLinejoin="round"
         strokeLinecap="round"
+      />
+      <Duct
+        points={[[SKIN_X, (top + bottom) / 2], [401.8, (top + bottom) / 2], [401.8, PLENUM_TOP + 0.8]]}
+        temp={T.ram}
+        inactive={ramOff}
+        part="core"
       />
     </g>
   );
@@ -303,23 +332,12 @@ function PackValve({ open }: { open: boolean }) {
 
 function RamExhaust({ x, y, angle = 0 }: { x: number; y: number; angle?: number }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(0.8)`}>
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(1.05)`}>
       <title>Salida de ram air (louvers)</title>
       <rect x="-1.6" y="-1.3" width="3.2" height="2.6" rx="0.4" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
-      {[-0.6, 0.1, 0.8].map((ly) => (
+      {[-0.75, -0.15, 0.45, 1.05].map((ly) => (
         <line key={ly} x1="-1" y1={ly - 0.3} x2="1" y2={ly + 0.2} className="stroke-zinc-300" strokeWidth="0.28" />
       ))}
-    </g>
-  );
-}
-
-function PackCard({ x, y, label }: { x: number; y: number; label: string }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <rect x="-7" y="-2" width="14" height="4" rx="1.2" fill="#090d16" stroke="#ffffff" strokeWidth="0.65" />
-      <text y="0.8" textAnchor="middle" fontSize="2.2" fontWeight="bold" className="fill-white font-sim-sans tracking-wide">
-        {label}
-      </text>
     </g>
   );
 }
@@ -343,9 +361,9 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <rect x="381.2" y="202" width="20.2" height="12.6" className="fill-sim-surface" />
       <rect x="381.2" y="214.6" width="18" height="23" className="fill-sim-surface" />
 
-      {/* Ram air: from the bottom of the HX stack forward to the ACM fan... */}
+      {/* Ram air: from the bottom of the HX stack straight into the side of the ACM fan... */}
       <Duct
-        points={[[HX_X, 225.6], [HX_X, 229.5], [393.6, 229.5], [393.6, 223], [SHAFT_X + 1.3, FAN_Y + 1.3]]}
+        points={[[HX_X, HX1_Y + 2.5], [HX_X, FAN_Y], [SHAFT_X + 1.8, FAN_Y]]}
         temp={T.ram}
         inactive={ramOff}
       />
@@ -364,15 +382,15 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <Junction x={397} y={234} temp={bleedTemp} inactive={packOff} />
       <Junction x={SHAFT_X} y={202} temp={T.turbineOut} inactive={packOff} />
       {/* HX1 → compressor */}
-      <Duct points={[[400, 221.9], [395, 221.9], [395, 213.8], [393.3, 213.8]]} temp={T.hx1Out} inactive={packOff} />
+      <Duct points={[[400, HX1_Y - 1.2], [395, HX1_Y - 1.2], [395, 213.8], [393.3, 213.8]]} temp={T.hx1Out} inactive={packOff} />
       {/* Compressor → HX2 */}
-      <Duct points={[[392.3, 211.2], [396.6, 211.2], [396.6, 219.3], [400, 219.3]]} temp={T.compOut} inactive={packOff} />
+      <Duct points={[[392.3, 211.2], [396.6, 211.2], [396.6, HX2_Y + 1.2], [400, HX2_Y + 1.2]]} temp={T.compOut} inactive={packOff} />
       {/* HX2 → water separator → turbine */}
-      <Duct points={[[400, 216.9], [398.2, 216.9], [398.2, 205.6]]} temp={T.hx2Out} inactive={packOff} />
+      <Duct points={[[400, HX2_Y - 1.2], [398.2, HX2_Y - 1.2], [398.2, 205.6]]} temp={T.hx2Out} inactive={packOff} />
       <Duct points={[[393.8, 205.6], [393.1, 205.6]]} temp={T.hx2Out - 5} inactive={packOff} />
 
       {/* Ram plenum with both heat exchangers stacked inside */}
-      <RamPlenum />
+      <RamPlenum ramOff={ramOff} />
       <HeatExchanger x={HX_X} y={HX2_Y} title="HX secundario (HX2)" />
       <HeatExchanger x={HX_X} y={HX1_Y} title="HX primario (HX1)" />
 
@@ -391,7 +409,7 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <Fan x={SHAFT_X} y={FAN_Y} />
 
       <WaterSeparator x={396} y={205.6} />
-      <ModulatingValve x={TCV_LANE_X} y={228} angle={90} title="Pack temperature control valve" />
+      <ModulatingValve x={TCV_LANE_X} y={220.5} angle={90} title="Pack temperature control valve" />
       {/* Pack valve redrawn over the network one so the pack duct joins it cleanly */}
       <PackValve open={packValveOpen} />
     </g>
@@ -400,18 +418,16 @@ function RightPack({ side }: { side: "L" | "R" }) {
 
 export function PackMockupLayer() {
   return (
-    <g data-mockup="packs">
+    <g data-mockup="packs" transform={`translate(0 ${PACKS_OFFSET_Y})`}>
       <RightPack side="R" />
       <g transform="translate(759 0) scale(-1 1)">
         <RightPack side="L" />
       </g>
-      <PackCard x={392} y={193.6} label="PACK R" />
-      <PackCard x={367} y={193.6} label="PACK L" />
       {/* Mix manifold, fed by both turbines */}
       <g transform={`translate(${MIX[0]} ${MIX[1]})`}>
         <title>Mix manifold</title>
-        <circle r="2" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
-        <circle r="1.4" fill="none" stroke={getTemperatureColor(T.turbineOut)} strokeWidth="0.32" />
+        <circle r="4" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
+        <circle r="3.3" fill="none" stroke={getTemperatureColor(T.turbineOut)} strokeWidth="0.32" />
       </g>
     </g>
   );
