@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# this project uses pnpm
+package-lock.json
+yarn.lock
+
+# local one-off scripts
+parse.js
+replace_css.js
