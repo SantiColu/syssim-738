@@ -14,6 +14,7 @@ import {
   PneumaticSourceLegendIcon,
 } from "./pneumatic-network-layer";
 import { OverheatSensorsLayer } from "./overheat-sensors-layer";
+import { PackMockupLayer, RamDoorsLayer } from "./pack-mockup-layer";
 import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
 import { WindshieldWipersLayer } from "./windshield-wipers-layer";
 import { AirDataProbesLayer } from "./air-data-probes-layer";
@@ -368,6 +369,7 @@ export function PneumaticSchematic() {
             runtimeState={runtimeState}
             colorMode={colorMode}
           />
+          <PackMockupLayer />
           <OverheatSensorsLayer />
           <FlightDeckWindowsLayer />
           <WindshieldWipersLayer />
@@ -375,6 +377,7 @@ export function PneumaticSchematic() {
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1 pointer-events-none"
             href="#boeing-737-800-outline"
           />
+          <RamDoorsLayer />
           <AirDataProbesLayer />
         </g>
       </svg>
