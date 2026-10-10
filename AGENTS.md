@@ -11,6 +11,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Styling
 
 - Use Tailwind CSS utilities for all styling outside the complex cockpit instrumentation panels.
-- Keep plain CSS restricted to `src/app/cockpit-panels.css` and the cockpit components it supports in `src/app/components/aircraft-panels.tsx`.
+- Keep plain CSS restricted to `src/app/cockpit-panels.css` and the cockpit components it supports in `src/app/components/panels/` (re-exported from `src/app/components/aircraft-panels.tsx`).
 - Do not add layout, shell, header, system-panel, responsive, or general component styles to plain CSS; colocate them as Tailwind classes in the relevant TSX.
 - Reserve `src/app/globals.css` for Tailwind imports and truly global theme tokens or base configuration.
