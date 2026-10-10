@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { MAIN_PNEUMATIC_SYSTEM } from "../simulation/pneumatic/main-network";
+import { MAIN_PNEUMATIC_SYSTEM, PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import type {
   PneumaticColorMode,
@@ -18,6 +18,7 @@ import { PackMockupLayer, RamDoorsLayer } from "./pack-mockup-layer";
 import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
 import { WindshieldWipersLayer } from "./windshield-wipers-layer";
 import { AirDataProbesLayer } from "./air-data-probes-layer";
+import { useSystemTab } from "./system-tab-context";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -29,6 +30,11 @@ const COLOR_SCALE_VALUES: Record<PneumaticColorMode, number[]> = {
   temperature: [0, 45, 160, 240, 320, 400],
   pressure: [0, 10, 20, 30, 40, 50],
 };
+// With the ECS layer on, the packs it draws replace the network "Pack" blocks.
+const ECS_PACK_NODES: ReadonlySet<string> = new Set([
+  PNEUMATIC_NODE.lPack,
+  PNEUMATIC_NODE.rPack,
+]);
 const MAIN_ACCESSORY_LEGEND: { kind: ValveKind; label: string }[] = [
   { kind: "on-off", label: "SHUTOFF" },
   { kind: "check-valve", label: "CHECK" },
@@ -88,6 +94,9 @@ export function PneumaticSchematic() {
   const [isDragging, setIsDragging] = useState(false);
   const [colorMode, setColorMode] = useState<PneumaticColorMode>("temperature");
   const { solution, runtimeState } = usePneumatic();
+  const { isActive } = useSystemTab();
+  const showPneumatic = isActive("pneumatic");
+  const showEcs = isActive("ecs");
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);
@@ -362,23 +371,28 @@ export function PneumaticSchematic() {
             clipPath="url(#boeing-737-800-clip)"
             aria-hidden="true"
           />
-          <PneumaticNetworkLayer
-            network={MAIN_PNEUMATIC_SYSTEM.network}
-            layout={MAIN_PNEUMATIC_SYSTEM.layout}
-            solution={solution}
-            runtimeState={runtimeState}
-            colorMode={colorMode}
-          />
-          <PackMockupLayer />
-          <OverheatSensorsLayer />
-          <FlightDeckWindowsLayer />
-          <WindshieldWipersLayer />
+          {showPneumatic && (
+            <>
+              <PneumaticNetworkLayer
+                network={MAIN_PNEUMATIC_SYSTEM.network}
+                layout={MAIN_PNEUMATIC_SYSTEM.layout}
+                solution={solution}
+                runtimeState={runtimeState}
+                colorMode={colorMode}
+                hiddenNodes={showEcs ? ECS_PACK_NODES : undefined}
+              />
+              <OverheatSensorsLayer />
+              <FlightDeckWindowsLayer />
+              <WindshieldWipersLayer />
+            </>
+          )}
+          {showEcs && <PackMockupLayer />}
           <use
             className="fill-none stroke-sim-text-muted [stroke-linecap:round] [stroke-linejoin:round] stroke-1 pointer-events-none"
             href="#boeing-737-800-outline"
           />
-          <RamDoorsLayer />
-          <AirDataProbesLayer />
+          {showEcs && <RamDoorsLayer />}
+          {showPneumatic && <AirDataProbesLayer />}
         </g>
       </svg>
 

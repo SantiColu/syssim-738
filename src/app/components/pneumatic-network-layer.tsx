@@ -25,6 +25,8 @@ type PneumaticNetworkLayerProps = {
   solution: PneumaticSolution;
   runtimeState?: PneumaticRuntimeState;
   colorMode?: PneumaticColorMode;
+  /** Consumers drawn by another layer: skipped together with the links that reach them. */
+  hiddenNodes?: ReadonlySet<string>;
 };
 
 
@@ -679,6 +681,7 @@ export function PneumaticNetworkLayer({
   solution,
   runtimeState,
   colorMode = "temperature",
+  hiddenNodes,
 }: PneumaticNetworkLayerProps) {
   const { toggleManualValve } = usePneumatic();
 
@@ -688,45 +691,47 @@ export function PneumaticNetworkLayer({
       aria-label="Red neumática calculada"
     >
       {/* 1. Duct Links */}
-      {network.links.map((link) => {
-        const solved = solution.links[link.id];
-        const route = layout.linkRoutes[link.id];
-        const path = pointsToPath(route);
-        const mediumColor = solved.medium
-          ? getPneumaticColor(solved.medium, colorMode)
-          : "#52525b";
+      {network.links
+        .filter((link) => !hiddenNodes?.has(link.from) && !hiddenNodes?.has(link.to))
+        .map((link) => {
+          const solved = solution.links[link.id];
+          const route = layout.linkRoutes[link.id];
+          const path = pointsToPath(route);
+          const mediumColor = solved.medium
+            ? getPneumaticColor(solved.medium, colorMode)
+            : "#52525b";
 
-        return (
-          <g
-            key={link.id}
-            data-link-id={link.id}
-            data-state={solved.state}
-          >
-            <title>
-              {solved.medium
-                ? `${solved.medium.pressurePsi} PSI · ${solved.medium.temperatureC} °C`
-                : "Sin presión"}
-            </title>
-            <path
-              className="stroke-sim-bg"
-              d={path}
-              strokeWidth="2.25"
-              aria-hidden="true"
-            />
-            <path
-              className={
-                solved.state === "inactive"
-                  ? "stroke-sim-line-inactive"
-                  : undefined
-              }
-              stroke={solved.state !== "inactive" ? mediumColor : undefined}
-              d={path}
-              strokeWidth="0.85"
-              strokeDasharray={solved.state === "isolated" ? "7 5" : undefined}
-            />
-          </g>
-        );
-      })}
+          return (
+            <g
+              key={link.id}
+              data-link-id={link.id}
+              data-state={solved.state}
+            >
+              <title>
+                {solved.medium
+                  ? `${solved.medium.pressurePsi} PSI · ${solved.medium.temperatureC} °C`
+                  : "Sin presión"}
+              </title>
+              <path
+                className="stroke-sim-bg"
+                d={path}
+                strokeWidth="2.25"
+                aria-hidden="true"
+              />
+              <path
+                className={
+                  solved.state === "inactive"
+                    ? "stroke-sim-line-inactive"
+                    : undefined
+                }
+                stroke={solved.state !== "inactive" ? mediumColor : undefined}
+                d={path}
+                strokeWidth="0.85"
+                strokeDasharray={solved.state === "isolated" ? "7 5" : undefined}
+              />
+            </g>
+          );
+        })}
 
       {/* 2. Junction Nodes */}
       {network.nodes
@@ -809,7 +814,7 @@ export function PneumaticNetworkLayer({
 
       {/* 5. Consumer Blocks: Pack L, Pack R, Hyd Resv B, Hyd Resv A, NGS, Water Tank, Cowl TAI, Wing TAI */}
       {network.nodes
-        .filter((node) => Boolean(KNOWN_CONSUMERS[node.id]))
+        .filter((node) => Boolean(KNOWN_CONSUMERS[node.id]) && !hiddenNodes?.has(node.id))
         .map((node) => {
           const point = layout.nodePositions[node.id];
           const solved = solution.nodes[node.id];
