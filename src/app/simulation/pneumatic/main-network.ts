@@ -1,5 +1,10 @@
 import { migrateLegacyNetwork, validatePneumaticNetwork } from "./migrate-legacy-network";
-import type { LegacyPneumaticLine, LegacyPneumaticPoint, ValveKind } from "./types";
+import type {
+  LegacyPneumaticLine,
+  LegacyPneumaticPoint,
+  NetworkSpec,
+  ValveKind,
+} from "./types";
 
 type LegacyTuple = [x: number, y: number, accessory?: true | ValveKind];
 
@@ -57,7 +62,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-05", [
     [384, 243],
     [384, 256, "check-valve-reverse"],
-    [384, 275] 
+    [384, 275]
   ]),
   legacyLine("legacy-06", [
     [397, 243],
@@ -80,7 +85,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
   legacyLine("legacy-09", [
     [351, 253],
-    [351, 260, "on-off"], 
+    [351, 260, "on-off"],
     [351, 268],
   ]),
   legacyLine("legacy-10", [
@@ -190,90 +195,216 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   ]),
 ];
 
-export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork(
-  legacyMainSchematic,
-  [
-    {
-      point: { x: 307, y: 236 },
+const ENGINE_BLEED = { pressurePsi: 36, enabled: true } as const;
+const FAN_AIR = { pressurePsi: 15, temperatureC: 25, enabled: true } as const;
+
+// Every node the simulation or the UI refers to, by drawing coordinate.
+// If a point moves in `legacyMainSchematic`, update it here too: a name that
+// no longer lands on a node fails loudly when the network is built.
+const NODE_POINTS = {
+  // Sources
+  eng1FifthStage: { x: 307, y: 236 },
+  eng1NinthStage: { x: 307, y: 253 },
+  eng1FanAir: { x: 326, y: 212 },
+  eng2FifthStage: { x: 453, y: 236 },
+  eng2NinthStage: { x: 453, y: 254 },
+  eng2FanAir: { x: 434, y: 212 },
+  apu: { x: 381, y: 518 },
+  groundAir: { x: 384, y: 275 },
+
+  // Switch-driven valves
+  lPackValve: { x: 362, y: 232 },
+  rPackValve: { x: 397, y: 231 },
+  isolationValve: { x: 372, y: 243 },
+  eng1BleedValve: { x: 329, y: 253 },
+  eng2BleedValve: { x: 431, y: 254 },
+  apuBleedValve: { x: 371, y: 496 },
+  lWingAntiIceValve: { x: 351, y: 260 },
+  rWingAntiIceValve: { x: 409, y: 260 },
+  eng1CowlAntiIceValve: { x: 314, y: 245 },
+  eng2CowlAntiIceValve: { x: 447, y: 245 },
+
+  // Manually operated valves
+  eng1StarterValve: { x: 322, y: 230 },
+  eng2StarterValve: { x: 438, y: 230 },
+  eng1FanAirValve: { x: 326, y: 236 },
+  eng2FanAirValve: { x: 434, y: 236 },
+  eng1HighStageValve: { x: 314, y: 253 },
+  eng2HighStageValve: { x: 447, y: 254 },
+
+  // Check valves and precoolers
+  groundAirCheckValve: { x: 384, y: 256 },
+  apuCheckValve: { x: 366, y: 475 },
+  eng1FifthStageCheckValve: { x: 314, y: 236 },
+  eng2FifthStageCheckValve: { x: 447, y: 236 },
+  eng1Precooler: { x: 337, y: 253 },
+  eng2Precooler: { x: 424, y: 254 },
+
+  // Junctions
+  leftManifold: { x: 362, y: 243 },
+  rightManifold: { x: 397, y: 243 },
+  eng1StageJunction: { x: 320, y: 253 },
+  eng1CowlJunction: { x: 320, y: 245 },
+  eng2StageJunction: { x: 440, y: 254 },
+  eng2CowlJunction: { x: 440, y: 245 },
+
+  // Consumers
+  lPack: { x: 362, y: 209 },
+  rPack: { x: 397, y: 209 },
+  hydReservoirB: { x: 380, y: 285 },
+  hydReservoirA: { x: 380, y: 300 },
+  nitrogenGeneration: { x: 380, y: 320 },
+  waterTank: { x: 392, y: 400 },
+  eng1Cowl: { x: 303, y: 213 },
+  eng2Cowl: { x: 457, y: 213 },
+  lWing: { x: 268, y: 282 },
+  rWing: { x: 492, y: 282 },
+};
+
+export type PneumaticNodeName = keyof typeof NODE_POINTS;
+
+const mainSpec: NetworkSpec<PneumaticNodeName> = {
+  names: NODE_POINTS,
+
+  sources: {
+    eng1FifthStage: {
       sourceKind: "engine",
       label: "ENG 1 5th stage",
-      initial: {
-        enabled: true,
-        pressurePsi: 36,
-        temperatureC: 200,
-      },
+      initial: { ...ENGINE_BLEED, temperatureC: 200 },
     },
-    {
-      point: { x: 307, y: 253 },
+    eng1NinthStage: {
       sourceKind: "engine",
       label: "ENG 1 9th stage",
-      initial: {
-        enabled: true,
-        pressurePsi: 36,
-        temperatureC: 390,
-      },
+      initial: { ...ENGINE_BLEED, temperatureC: 390 },
     },
-    {
-      point: { x: 326, y: 212 },
+    eng1FanAir: {
       sourceKind: "engine",
       label: "ENG 1 Fan Air",
-      initial: {
-        enabled: true,
-        pressurePsi: 15,
-        temperatureC: 25,
-      },
+      initial: FAN_AIR,
     },
-    {
-      point: { x: 453, y: 236 },
+    eng2FifthStage: {
       sourceKind: "engine",
       label: "ENG 2 5th stage",
-      initial: {
-        enabled: true,
-        pressurePsi: 36,
-        temperatureC: 200,
-      },
+      initial: { ...ENGINE_BLEED, temperatureC: 200 },
     },
-    {
-      point: { x: 453, y: 254 },
+    eng2NinthStage: {
       sourceKind: "engine",
       label: "ENG 2 9th stage",
-      initial: {
-        enabled: true,
-        pressurePsi: 36,
-        temperatureC: 390,
-      },
+      initial: { ...ENGINE_BLEED, temperatureC: 390 },
     },
-    {
-      point: { x: 434, y: 212 },
+    eng2FanAir: {
       sourceKind: "engine",
       label: "ENG 2 Fan Air",
-      initial: {
-        enabled: true,
-        pressurePsi: 15,
-        temperatureC: 25,
-      },
+      initial: FAN_AIR,
     },
-    {
-      point: { x: 381, y: 518 },
+    apu: {
       sourceKind: "apu",
       label: "APU BLEED",
-      initial: {
-        enabled: false,
-        pressurePsi: 32,
-        temperatureC: 230,
-      },
+      initial: { enabled: false, pressurePsi: 32, temperatureC: 230 },
     },
-    {
-      point: { x: 384, y: 275 },
+    groundAir: {
       sourceKind: "apu",
       label: "External Air Conection",
-      initial: {
-        enabled: false,
-        pressurePsi: 32,
-        temperatureC: 30,
-      },
+      initial: { enabled: false, pressurePsi: 32, temperatureC: 30 },
+    },
+  },
+
+  consumers: {
+    lPack: {
+      label: "Pack L",
+      fullLabel: "Left Air Conditioning Pack (ACM)",
+      category: "air-conditioning",
+    },
+    rPack: {
+      label: "Pack R",
+      fullLabel: "Right Air Conditioning Pack (ACM)",
+      category: "air-conditioning",
+    },
+    hydReservoirB: {
+      label: "Hyd Resv B",
+      fullLabel: "Hydraulic System B Reservoir Pressurization",
+      category: "hydraulics",
+    },
+    hydReservoirA: {
+      label: "Hyd Resv A",
+      fullLabel: "Hydraulic System A Reservoir Pressurization",
+      category: "hydraulics",
+    },
+    nitrogenGeneration: {
+      label: "NGS",
+      fullLabel: "Nitrogen Generation System (Center Tank Inerting)",
+      category: "fuel-inerting",
+    },
+    waterTank: {
+      label: "Water Tank",
+      fullLabel: "Potable Water Tank Pressurization",
+      category: "potable-water",
+    },
+    eng1Cowl: {
+      label: "Cowl TAI",
+      fullLabel: "Engine 1 Cowl Thermal Anti-Ice",
+      category: "anti-ice",
+    },
+    eng2Cowl: {
+      label: "Cowl TAI",
+      fullLabel: "Engine 2 Cowl Thermal Anti-Ice",
+      category: "anti-ice",
+    },
+    lWing: {
+      label: "Wing TAI",
+      fullLabel: "Left Wing Thermal Anti-Ice (Slats)",
+      category: "anti-ice",
+    },
+    rWing: {
+      label: "Wing TAI",
+      fullLabel: "Right Wing Thermal Anti-Ice (Slats)",
+      category: "anti-ice",
+    },
+  },
+
+  checkValves: [
+    // Ground air and APU feed the manifold; the manifold cannot back-feed them.
+    { valve: "groundAirCheckValve", inletFrom: "groundAir" },
+    { valve: "apuCheckValve", inletFrom: "apuBleedValve" },
+    // 9th stage air cannot flow back into the 5th stage port.
+    { valve: "eng1FifthStageCheckValve", inletFrom: "eng1FifthStage" },
+    { valve: "eng2FifthStageCheckValve", inletFrom: "eng2FifthStage" },
+  ],
+
+  heatExchangers: [
+    {
+      exchanger: "eng1Precooler",
+      hotInletFrom: "eng1BleedValve",
+      coldInletFrom: "eng1FanAirValve",
+    },
+    {
+      exchanger: "eng2Precooler",
+      hotInletFrom: "eng2BleedValve",
+      coldInletFrom: "eng2FanAirValve",
     },
   ],
+
+  mixingZones: [
+    {
+      sources: ["eng1FifthStage", "eng1NinthStage"],
+      nodes: ["eng1StageJunction", "eng1CowlJunction"],
+    },
+    {
+      sources: ["eng2FifthStage", "eng2NinthStage"],
+      nodes: ["eng2StageJunction", "eng2CowlJunction"],
+    },
+  ],
+};
+
+export const MAIN_PNEUMATIC_SYSTEM = migrateLegacyNetwork<PneumaticNodeName>(
+  legacyMainSchematic,
+  mainSpec,
 );
 
 validatePneumaticNetwork(MAIN_PNEUMATIC_SYSTEM);
+
+/** Node id for each named element of the main network. */
+export const PNEUMATIC_NODE = MAIN_PNEUMATIC_SYSTEM.ids;
+
+/** Consumer info keyed by node id. */
+export const KNOWN_CONSUMERS = MAIN_PNEUMATIC_SYSTEM.consumers;

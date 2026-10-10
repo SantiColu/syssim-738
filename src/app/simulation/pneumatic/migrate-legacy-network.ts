@@ -1,12 +1,13 @@
-import {
-  KNOWN_CONSUMERS,
-  type LegacyPneumaticLine,
-  type MigratedPneumaticNetwork,
-  type PneumaticLink,
-  type PneumaticNode,
-  type Point,
-  type SourceDefinition,
-  type ValveKind,
+import type {
+  ConsumerInfo,
+  LegacyPneumaticLine,
+  MigratedPneumaticNetwork,
+  NetworkSpec,
+  PneumaticLink,
+  PneumaticNode,
+  Point,
+  SourceDefinition,
+  ValveKind,
 } from "./types";
 
 const pointKey = ({ x, y }: Point) => `${x},${y}`;
@@ -21,13 +22,34 @@ function sinkLabel(index: number) {
   return `OUTLET ${String(index + 1).padStart(2, "0")}`;
 }
 
-export function migrateLegacyNetwork(
-  legacyLines: LegacyPneumaticLine[],
-  sources: SourceDefinition[],
-): MigratedPneumaticNetwork {
-  const sourceByPoint = new Map(
-    sources.map((source) => [pointKey(source.point), source]),
+export function isCheckValveKind(kind: ValveKind) {
+  return kind.startsWith("check-valve");
+}
+
+export function isHeatExchangerKind(kind: ValveKind) {
+  return (
+    kind === "precooler" ||
+    kind === "precooler-reverse" ||
+    kind === "heat-exchanger"
   );
+}
+
+export function migrateLegacyNetwork<Name extends string>(
+  legacyLines: LegacyPneumaticLine[],
+  spec: NetworkSpec<Name>,
+): MigratedPneumaticNetwork<Name> {
+  const names = Object.keys(spec.names) as Name[];
+  const pointOf = (name: Name) => spec.names[name];
+
+  const sourceByPoint = new Map<string, SourceDefinition>();
+  const consumerByPoint = new Map<string, ConsumerInfo>();
+  for (const name of names) {
+    const source = spec.sources[name];
+    const consumer = spec.consumers[name];
+    if (source) sourceByPoint.set(pointKey(pointOf(name)), source);
+    if (consumer) consumerByPoint.set(pointKey(pointOf(name)), consumer);
+  }
+
   const accessoryPoints = new Map<string, ValveKind>();
   const positions = new Map<string, Point>();
   const neighbors = new Map<string, Set<string>>();
@@ -62,18 +84,11 @@ export function migrateLegacyNetwork(
 
   const protectedPoints = new Set<string>();
   for (const [key, pointNeighbors] of neighbors) {
-    const pos = positions.get(key)!;
-    const isKnownConsumer = [
-      `junction-${slugPoint(pos)}`,
-      `sink-${slugPoint(pos)}`,
-      `valve-${slugPoint(pos)}`,
-    ].some((id) => Boolean(KNOWN_CONSUMERS[id]));
-
     if (
       pointNeighbors.size !== 2 ||
       accessoryPoints.has(key) ||
       sourceByPoint.has(key) ||
-      isKnownConsumer
+      consumerByPoint.has(key)
     ) {
       protectedPoints.add(key);
     }
@@ -82,6 +97,7 @@ export function migrateLegacyNetwork(
   const nodeIdByPoint = new Map<string, string>();
   const nodes: PneumaticNode[] = [];
   const nodePositions: Record<string, Point> = {};
+  const consumers: Record<string, ConsumerInfo> = {};
   let sinkIndex = 0;
 
   for (const key of [...protectedPoints].sort()) {
@@ -99,6 +115,9 @@ export function migrateLegacyNetwork(
     nodeIdByPoint.set(key, id);
     nodePositions[id] = position;
 
+    const consumer = consumerByPoint.get(key);
+    if (consumer) consumers[id] = consumer;
+
     if (source) {
       nodes.push({
         id,
@@ -114,7 +133,6 @@ export function migrateLegacyNetwork(
         accessory: { kind: valveKind, normallyOpen: true },
       });
     } else if (degree <= 1) {
-      const consumer = KNOWN_CONSUMERS[id];
       nodes.push({
         id,
         kind: "sink",
@@ -164,17 +182,63 @@ export function migrateLegacyNetwork(
     }
   }
 
+  // Resolve the spec's names against the drawing. A name whose point is not a
+  // node (e.g. the point was moved in the drawing but not here) is an error.
+  const ids = {} as Record<Name, string>;
+  for (const name of names) {
+    const id = nodeIdByPoint.get(pointKey(pointOf(name)));
+    if (!id) {
+      throw new Error(
+        `Pneumatic node "${name}" at ${pointKey(pointOf(name))} is not a node of the drawing`,
+      );
+    }
+    ids[name] = id;
+  }
+
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+
+  const linkBetween = (left: Name, right: Name) => {
+    const candidates = links.filter(
+      (link) =>
+        (link.from === ids[left] && link.to === ids[right]) ||
+        (link.from === ids[right] && link.to === ids[left]),
+    );
+    if (candidates.length !== 1) {
+      throw new Error(
+        `Expected exactly one link between "${left}" and "${right}", found ${candidates.length}`,
+      );
+    }
+    return candidates[0].id;
+  };
+
+  const accessoryOf = (name: Name, isExpectedKind: (kind: ValveKind) => boolean) => {
+    const node = nodeById.get(ids[name]);
+    if (node?.kind !== "accessory" || !isExpectedKind(node.accessory.kind)) {
+      throw new Error(`Pneumatic node "${name}" has an unexpected kind`);
+    }
+    return node.accessory;
+  };
+
+  for (const { valve, inletFrom } of spec.checkValves) {
+    accessoryOf(valve, isCheckValveKind).inletLinkId = linkBetween(valve, inletFrom);
+  }
+
+  for (const { exchanger, hotInletFrom, coldInletFrom } of spec.heatExchangers) {
+    const accessory = accessoryOf(exchanger, isHeatExchangerKind);
+    accessory.inletLinkId = linkBetween(exchanger, hotInletFrom);
+    accessory.coldInletLinkId = linkBetween(exchanger, coldInletFrom);
+  }
+
+  const mixingZones = spec.mixingZones.map((zone) => ({
+    sourceIds: zone.sources.map((name) => ids[name]),
+    nodeIds: zone.nodes.map((name) => ids[name]),
+  }));
+
   const initialState = {
     sources: Object.fromEntries(
-      sources.map((source) => {
-        const id = nodeIdByPoint.get(pointKey(source.point));
-        if (!id) {
-          throw new Error(
-            `Source is not connected at ${pointKey(source.point)}`,
-          );
-        }
-        return [id, source.initial];
-      }),
+      names
+        .filter((name) => spec.sources[name])
+        .map((name) => [ids[name], spec.sources[name]!.initial]),
     ),
     accessories: Object.fromEntries(
       nodes
@@ -184,9 +248,11 @@ export function migrateLegacyNetwork(
   };
 
   return {
-    network: { nodes, links },
+    network: { nodes, links, mixingZones },
     layout: { nodePositions, linkRoutes },
     initialState,
+    ids,
+    consumers,
   };
 }
 
@@ -196,12 +262,27 @@ export function validatePneumaticNetwork({
 }: MigratedPneumaticNetwork) {
   const errors: string[] = [];
   const nodeIds = new Set(network.nodes.map((node) => node.id));
+  const linkIds = new Set(network.links.map((link) => link.id));
 
   if (nodeIds.size !== network.nodes.length) errors.push("Duplicate node ids");
 
   for (const node of network.nodes) {
     if (!layout.nodePositions[node.id]) {
       errors.push(`Missing position for node ${node.id}`);
+    }
+    if (node.kind !== "accessory") continue;
+
+    const { kind, inletLinkId, coldInletLinkId } = node.accessory;
+    if (isCheckValveKind(kind) && !inletLinkId) {
+      errors.push(`Check valve ${node.id} has no declared inlet`);
+    }
+    if (isHeatExchangerKind(kind) && (!inletLinkId || !coldInletLinkId)) {
+      errors.push(`Heat exchanger ${node.id} has no declared hot/cold inlets`);
+    }
+    for (const linkId of [inletLinkId, coldInletLinkId]) {
+      if (linkId && !linkIds.has(linkId)) {
+        errors.push(`Accessory ${node.id} references unknown link ${linkId}`);
+      }
     }
   }
 
@@ -211,6 +292,12 @@ export function validatePneumaticNetwork({
     }
     if (!layout.linkRoutes[link.id]?.length) {
       errors.push(`Missing route for link ${link.id}`);
+    }
+  }
+
+  for (const zone of network.mixingZones) {
+    for (const id of [...zone.sourceIds, ...zone.nodeIds]) {
+      if (!nodeIds.has(id)) errors.push(`Mixing zone references unknown node ${id}`);
     }
   }
 

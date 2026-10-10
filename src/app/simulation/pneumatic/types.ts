@@ -34,59 +34,6 @@ export type ConsumerInfo = {
     | "anti-ice";
 };
 
-export const KNOWN_CONSUMERS: Record<string, ConsumerInfo> = {
-  "sink-362-209": {
-    label: "Pack L",
-    fullLabel: "Left Air Conditioning Pack (ACM)",
-    category: "air-conditioning",
-  },
-  "sink-397-209": {
-    label: "Pack R",
-    fullLabel: "Right Air Conditioning Pack (ACM)",
-    category: "air-conditioning",
-  },
-  "sink-380-285": {
-    label: "Hyd Resv B",
-    fullLabel: "Hydraulic System B Reservoir Pressurization",
-    category: "hydraulics",
-  },
-  "sink-380-300": {
-    label: "Hyd Resv A",
-    fullLabel: "Hydraulic System A Reservoir Pressurization",
-    category: "hydraulics",
-  },
-  "sink-380-320": {
-    label: "NGS",
-    fullLabel: "Nitrogen Generation System (Center Tank Inerting)",
-    category: "fuel-inerting",
-  },
-  "sink-392-400": {
-    label: "Water Tank",
-    fullLabel: "Potable Water Tank Pressurization",
-    category: "potable-water",
-  },
-  "sink-303-213": {
-    label: "Cowl TAI",
-    fullLabel: "Engine 1 Cowl Thermal Anti-Ice",
-    category: "anti-ice",
-  },
-  "sink-457-213": {
-    label: "Cowl TAI",
-    fullLabel: "Engine 2 Cowl Thermal Anti-Ice",
-    category: "anti-ice",
-  },
-  "sink-268-282": {
-    label: "Wing TAI",
-    fullLabel: "Left Wing Thermal Anti-Ice (Slats)",
-    category: "anti-ice",
-  },
-  "sink-492-282": {
-    label: "Wing TAI",
-    fullLabel: "Right Wing Thermal Anti-Ice (Slats)",
-    category: "anti-ice",
-  },
-};
-
 export type PneumaticNode =
   | {
       id: string;
@@ -110,6 +57,10 @@ export type PneumaticNode =
         kind: ValveKind;
         normallyOpen: boolean;
         label?: string;
+        /** Check valves and heat exchangers: the only link flow may enter through. */
+        inletLinkId?: string;
+        /** Heat exchangers: the link carrying the cooling (fan) air. */
+        coldInletLinkId?: string;
       };
     };
 
@@ -119,9 +70,19 @@ export type PneumaticLink = {
   to: string;
 };
 
+/**
+ * Nodes where two bleed stages of the same engine merge. When every listed
+ * source is enabled, the nodes carry the average of their temperatures.
+ */
+export type MixingZone = {
+  sourceIds: string[];
+  nodeIds: string[];
+};
+
 export type PneumaticNetwork = {
   nodes: PneumaticNode[];
   links: PneumaticLink[];
+  mixingZones: MixingZone[];
 };
 
 export type PneumaticLayout = {
@@ -159,16 +120,33 @@ export type LegacyPneumaticLine = {
 };
 
 export type SourceDefinition = {
-  point: Point;
   sourceKind: SourceKind;
   label: string;
   initial: MediumState & { enabled: boolean };
 };
 
-export type MigratedPneumaticNetwork = {
+/**
+ * Semantics layered on top of the legacy drawing. Everything refers to nodes
+ * by name, so the solver never has to infer behaviour from coordinates.
+ */
+export type NetworkSpec<Name extends string> = {
+  /** Stable handles for the nodes the simulation refers to. */
+  names: Record<Name, Point>;
+  sources: Partial<Record<Name, SourceDefinition>>;
+  consumers: Partial<Record<Name, ConsumerInfo>>;
+  /** Flow may only enter the valve from the named neighbour. */
+  checkValves: { valve: Name; inletFrom: Name }[];
+  heatExchangers: { exchanger: Name; hotInletFrom: Name; coldInletFrom: Name }[];
+  mixingZones: { sources: Name[]; nodes: Name[] }[];
+};
+
+export type MigratedPneumaticNetwork<Name extends string = string> = {
   network: PneumaticNetwork;
   layout: PneumaticLayout;
   initialState: PneumaticRuntimeState;
+  /** Node id for every name in the spec. */
+  ids: Record<Name, string>;
+  consumers: Record<string, ConsumerInfo>;
 };
 
 /**

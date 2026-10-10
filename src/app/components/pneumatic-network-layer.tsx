@@ -1,6 +1,5 @@
 import {
   getPneumaticColor,
-  KNOWN_CONSUMERS,
   type PneumaticLayout,
   type PneumaticColorMode,
   type PneumaticNetwork,
@@ -11,6 +10,10 @@ import {
   type SolvedNodeState,
   type ValveKind,
 } from "../simulation/pneumatic/types";
+import {
+  KNOWN_CONSUMERS,
+  PNEUMATIC_NODE,
+} from "../simulation/pneumatic/main-network";
 import {
   usePneumatic,
   INTERACTIVE_MANUAL_VALVES,
@@ -585,27 +588,27 @@ function ConsumerNode({
     ? getPneumaticColor(solved, colorMode)
     : "#ef4444";
 
-  const isPack = node.id.includes("209");
-  const isCowl = node.id === "sink-303-213" || node.id === "sink-457-213";
-  const isWing = node.id === "sink-268-282" || node.id === "sink-492-282";
+  const isPack = node.id === PNEUMATIC_NODE.lPack || node.id === PNEUMATIC_NODE.rPack;
+  const isCowl = node.id === PNEUMATIC_NODE.eng1Cowl || node.id === PNEUMATIC_NODE.eng2Cowl;
+  const isWing = node.id === PNEUMATIC_NODE.lWing || node.id === PNEUMATIC_NODE.rWing;
 
   const offsetX =
-    node.id === "sink-362-209"
+    node.id === PNEUMATIC_NODE.lPack
       ? 6
-      : node.id === "sink-397-209"
+      : node.id === PNEUMATIC_NODE.rPack
         ? -6
-        : node.id === "sink-303-213"
+        : node.id === PNEUMATIC_NODE.eng1Cowl
           ? 8
-          : node.id === "sink-457-213"
+          : node.id === PNEUMATIC_NODE.eng2Cowl
             ? -8
             : 0;
 
   const offsetY = isCowl ? -0.5 : 0;
 
   const rotation =
-    node.id === "sink-268-282"
+    node.id === PNEUMATIC_NODE.lWing
       ? -28.2
-      : node.id === "sink-492-282"
+      : node.id === PNEUMATIC_NODE.rWing
         ? 28.2
         : 0;
 
