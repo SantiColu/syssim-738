@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, type ComponentType } from "react";
 import {
   CabinAltitudeControlPanel,
   CabinAltitudePanel,
@@ -11,384 +11,78 @@ import {
   WindowHeatPanel,
   WingAntiIcePanel,
 } from "./aircraft-panels";
+import { CockpitArtwork } from "./cockpit/cockpit-artwork";
+import {
+  COCKPIT_SVG_VIEWBOX_HEIGHT,
+  COCKPIT_SVG_VIEWBOX_WIDTH,
+  COCKPIT_SVG_VIEWBOX_X,
+  COCKPIT_ZOOM_STEP,
+  getVisibleSvgArea,
+  MAX_COCKPIT_ZOOM,
+  MIN_COCKPIT_ZOOM,
+  useCockpitViewport,
+} from "./cockpit/use-cockpit-viewport";
 import { PneumaticPanel } from "./pneumatic-panel";
 import {
   PanelExportButton,
   renderCockpitSvgToPng,
 } from "./panel-export-button";
 
-const COCKPIT_WORLD_WIDTH = 2400;
-const COCKPIT_WORLD_HEIGHT = 6000;
-const COCKPIT_SVG_VIEWBOX_X = 750;
-const COCKPIT_SVG_VIEWBOX_WIDTH = 1800;
-const COCKPIT_SVG_VIEWBOX_HEIGHT = 4500;
-const COCKPIT_RENDERED_SVG_HEIGHT = 6000;
-const MIN_COCKPIT_ZOOM = 0.05;
-const MAX_COCKPIT_ZOOM = 3;
-const COCKPIT_ZOOM_STEP = 0.25;
-const COCKPIT_FOREIGN_OBJECTS = [
-  { x: 1760, y: 882, width: 330, height: 339 },
-  { x: 1760, y: 1225, width: 330, height: 191 },
-  { x: 2094, y: 965, width: 330, height: 342 },
-  { x: 2097, y: 1311, width: 324, height: 467 },
-  { x: 2094, y: 1782, width: 330, height: 436 },
-  { x: 1760, y: 1880, width: 330, height: 338 },
-  { x: 1616, y: 1447, width: 140, height: 160 },
-  { x: 1472, y: 2066, width: 140, height: 152 },
-  { x: 1616, y: 2066, width: 140, height: 152 },
-] as const;
+type CockpitPanelSlot = {
+  id: string;
+  Panel: ComponentType;
+  /** Slot in the cockpit artwork (SVG units). */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Size the panel is laid out at, scaled down to fit the slot when needed. */
+  panelWidth: number;
+  panelHeight: number;
+  scale?: number;
+};
 
-function clampCockpitZoom(scale: number) {
-  return Math.min(MAX_COCKPIT_ZOOM, Math.max(MIN_COCKPIT_ZOOM, scale));
-}
-
-function isCockpitCommand(target: Element) {
-  let current: Element | null = target;
-
-  while (current) {
-    if (
-      current.matches(
-        "button, input, select, textarea, [role=button], [data-cockpit-command]",
-      ) ||
-      window.getComputedStyle(current).cursor === "pointer"
-    ) {
-      return true;
-    }
-
-    if (current.tagName.toLowerCase() === "foreignobject") break;
-    current = current.parentElement;
-  }
-
-  return false;
-}
+// Interactive panels placed over the cockpit artwork. The minimap highlights
+// the same slots.
+const COCKPIT_PANELS: CockpitPanelSlot[] = [
+  // Window & Probe Heat Panel in svg_11 (Left of Voice Recorder / Air Temp)
+  { id: "window-heat", Panel: WindowHeatPanel, x: 1760, y: 882, width: 330, height: 339, panelWidth: 330, panelHeight: 339 },
+  // Wing & Engine Anti-Ice Panel in svg_14 (Below Window Heat)
+  { id: "wing-anti-ice", Panel: WingAntiIcePanel, x: 1760, y: 1225, width: 330, height: 191, panelWidth: 330, panelHeight: 191 },
+  // Temperature Panel in svg_13 (Top Right)
+  { id: "temperature", Panel: TemperaturePanel, x: 2094, y: 965, width: 330, height: 342, panelWidth: 467, panelHeight: 485, scale: 0.7 },
+  // Pneumatic Panel in svg_15 (Middle Right)
+  { id: "pneumatic", Panel: PneumaticPanel, x: 2097, y: 1311, width: 324, height: 467, panelWidth: 400, panelHeight: 550, scale: 0.88 },
+  // Cabin Altitude Control Panel in svg_24 (Bottom Right)
+  { id: "cabin-altitude-control", Panel: CabinAltitudeControlPanel, x: 2094, y: 1782, width: 330, height: 436, panelWidth: 330, panelHeight: 436 },
+  // Cabin Altitude Panel in svg_28 (Left of Alt Control)
+  { id: "cabin-altitude", Panel: CabinAltitudePanel, x: 1760, y: 1880, width: 330, height: 338, panelWidth: 330, panelHeight: 338 },
+  // Equipment Cooling Panel in svg_16 (Small middle square)
+  { id: "equipment-cooling", Panel: EquipmentCoolingPanel, x: 1616, y: 1447, width: 140, height: 160, panelWidth: 345, panelHeight: 394, scale: 0.4 },
+  // Left Windshield Wiper Panel (Bottom-right corner of adjacent left panel svg_19)
+  { id: "left-wiper", Panel: LeftWiperPanel, x: 1472, y: 2066, width: 140, height: 152, panelWidth: 140, panelHeight: 152 },
+  // Right Windshield Wiper Panel (Fitted into tall elongated panel svg_22)
+  { id: "right-wiper", Panel: RightWiperPanel, x: 1616, y: 2066, width: 140, height: 152, panelWidth: 140, panelHeight: 152 },
+];
 
 export function CockpitView() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const {
+    containerRef,
+    transform,
+    transformRef,
+    visibleArea,
+    zoomCockpit,
+    fitCockpit,
+    containerHandlers,
+    minimapHandlers,
+  } = useCockpitViewport();
   const cockpitSvgRef = useRef<SVGSVGElement>(null);
-
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.3 });
-  const transformRef = useRef(transform);
-  const transformFrameRef = useRef<number | null>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const isDragging = useRef(false);
-  const startPan = useRef({ x: 0, y: 0 });
-  const activePointers = useRef<Map<number, { clientX: number; clientY: number }>>(
-    new Map(),
-  );
-  const pinchRef = useRef<{
-    initialDistance: number;
-    initialScale: number;
-    pointX: number;
-    pointY: number;
-  } | null>(null);
-
-  const scheduleTransform = useCallback(
-    (update: (current: typeof transform) => typeof transform) => {
-      transformRef.current = update(transformRef.current);
-
-      if (transformFrameRef.current !== null) return;
-      transformFrameRef.current = requestAnimationFrame(() => {
-        transformFrameRef.current = null;
-        setTransform(transformRef.current);
-      });
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Center initially based on container size
-    const rect = container.getBoundingClientRect();
-    setViewport({ width: rect.width, height: rect.height });
-    const initialScale = 0.25;
-    // Keep the existing initial cockpit framing; FIT uses the complete SVG.
-    const initialX = (rect.width - 2400 * initialScale) / 2;
-    const initialY = (rect.height - 3600 * initialScale) / 2;
-    const initialTransform = {
-      x: initialX,
-      y: initialY,
-      scale: initialScale,
-    };
-    transformRef.current = initialTransform;
-    setTransform(initialTransform);
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          setViewport({ width, height });
-        }
-      }
-    });
-    resizeObserver.observe(container);
-
-    const handleWheel = (e: WheelEvent) => {
-      // Controls inside foreignObjects own the wheel gesture (knobs, selectors,
-      // etc.). Let their handler consume it without also zooming the cockpit.
-      if (
-        e.defaultPrevented ||
-        (e.target instanceof Element && isCockpitCommand(e.target))
-      ) {
-        return;
-      }
-      e.preventDefault();
-
-      const currentRect = container.getBoundingClientRect();
-      const scaleAdjustment = e.deltaY * -0.001;
-      scheduleTransform((prev) => {
-        let newScale = prev.scale + scaleAdjustment;
-        newScale = clampCockpitZoom(newScale);
-
-        // Calculate mouse position relative to container
-        const mouseX = e.clientX - currentRect.left;
-        const mouseY = e.clientY - currentRect.top;
-
-        // Calculate point in unscaled coordinates
-        const pointX = (mouseX - prev.x) / prev.scale;
-        const pointY = (mouseY - prev.y) / prev.scale;
-
-        // Calculate new position
-        const newX = mouseX - pointX * newScale;
-        const newY = mouseY - pointY * newScale;
-
-        return { x: newX, y: newY, scale: newScale };
-      });
-    };
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      resizeObserver.disconnect();
-      container.removeEventListener("wheel", handleWheel);
-      if (transformFrameRef.current !== null) {
-        cancelAnimationFrame(transformFrameRef.current);
-      }
-    };
-  }, [scheduleTransform]);
-
-  const zoomCockpit = (amount: number) => {
-    scheduleTransform((prev) => {
-      const scale = clampCockpitZoom(prev.scale + amount);
-      if (scale === prev.scale) return prev;
-
-      const anchorX = viewport.width / 2;
-      const anchorY = viewport.height / 2;
-      const ratio = scale / prev.scale;
-      return {
-        scale,
-        x: anchorX - (anchorX - prev.x) * ratio,
-        y: anchorY - (anchorY - prev.y) * ratio,
-      };
-    });
-  };
-
-  const fitCockpit = () => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    const scale = Math.min(
-      rect.width / COCKPIT_WORLD_WIDTH,
-      rect.height / COCKPIT_WORLD_HEIGHT,
-    );
-    setViewport({ width: rect.width, height: rect.height });
-    const nextTransform = {
-      scale,
-      x: (rect.width - COCKPIT_WORLD_WIDTH * scale) / 2,
-      y: (rect.height - COCKPIT_WORLD_HEIGHT * scale) / 2,
-    };
-    transformRef.current = nextTransform;
-    setTransform(nextTransform);
-  };
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    const target = e.target as Element;
-    const isCommand = isCockpitCommand(target);
-    if (
-      (e.button !== 0 && e.button !== 1) ||
-      (isCommand && activePointers.current.size === 0)
-    ) {
-      return;
-    }
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    activePointers.current.set(e.pointerId, {
-      clientX: e.clientX,
-      clientY: e.clientY,
-    });
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // Ignore if setPointerCapture fails on some browsers
-    }
-
-    if (activePointers.current.size === 1) {
-      isDragging.current = true;
-      startPan.current = {
-        x: e.clientX - transformRef.current.x,
-        y: e.clientY - transformRef.current.y,
-      };
-      pinchRef.current = null;
-    } else if (activePointers.current.size >= 2) {
-      const points = Array.from(activePointers.current.values());
-      const p1 = points[0];
-      const p2 = points[1];
-      const distance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
-      const midX = (p1.clientX + p2.clientX) / 2;
-      const midY = (p1.clientY + p2.clientY) / 2;
-
-      const rect = container.getBoundingClientRect();
-      const current = transformRef.current;
-      const mouseX = midX - rect.left;
-      const mouseY = midY - rect.top;
-
-      const pointX = (mouseX - current.x) / current.scale;
-      const pointY = (mouseY - current.y) / current.scale;
-
-      pinchRef.current = {
-        initialDistance: Math.max(10, distance),
-        initialScale: current.scale,
-        pointX,
-        pointY,
-      };
-    }
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!activePointers.current.has(e.pointerId)) return;
-    activePointers.current.set(e.pointerId, {
-      clientX: e.clientX,
-      clientY: e.clientY,
-    });
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (activePointers.current.size >= 2 && pinchRef.current) {
-      const points = Array.from(activePointers.current.values());
-      const p1 = points[0];
-      const p2 = points[1];
-      const distance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
-      const midX = (p1.clientX + p2.clientX) / 2;
-      const midY = (p1.clientY + p2.clientY) / 2;
-
-      const rect = container.getBoundingClientRect();
-      const mouseX = midX - rect.left;
-      const mouseY = midY - rect.top;
-
-      const pinch = pinchRef.current;
-      const ratio = distance / pinch.initialDistance;
-      const newScale = clampCockpitZoom(pinch.initialScale * ratio);
-
-      const newX = mouseX - pinch.pointX * newScale;
-      const newY = mouseY - pinch.pointY * newScale;
-
-      scheduleTransform(() => ({
-        x: newX,
-        y: newY,
-        scale: newScale,
-      }));
-    } else if (activePointers.current.size === 1 && isDragging.current) {
-      scheduleTransform((prev) => ({
-        ...prev,
-        x: e.clientX - startPan.current.x,
-        y: e.clientY - startPan.current.y,
-      }));
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    activePointers.current.delete(e.pointerId);
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        // Ignore
-      }
-    }
-
-    if (activePointers.current.size === 1) {
-      const [remaining] = Array.from(activePointers.current.values());
-      startPan.current = {
-        x: remaining.clientX - transformRef.current.x,
-        y: remaining.clientY - transformRef.current.y,
-      };
-      pinchRef.current = null;
-    } else if (activePointers.current.size === 0) {
-      isDragging.current = false;
-      pinchRef.current = null;
-    }
-  };
-
-  const visibleArea = {
-    x:
-      COCKPIT_SVG_VIEWBOX_X +
-      (-transform.x / transform.scale) *
-        (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
-    y:
-      (-transform.y / transform.scale) *
-      (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
-    width:
-      (viewport.width / transform.scale) *
-      (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
-    height:
-      (viewport.height / transform.scale) *
-      (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
-  };
-
-  const navigateFromMinimap = (e: React.PointerEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX =
-      COCKPIT_SVG_VIEWBOX_X +
-      ((e.clientX - rect.left) / rect.width) * COCKPIT_SVG_VIEWBOX_WIDTH;
-    const svgY =
-      ((e.clientY - rect.top) / rect.height) * COCKPIT_SVG_VIEWBOX_HEIGHT;
-    const point = {
-      x:
-        (svgX - COCKPIT_SVG_VIEWBOX_X) *
-        (COCKPIT_WORLD_WIDTH / COCKPIT_SVG_VIEWBOX_WIDTH),
-      y: svgY * (COCKPIT_WORLD_HEIGHT / COCKPIT_SVG_VIEWBOX_HEIGHT),
-    };
-
-    scheduleTransform((prev) => ({
-      ...prev,
-      x: viewport.width / 2 - point.x * prev.scale,
-      y: viewport.height / 2 - point.y * prev.scale,
-    }));
-  };
-
-  const handleMinimapPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (e.button !== 0) return;
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    navigateFromMinimap(e);
-  };
-
-  const handleMinimapPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    e.stopPropagation();
-    navigateFromMinimap(e);
-  };
-
-  const finishMinimapPointer = (e: React.PointerEvent<SVGSVGElement>) => {
-    e.stopPropagation();
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
 
   return (
     <div
       ref={containerRef}
       className="relative size-full select-none overflow-hidden bg-sim-bg bg-[linear-gradient(var(--color-sim-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-sim-grid)_1px,transparent_1px)] bg-size-[20px_20px] cursor-grab active:cursor-grabbing touch-none"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      {...containerHandlers}
     >
       <PanelExportButton
         panelRef={containerRef}
@@ -403,27 +97,12 @@ export function CockpitView() {
           }
 
           const rect = container.getBoundingClientRect();
-          const current = transformRef.current;
-          const exportViewport = {
-            x:
-              COCKPIT_SVG_VIEWBOX_X +
-              (-current.x / current.scale) *
-                (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
-            y:
-              (-current.y / current.scale) *
-              (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
-            width:
-              (rect.width / current.scale) *
-              (COCKPIT_SVG_VIEWBOX_WIDTH / COCKPIT_WORLD_WIDTH),
-            height:
-              (rect.height / current.scale) *
-              (COCKPIT_SVG_VIEWBOX_HEIGHT / COCKPIT_RENDERED_SVG_HEIGHT),
-          };
-
-          return renderCockpitSvgToPng(svg, exportViewport, {
-            width: rect.width,
-            height: rect.height,
-          });
+          const size = { width: rect.width, height: rect.height };
+          return renderCockpitSvgToPng(
+            svg,
+            getVisibleSvgArea(transformRef.current, size),
+            size,
+          );
         }}
       />
       <div
@@ -441,562 +120,26 @@ export function CockpitView() {
           height="6000"
           style={{ pointerEvents: "none" }}
         >
-          {/* Main SVG Background Paths from OHP.svg */}
           <g id="cockpit-artwork" style={{ pointerEvents: "auto" }}>
-            <path
-              id="svg_3"
-              d="m2417.6464,15.29411l5.88235,2279.99938l-357.64696,79.99998c1.17605,1.17608 -765.88257,-1.17686 -767.05904,-1.17686c-1.17647,0 -356.47049,-76.47056 -357.64654,-77.64665l1.56293,-2280.59642l1474.90726,-0.57943z"
-              fill="var(--color-cockpit-fill-base)"
-              stroke="none"
-            />
-            <path
-              id="svg_26"
-              d="m946.66667,2218.33333"
-              fill="var(--color-cockpit-fill-base)"
-              stroke="none"
-            />
-            <path
-              id="svg_27"
-              d="m940,2298.33334l-1.66667,-85l1485,6.66667l-5,80l-356.66667,78.33333l-768.33333,-3.33333l-353.33333,-76.66667z"
-              fill="var(--color-cockpit-fill-base)"
-              stroke="none"
-            />
+            <CockpitArtwork />
 
-            {/* OHP.svg Rects - Perfectly aligned to a grid */}
-            <rect
-              id="svg_4"
-              x="948"
-              y="882"
-              width="330"
-              height="470"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_6"
-              x="1616"
-              y="882"
-              width="140"
-              height="212"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_7"
-              x="1282"
-              y="965"
-              width="330"
-              height="451"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_8"
-              x="948"
-              y="1356"
-              width="330"
-              height="346"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_9"
-              x="1282"
-              y="1420"
-              width="330"
-              height="240"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_10"
-              x="1616"
-              y="1098"
-              width="140"
-              height="345"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_11"
-              x="1760"
-              y="882"
-              width="330"
-              height="339"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_12"
-              x="2094"
-              y="882"
-              width="330"
-              height="79"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_13"
-              x="2094"
-              y="965"
-              width="330"
-              height="342"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_14"
-              x="1760"
-              y="1225"
-              width="330"
-              height="191"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_15"
-              x="2094"
-              y="1311"
-              width="330"
-              height="467"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_16"
-              x="1616"
-              y="1447"
-              width="140"
-              height="160"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_17"
-              x="1760"
-              y="1420"
-              width="330"
-              height="187"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_18"
-              x="948"
-              y="1706"
-              width="330"
-              height="512"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_19"
-              x="1282"
-              y="1706"
-              width="330"
-              height="512"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_20"
-              x="1616"
-              y="1611"
-              width="140"
-              height="142"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_22"
-              x="1616"
-              y="1757"
-              width="140"
-              height="461"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_23"
-              x="1760"
-              y="1611"
-              width="330"
-              height="130"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_23n"
-              x="1760"
-              y="1745"
-              width="330"
-              height="131"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_24"
-              x="2094"
-              y="1782"
-              width="330"
-              height="436"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_28"
-              x="1760"
-              y="1880"
-              width="330"
-              height="338"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_29"
-              x="948"
-              y="500"
-              width="330"
-              height="158"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_30"
-              x="948"
-              y="662"
-              width="1476"
-              height="149"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_31"
-              x="1282"
-              y="444"
-              width="330"
-              height="214"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_32"
-              x="1282"
-              y="178"
-              width="330"
-              height="256"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_33"
-              x="1760"
-              y="80"
-              width="330"
-              height="253"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_34"
-              x="1760"
-              y="333"
-              width="330"
-              height="325"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_35"
-              x="1616"
-              y="396"
-              width="140"
-              height="113"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect
-              id="svg_36"
-              x="2094"
-              y="322"
-              width="330"
-              height="336"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke)"
-              strokeWidth="2"
-              rx="4"
-            />
-
-            {/* Glareshield & Main Instrument Panel (Manually aligned below OHP) */}
-            <path
-              d="M 850 2450 L 2500 2450 L 2500 3200 L 850 3200 Z"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="8"
-            />
-            <rect
-              x="950"
-              y="2480"
-              width="1450"
-              height="150"
-              fill="var(--color-cockpit-fill-shadow)"
-              rx="20"
-            />
-            <rect
-              x="1000"
-              y="2700"
-              width="450"
-              height="400"
-              fill="var(--color-cockpit-fill-secondary)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="4"
-              rx="8"
-            />
-            <rect
-              x="1500"
-              y="2700"
-              width="350"
-              height="400"
-              fill="var(--color-cockpit-fill-secondary)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="4"
-              rx="8"
-            />
-            <rect
-              x="1900"
-              y="2700"
-              width="450"
-              height="400"
-              fill="var(--color-cockpit-fill-secondary)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="4"
-              rx="8"
-            />
-
-            {/* Pedestal */}
-            <path
-              d="M 1350 3200 L 2000 3200 L 2000 4200 L 1350 4200 Z"
-              fill="var(--color-cockpit-fill-structure)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="8"
-            />
-            <rect
-              x="1400"
-              y="3250"
-              width="550"
-              height="300"
-              fill="var(--color-cockpit-fill-secondary)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="4"
-              rx="8"
-            />
-            <rect
-              x="1400"
-              y="3600"
-              width="250"
-              height="400"
-              fill="var(--color-cockpit-fill-secondary)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="4"
-              rx="8"
-            />
-            <rect
-              x="1700"
-              y="3600"
-              width="250"
-              height="400"
-              fill="var(--color-cockpit-fill-secondary)"
-              stroke="var(--color-cockpit-stroke-dark)"
-              strokeWidth="4"
-              rx="8"
-            />
-
-            {/* Populated React Panels as ForeignObjects */}
-
-            {/* Window & Probe Heat Panel in svg_11 (Left of Voice Recorder / Air Temp) */}
-            <foreignObject x="1760" y="882" width="330" height="339">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "330px",
-                    height: "339px",
-                  }}
-                >
-                  <WindowHeatPanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Wing & Engine Anti-Ice Panel in svg_14 (Below Window Heat) */}
-            <foreignObject x="1760" y="1225" width="330" height="191">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "330px",
-                    height: "191px",
-                  }}
-                >
-                  <WingAntiIcePanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Temperature Panel in svg_13 (Top Right) */}
-            <foreignObject x="2094" y="965" width="330" height="342">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "467px",
-                    height: "485px",
-                    transform: "scale(0.70)",
-                  }}
-                >
-                  <TemperaturePanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Pneumatic Panel in svg_15 (Middle Right) */}
-            <foreignObject x="2097" y="1311" width="324" height="467">
-              <div className="w-full h-full flex items-center justify-center ">
-                <div
-                  style={{
-                    width: "400px",
-                    height: "550px",
-                    transform: "scale(0.88)",
-                  }}
-                >
-                  <PneumaticPanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Cabin Altitude Control Panel in svg_24 (Bottom Right) */}
-            <foreignObject x="2094" y="1782" width="330" height="436">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "330px",
-                    height: "436px",
-                  }}
-                >
-                  <CabinAltitudeControlPanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Cabin Altitude Panel in svg_28 (Left of Alt Control) */}
-            <foreignObject x="1760" y="1880" width="330" height="338">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "330px",
-                    height: "338px",
-                  }}
-                >
-                  <CabinAltitudePanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Equipment Cooling Panel in svg_16 (Small middle square) */}
-            <foreignObject x="1616" y="1447" width="140" height="160">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "345px",
-                    height: "394px",
-                    transform: "scale(0.40)",
-                  }}
-                >
-                  <EquipmentCoolingPanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Left Windshield Wiper Panel (Bottom-right corner of adjacent left panel svg_19) */}
-            <foreignObject x="1472" y="2066" width="140" height="152">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "140px",
-                    height: "152px",
-                  }}
-                >
-                  <LeftWiperPanel />
-                </div>
-              </div>
-            </foreignObject>
-
-            {/* Right Windshield Wiper Panel (Fitted into tall elongated panel svg_22) */}
-            <foreignObject x="1616" y="2066" width="140" height="152">
-              <div className="w-full h-full flex items-center justify-center">
-                <div
-                  style={{
-                    width: "140px",
-                    height: "152px",
-                  }}
-                >
-                  <RightWiperPanel />
-                </div>
-              </div>
-            </foreignObject>
+            {COCKPIT_PANELS.map(
+              ({ id, Panel, x, y, width, height, panelWidth, panelHeight, scale }) => (
+                <foreignObject key={id} x={x} y={y} width={width} height={height}>
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div
+                      style={{
+                        width: `${panelWidth}px`,
+                        height: `${panelHeight}px`,
+                        ...(scale && { transform: `scale(${scale})` }),
+                      }}
+                    >
+                      <Panel />
+                    </div>
+                  </div>
+                </foreignObject>
+              ),
+            )}
           </g>
         </svg>
       </div>
@@ -1011,17 +154,17 @@ export function CockpitView() {
             viewBox={`${COCKPIT_SVG_VIEWBOX_X} 0 ${COCKPIT_SVG_VIEWBOX_WIDTH} ${COCKPIT_SVG_VIEWBOX_HEIGHT}`}
             role="img"
             aria-label="Minimapa interactivo del cockpit"
-            onPointerDown={handleMinimapPointerDown}
-            onPointerMove={handleMinimapPointerMove}
-            onPointerUp={finishMinimapPointer}
-            onPointerCancel={finishMinimapPointer}
+            {...minimapHandlers}
           >
             <use href="#cockpit-artwork" />
-            {COCKPIT_FOREIGN_OBJECTS.map((panel) => (
+            {COCKPIT_PANELS.map(({ id, x, y, width, height }) => (
               <rect
-                key={`${panel.x}-${panel.y}`}
+                key={id}
                 className="pointer-events-none fill-sim-accent/15 stroke-sim-accent/50"
-                {...panel}
+                x={x}
+                y={y}
+                width={width}
+                height={height}
                 strokeWidth="10"
                 rx="12"
               />
@@ -1077,3 +220,4 @@ export function CockpitView() {
     </div>
   );
 }
+
