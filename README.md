@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# syssim-738
 
-## Getting Started
+Simulador interactivo de los sistemas del **Boeing 737-800 NG** (CFM56-7B), pensado para estudiar cómo responden los sistemas del avión a los controles del overhead panel.
 
-First, run the development server:
+La aplicación muestra dos vistas sincronizadas:
+
+- **Cockpit:** el overhead panel con sus controles operables (switches, selectores, perillas e indicadores luminosos). Admite pan, zoom, pinch y navegación por minimapa.
+- **System:** el esquema del avión con la red neumática animada. Las líneas se colorean por temperatura o por presión según el estado de las fuentes y válvulas.
+
+El comportamiento se basa en el FCOM del 737 NG. Las referencias están en [docs/fcom/](docs/fcom/README.md).
+
+## Sistemas simulados
+
+| Sistema | Qué incluye |
+| :--- | :--- |
+| **Bleed air** | Etapas 5.ª y 9.ª del compresor, PRSOV, precoolers con fan air, APU bleed, conexión de aire de tierra, isolation valve (CLOSE / AUTO / OPEN), check valves, DUAL BLEED, BLEED TRIP OFF |
+| **Air conditioning** | Pack valves, recirculation fans, panel de temperatura, equipment cooling |
+| **Presurización** | Panel de altitud de cabina y panel de control de presurización |
+| **Anti-ice** | Wing y engine (cowl) anti-ice, sensores de sobrecalentamiento, WING-BODY OVERHEAT |
+| **Rain** | Window heat (incl. tests OVHT / PWR TEST), probe heat, limpiaparabrisas |
+
+## Puesta en marcha
+
+Requiere Node.js 20+ y [pnpm](https://pnpm.io) (`corepack enable` lo activa).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Script | Descripción |
+| :--- | :--- |
+| `pnpm dev` | Servidor de desarrollo |
+| `pnpm build` / `pnpm start` | Build de producción y servidor |
+| `pnpm lint` | ESLint |
+| `pnpm test` | Tests (Vitest) |
+| `pnpm test:watch` | Tests en modo watch |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estructura
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/app/
+├── page.tsx                      # Layout: vistas System + Cockpit
+├── cockpit-panels.css            # Único CSS plano: instrumentación del cockpit
+├── components/
+│   ├── cockpit-view.tsx          # Lienzo del cockpit y ubicación de los paneles
+│   ├── cockpit/                  # Artwork del overhead y hook de pan/zoom
+│   ├── panels/                   # Un módulo por panel + piezas comunes (switches, knobs…)
+│   ├── aircraft-panels.tsx       # Re-exporta los paneles
+│   ├── pneumatic-network-layer.tsx  # Render de la red neumática
+│   └── …                         # Capas del esquema (sensores, sondas, ventanas, wipers)
+└── simulation/pneumatic/
+    ├── main-network.ts           # Definición de la red: dibujo + nombres + semántica
+    ├── migrate-legacy-network.ts # Construye y valida el grafo a partir del dibujo
+    ├── solve-network.ts          # Solver: propaga presión y temperatura
+    ├── runtime-state.ts          # Switches y fuentes → estado de válvulas y fuentes
+    └── pneumatic-context.tsx     # Estado React y lógica de cockpit (alertas, tests)
+```
 
-## Learn More
+## La red neumática
 
-To learn more about Next.js, take a look at the following resources:
+La red se define en [main-network.ts](src/app/simulation/pneumatic/main-network.ts) en dos capas:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **El dibujo:** líneas de puntos en coordenadas del esquema, con los accesorios (válvulas, precoolers…) marcados sobre ellas. De ahí se obtienen los nodos y los links.
+2. **La semántica:** en `NODE_POINTS` se da un nombre estable (`eng1BleedValve`, `leftManifold`…) a cada nodo que use la simulación. Además se declara:
+   - por dónde entra el flujo a cada check valve y a cada precooler,
+   - qué fuentes son las fuentes de aire,
+   - dónde se mezclan las etapas 5.ª y 9.ª.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+El resto de la app usa los nodos a través de `PNEUMATIC_NODE.<nombre>` y nunca con IDs literales. El solver no lee coordenadas.
 
-## Deploy on Vercel
+Si mueves un punto en el dibujo, actualiza su coordenada en `NODE_POINTS`. Si un nombre deja de caer sobre un nodo, la red falla al construirse con un error que dice cuál.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tests
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Los tests de [src/app/simulation/pneumatic/](src/app/simulation/pneumatic/) son de dos tipos:
+
+- **`solve-network.test.ts`:** reglas de comportamiento legibles (isolation valve en AUTO, check valves, mezcla de etapas, precooler…).
+- **`solve-network.snapshot.test.ts`:** guarda el estado de **cada** nodo y link de la red en una serie de escenarios. Cualquier cambio en la solución aparece como diff. Tras un cambio intencionado en la red o el solver, revisa el diff y actualiza con `pnpm test -u`.
+
+## Estilos
+
+Tailwind CSS para todo, salvo la instrumentación del cockpit, que usa [cockpit-panels.css](src/app/cockpit-panels.css). Las reglas detalladas están en [AGENTS.md](AGENTS.md).
