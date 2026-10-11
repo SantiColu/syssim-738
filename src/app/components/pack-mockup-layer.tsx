@@ -12,6 +12,7 @@ import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
+import { AC_DIST_BAY_Y } from "./lower-lobe-layer";
 import { VALVE_SCALE } from "./pneumatic-network-layer";
 
 // Mockup-only ram door state, shared by the pack layer and the door layer.
@@ -81,7 +82,7 @@ const STBY_TCV_LOOP: P[] = [
 // Vertical water separator on the HX2 outlet lane
 const WS_X = 398.2;
 const WS_Y = 209;
-const MIX: P = [379.5, 190];
+const MIX: P = [379.5, 185.3];
 
 // Pack supply lane, up from the pack valve (rPackValve in the network, before
 // PACKS_OFFSET_Y); outboard of the ACM so the ram exhaust drops straight aft.
@@ -97,7 +98,7 @@ const TCV_BYPASS: P[] = [[SUPPLY_X, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LA
 const TRIM_TAP_Y = 236.5;
 const TRIM_CHECK_X = 385.5;
 const TRIM_TAP: P[] = [[SUPPLY_X, TRIM_TAP_Y], [MIX[0], TRIM_TAP_Y]];
-const MIX_R = 3.4;
+const MIX_R = 3.0;
 // Point on the mix manifold edge (just inside it) at `deg`, counterclockwise
 // from outboard right; ducts end there so the manifold covers their tips.
 function onMix([cx, cy]: P, deg: number): P {
@@ -385,8 +386,8 @@ function ModulatingValve({
 
 // Ram inlet opening in the fuselage skin at the wing root (absolute
 // coordinates: the doors are not shifted with the packs).
-const OPENING_TOP = 215.4;
-const OPENING_BOTTOM = 220.6;
+const OPENING_TOP = 222.4;
+const OPENING_BOTTOM = 227.6;
 const SKIN_X = 405;
 
 /**
@@ -650,22 +651,32 @@ function DualPurposeValve({ x, y, title }: { x: number; y: number; title: string
   );
 }
 
-/** Sidewall riser: vertical duct from the floor duct up to the ceiling duct. */
+/**
+ * Sidewall riser: vertical duct from the floor duct up to the ceiling duct.
+ * Either end can face forward; the chevron sits at the ceiling end, pointing
+ * towards it.
+ */
 function Riser({ x, floorY, ceilingY, title }: { x: number; floorY: number; ceilingY: number; title: string }) {
+  const top = Math.min(floorY, ceilingY);
+  const bottom = Math.max(floorY, ceilingY);
+  // +1: chevron at the top pointing forward; -1: at the bottom pointing aft
+  const dir = ceilingY < floorY ? 1 : -1;
+  const tipY = dir > 0 ? top + 0.6 : bottom - 0.6;
+  const baseY = tipY + dir * 0.8;
   return (
     <g>
       <title>{title}</title>
       <rect
         x={x - 1.1}
-        y={ceilingY - 1.1}
+        y={top - 1.1}
         width="2.2"
-        height={floorY - ceilingY + 2.2}
+        height={bottom - top + 2.2}
         rx="1.1"
         className="fill-sim-surface stroke-white"
         strokeWidth="0.45"
       />
       <path
-        d={`M ${x - 0.6} ${ceilingY + 1.4} L ${x} ${ceilingY + 0.6} L ${x + 0.6} ${ceilingY + 1.4}`}
+        d={`M ${x - 0.6} ${baseY} L ${x} ${tipY} L ${x + 0.6} ${baseY}`}
         className="fill-none stroke-zinc-300"
         strokeWidth="0.3"
         strokeLinecap="round"
@@ -685,16 +696,27 @@ const FD_TEE: P = [759 - SHAFT_X, TURBINE_OUT_Y + PACKS_OFFSET_Y];
 const FD_X = FD_TEE[0];
 const PILOT_X = { capt: 372, fo: 387 };
 const OVERHEAD_DIFFUSER_X = { left: 365, right: 394 };
-// Sidewall risers against the wall: an aft pair just forward of the ram
-// inlets, and a forward left one with one cabin window between them.
+// Sidewall risers against the wall: the forward left one just forward of the
+// AC distribution bay, and the aft pair just forward of the mix manifold, one
+// cabin window aft of it.
 const RISER_X = { left: 358, right: 759 - 358 };
-const AFT_RISER = { floorY: 213, ceilingY: 208 };
-const FWD_RISER = { floorY: 199.5, ceilingY: 194.5 };
-// Forward left riser feed: fore-aft lane outboard of the aft riser outlet,
-// crossing it, then angling into the upper left side of the manifold.
-const FWD_RISER_LANE_X = 368.5;
-const FWD_RISER_TURN_Y = 215;
-const FWD_RISER_ENTRY_DEG = 145;
+// Aft risers: air comes in at the forward end (floor duct from the mix
+// manifold) and leaves at the aft end (ceiling duct).
+// The risers' ends stay just inside the AC distribution bay lines: half the
+// capsule (1.1) + its outline and the bay line (0.4) + a 0.4 gap.
+const RISER_END_INSET = 1.9;
+const AFT_RISER = { floorY: 215.1, ceilingY: AC_DIST_BAY_Y.aft - RISER_END_INSET };
+const FWD_RISER = { floorY: 206.9, ceilingY: AC_DIST_BAY_Y.fwd + RISER_END_INSET };
+// Each riser has its own feed from the mix manifold, running outboard to the
+// wall and then along it into the riser. The aft risers' feeds are symmetric:
+// up the X diagonals, along this line forward of the manifold, then aft into
+// the top of each riser. The forward left riser's leaves the upper left of
+// the manifold, crosses the aft left feed, runs along a line just forward of
+// it and enters the bottom of the riser.
+const AFT_RISER_FEED_Y = 211.3;
+const FWD_RISER_FEED = { y: 209, cornerX: 370, entryDeg: 158 };
+// Recirculation enters the manifold sides at its centre
+const RECIRC_Y = MIX[1] + PACKS_OFFSET_Y;
 // Recirculation on each side of the mix manifold, outward from it and
 // inboard of the flight deck supply: check valve, HEPA filter, recirculation
 // fan (distance from the centre).
@@ -728,36 +750,38 @@ function useMixManifoldSupply() {
 function ForwardDistribution() {
   const { left, fans, manifoldOff } = useMixManifoldSupply();
   const fdTemp = left.packOff ? T.mix : T.turbineOut;
-  const aftLeftDeg = 180 - MIX_X_DEG;
 
   return (
     <g>
-      {/* Forward cabin: mix manifold outlets on the X diagonals to the aft risers... */}
+      {/* Forward cabin: one mix manifold outlet per riser. Aft left riser, on the X diagonal... */}
       <Duct
         points={[
           [RISER_X.left, AFT_RISER.floorY],
-          mixRayAtY(MIX_ABS, aftLeftDeg, AFT_RISER.floorY),
-          onMix(MIX_ABS, aftLeftDeg),
+          [RISER_X.left, AFT_RISER_FEED_Y],
+          mixRayAtY(MIX_ABS, 180 - MIX_X_DEG, AFT_RISER_FEED_Y),
+          onMix(MIX_ABS, 180 - MIX_X_DEG),
         ]}
         temp={T.mix}
         inactive={manifoldOff}
       />
-      <Duct
-        points={[
-          [RISER_X.right, AFT_RISER.floorY],
-          mixRayAtY(MIX_ABS, MIX_X_DEG, AFT_RISER.floorY),
-          onMix(MIX_ABS, MIX_X_DEG),
-        ]}
-        temp={T.mix}
-        inactive={manifoldOff}
-      />
-      {/* ...and the forward left riser feed, crossing the aft left one */}
+      {/* ...forward left riser, crossing the aft left feed... */}
       <Duct
         points={[
           [RISER_X.left, FWD_RISER.floorY],
-          [FWD_RISER_LANE_X, FWD_RISER.floorY],
-          [FWD_RISER_LANE_X, FWD_RISER_TURN_Y],
-          onMix(MIX_ABS, FWD_RISER_ENTRY_DEG),
+          [RISER_X.left, FWD_RISER_FEED.y],
+          [FWD_RISER_FEED.cornerX, FWD_RISER_FEED.y],
+          onMix(MIX_ABS, FWD_RISER_FEED.entryDeg),
+        ]}
+        temp={T.mix}
+        inactive={manifoldOff}
+      />
+      {/* ...and right riser, on the X diagonal */}
+      <Duct
+        points={[
+          [RISER_X.right, AFT_RISER.floorY],
+          [RISER_X.right, AFT_RISER_FEED_Y],
+          mixRayAtY(MIX_ABS, MIX_X_DEG, AFT_RISER_FEED_Y),
+          onMix(MIX_ABS, MIX_X_DEG),
         ]}
         temp={T.mix}
         inactive={manifoldOff}
@@ -771,15 +795,15 @@ function ForwardDistribution() {
         const running = side === "L" ? fans.left : fans.right;
         return (
           <g key={side}>
-            <Duct points={[onMix(MIX_ABS, dir > 0 ? 0 : 180), [at(RECIRC_DX.fan), MIX_ABS[1]]]} temp={T.cabin} inactive={!running} />
+            <Duct points={[[at(2), RECIRC_Y], [at(RECIRC_DX.fan), RECIRC_Y]]} temp={T.cabin} inactive={!running} />
             <CheckValve
               x={at(RECIRC_DX.check)}
-              y={MIX_ABS[1]}
+              y={RECIRC_Y}
               angle={dir > 0 ? 180 : 0}
               title={`${side} recirculation check valve`}
             />
-            <HepaFilter x={at(RECIRC_DX.filter)} y={MIX_ABS[1]} title={`${side} recirculation HEPA filter`} />
-            <RecircFan x={at(RECIRC_DX.fan)} y={MIX_ABS[1]} running={running} title={`${side} recirculation fan`} />
+            <HepaFilter x={at(RECIRC_DX.filter)} y={RECIRC_Y} title={`${side} recirculation HEPA filter`} />
+            <RecircFan x={at(RECIRC_DX.fan)} y={RECIRC_Y} running={running} title={`${side} recirculation fan`} />
           </g>
         );
       })}
@@ -861,17 +885,21 @@ const TRIM = {
     fwdCab: MIX_ABS[0] + TRIM_VALVE_SPACING,
   },
   flightDeckJoinY: 225,
-  // FWD CAB crosses forward of the mix manifold to the forward riser feed
-  fwdCabCrossY: 205,
-  aftCabSplitY: 210.5,
+  // FWD CAB crosses forward of the mix manifold, then drops into the forward riser feed
+  fwdCabCrossY: 206,
+  fwdCabJoinX: 368.5,
+  // AFT CAB runs up the centerline under the mix manifold, then a T just
+  // forward of it drops into both aft riser feeds
+  aftCabSplitY: AFT_RISER_FEED_Y - 2.8,
+  aftCabJoinDx: 3.8,
 };
 
 function trimJoins() {
   return {
     flightDeck: [FD_X, TRIM.flightDeckJoinY] as P,
-    fwdCab: [FWD_RISER_LANE_X, TRIM.fwdCabCrossY] as P,
-    aftCabLeft: mixRayAtY(MIX_ABS, 180 - MIX_X_DEG, AFT_RISER.floorY),
-    aftCabRight: mixRayAtY(MIX_ABS, MIX_X_DEG, AFT_RISER.floorY),
+    fwdCab: [TRIM.fwdCabJoinX, FWD_RISER_FEED.y] as P,
+    aftCabLeft: [MIX_ABS[0] - TRIM.aftCabJoinDx, AFT_RISER_FEED_Y] as P,
+    aftCabRight: [MIX_ABS[0] + TRIM.aftCabJoinDx, AFT_RISER_FEED_Y] as P,
   };
 }
 
@@ -906,8 +934,15 @@ function TrimAir() {
     // Flight deck: into the flight deck supply
     flightDeck: [[[TRIM.x.flightDeck, TRIM.valveY], [TRIM.x.flightDeck, TRIM.flightDeckJoinY], joins.flightDeck]],
     // FWD CAB: up the right of the mix manifold, across forward of it into the forward riser feed
-    fwdCab: [[[TRIM.x.fwdCab, TRIM.valveY], [TRIM.x.fwdCab, TRIM.fwdCabCrossY], joins.fwdCab]],
-    // AFT CAB: straight up the centerline under the mix manifold, then to both aft riser outlets
+    fwdCab: [
+      [
+        [TRIM.x.fwdCab, TRIM.valveY],
+        [TRIM.x.fwdCab, TRIM.fwdCabCrossY],
+        [joins.fwdCab[0], TRIM.fwdCabCrossY],
+        joins.fwdCab,
+      ],
+    ],
+    // AFT CAB: straight up the centerline under the mix manifold, then to both aft riser feeds
     aftCab: [
       [[TRIM.x.aftCab, TRIM.valveY], [TRIM.x.aftCab, TRIM.aftCabSplitY]],
       [joins.aftCabLeft, [joins.aftCabLeft[0], TRIM.aftCabSplitY], [joins.aftCabRight[0], TRIM.aftCabSplitY], joins.aftCabRight],

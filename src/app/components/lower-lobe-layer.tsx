@@ -58,6 +58,9 @@ const NOSE_Y = 30;
 const PX_PER_INCH = (550.7 - NOSE_Y) / (39.47 / 0.0254);
 const stationToY = (sta: Station) => NOSE_Y + stationToInches(sta) * PX_PER_INCH;
 
+/** Drawing y of the AC distribution bay limits, for systems laid out inside it. */
+export const AC_DIST_BAY_Y = { fwd: stationToY(STA.mixManifoldBay), aft: stationToY(STA.packBay) };
+
 /** Compartments front to back; each one ends where the next begins. */
 const COMPARTMENTS: { label: string; title: string; from: Station; to: Station; labelX?: number }[] = [
   // The nose is narrow: these labels sit further inboard
