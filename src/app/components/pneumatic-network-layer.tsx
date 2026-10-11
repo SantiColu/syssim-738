@@ -36,6 +36,9 @@ function pointsToPath(points: Point[]) {
     .join(" ");
 }
 
+/** Size of every valve symbol (network and ECS mockup); precoolers and air starters keep theirs. */
+export const VALVE_SCALE = 0.525;
+
 function getValveAngle(
   nodeId: string,
   point: Point,
@@ -104,6 +107,7 @@ function ValveNode({
       : isReverseCheck
         ? angle + 180
         : angle;
+  const glyphScale = isPrecooler || valveKind === "starter-turbine" ? 1 : VALVE_SCALE;
   const isEnergized = solved.energized;
   const mediumColor = isEnergized
     ? getPneumaticColor(solved, colorMode)
@@ -181,7 +185,7 @@ function ValveNode({
         </>
       )}
 
-      <g transform={`rotate(${effectiveAngle})`}>
+      <g transform={`rotate(${effectiveAngle}) scale(${glyphScale})`}>
         {/* PRECOOLER / HEAT EXCHANGER: Clean white / zinc-gray / dark surface core */}
         {isPrecooler && (
           <g>

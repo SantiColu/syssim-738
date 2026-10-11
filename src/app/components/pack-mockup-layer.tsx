@@ -9,7 +9,9 @@
 import { useSyncExternalStore } from "react";
 import { PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
+import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
+import { VALVE_SCALE } from "./pneumatic-network-layer";
 
 // Mockup-only ram door state, shared by the pack layer and the door layer.
 const ramDoorStore: Record<"L" | "R", boolean> = { L: true, R: true };
@@ -65,6 +67,16 @@ const TURBINE_Y = 206.5;
 const COMPRESSOR_Y = (HX2_Y + HX1_Y) / 2;
 const FAN_Y = 226.5;
 const TCV_LANE_X = SHAFT_X - 4.8;
+const TCV_Y = 222.5;
+// Standby pack temperature control valve (FCOM 2.31 pack schematic): in
+// parallel with the TCV, on a loop just inboard of its lane.
+const STBY_TCV = { laneX: TCV_LANE_X - 3.5, topY: 219, bottomY: 229, valveY: 226.3 };
+const STBY_TCV_LOOP: P[] = [
+  [TCV_LANE_X, STBY_TCV.topY],
+  [STBY_TCV.laneX, STBY_TCV.topY],
+  [STBY_TCV.laneX, STBY_TCV.bottomY],
+  [TCV_LANE_X, STBY_TCV.bottomY],
+];
 // Vertical water separator on the HX2 outlet lane
 const WS_X = 398.2;
 const WS_Y = 209;
@@ -80,11 +92,13 @@ const TCV_BYPASS: P[] = [[397, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LANE_X,
 const TRIM_TAP_Y = 236.5;
 const TRIM_CHECK_X = 385.5;
 const TRIM_TAP: P[] = [[397, TRIM_TAP_Y], [MIX[0], TRIM_TAP_Y]];
+const MIX_R = 3.4;
 // Point on the mix manifold edge (just inside it) at `deg`, counterclockwise
 // from outboard right; ducts end there so the manifold covers their tips.
 function onMix([cx, cy]: P, deg: number): P {
   const rad = (deg * Math.PI) / 180;
-  return [cx + 3.6 * Math.cos(rad), cy - 3.6 * Math.sin(rad)];
+  const r = MIX_R - 0.4;
+  return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
 }
 /** Point at height `y` on the ray from the mix manifold centre at `deg`. */
 function mixRayAtY([cx, cy]: P, deg: number, y: number): P {
@@ -280,27 +294,79 @@ function ModulatingValve({
   x,
   y,
   angle = 0,
+  open = true,
+  onToggle,
   title,
 }: {
   x: number;
   y: number;
   angle?: number;
+  open?: boolean;
+  /** Makes the valve clickable, like the network's manual valves. */
+  onToggle?: () => void;
   title: string;
 }) {
+  const interactive = Boolean(onToggle);
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
-      <title>{title}</title>
+    <g
+      transform={`translate(${x} ${y}) rotate(${angle}) scale(${VALVE_SCALE})`}
+      className={interactive ? "group cursor-pointer select-none focus:outline-none" : undefined}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-pressed={interactive ? open : undefined}
+      aria-label={interactive ? `${title}: ${open ? "abierta" : "cerrada"}. Clic para alternar.` : undefined}
+      onPointerDown={interactive ? (e) => e.stopPropagation() : undefined}
+      onClick={
+        interactive
+          ? (e) => {
+              e.stopPropagation();
+              onToggle?.();
+            }
+          : undefined
+      }
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggle?.();
+              }
+            }
+          : undefined
+      }
+    >
+      <title>
+        {interactive ? `${title} · ${open ? "ABIERTA" : "CERRADA"} (clic para ${open ? "cerrar" : "abrir"})` : title}
+      </title>
+      {interactive && (
+        <>
+          <circle
+            r="3.8"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="0.4"
+            strokeDasharray="1 0.8"
+            className="opacity-0 transition-opacity duration-150 group-hover:opacity-85"
+          />
+          <circle r="5.5" fill="transparent" />
+        </>
+      )}
       <path d="M -2.4 -0.7 A 2.5 2.5 0 0 1 2.4 -0.7 Z" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
       <path d="M -2.4 0.7 A 2.5 2.5 0 0 0 2.4 0.7 Z" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
+      {/* Butterfly vane, as in the network: white and angled when open, gray across the duct when closed */}
       <line
         x1="-2.1"
         y1="0"
         x2="2.1"
         y2="0"
-        className="stroke-white"
+        className={open ? "stroke-white" : "stroke-zinc-400"}
         strokeWidth="0.85"
         strokeLinecap="round"
-        transform="rotate(35)"
+        style={{
+          transform: open ? "rotate(35deg)" : "rotate(90deg)",
+          transformOrigin: "0 0",
+          transition: "transform 0.25s ease-in-out",
+        }}
       />
       <circle r="0.5" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
     </g>
@@ -352,21 +418,9 @@ function RamPlenum({ ramOff }: { ramOff: boolean }) {
 }
 
 /** Network check valve symbol; the arrow points downstream at `angle` 0. */
-function CheckValve({
-  x,
-  y,
-  angle = 0,
-  scale = 1,
-  title,
-}: {
-  x: number;
-  y: number;
-  angle?: number;
-  scale?: number;
-  title: string;
-}) {
+function CheckValve({ x, y, angle = 0, title }: { x: number; y: number; angle?: number; title: string }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${scale})`}>
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${VALVE_SCALE})`}>
       <title>{title}</title>
       <rect x="-2.8" y="-1.9" width="5.6" height="3.8" rx="0.5" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
       <rect x="-2.0" y="-0.6" width="2.0" height="1.2" className="fill-zinc-200" />
@@ -375,19 +429,42 @@ function CheckValve({
   );
 }
 
-/** Recirculation HEPA filter, pleated, in line on a horizontal duct. */
+/** Recirculation HEPA filter, pleated, in line on a horizontal duct (narrow along it). */
 function HepaFilter({ x, y, title }: { x: number; y: number; title: string }) {
   return (
     <g transform={`translate(${x} ${y})`}>
       <title>{title}</title>
-      <rect x="-1.2" y="-1.7" width="2.4" height="3.4" rx="0.3" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
+      <rect x="-0.75" y="-1.6" width="1.5" height="3.2" rx="0.25" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
       <path
-        d="M -0.6 -1.3 L 0.6 -0.65 L -0.6 0 L 0.6 0.65 L -0.6 1.3"
+        d="M -0.3 -1.2 L 0.3 -0.6 L -0.3 0 L 0.3 0.6 L -0.3 1.2"
         className="fill-none stroke-zinc-300"
-        strokeWidth="0.26"
+        strokeWidth="0.22"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </g>
+  );
+}
+
+/** Recirculation fan in line on a horizontal duct: narrow casing, propeller seen side-on. */
+function RecircFan({ x, y, title }: { x: number; y: number; title: string }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <title>{title}</title>
+      <rect x="-1" y="-1.6" width="2" height="3.2" rx="0.4" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
+      {[-0.7, 0.7].map((by) => (
+        <ellipse
+          key={by}
+          cx="0"
+          cy={by}
+          rx="0.3"
+          ry="0.62"
+          transform={`rotate(25 0 ${by})`}
+          className="fill-none stroke-zinc-300"
+          strokeWidth="0.22"
+        />
+      ))}
+      <circle r="0.25" className="fill-zinc-300" />
     </g>
   );
 }
@@ -407,7 +484,7 @@ function ShutoffValve({
   name: string;
 }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${VALVE_SCALE})`}>
       <title>{`${name} · ${open ? "Abierta" : "Cerrada"}`}</title>
       <circle r="2.2" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
       <line
@@ -491,10 +568,13 @@ function RightPack({ side }: { side: "L" | "R" }) {
           <Duct points={BLEED_IN} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={TRIM_TAP} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={TCV_BYPASS} temp={bleedTemp} inactive={packOff} part={part} />
+          <Duct points={STBY_TCV_LOOP} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={TURBINE_OUT} temp={T.turbineOut} inactive={packOff} part={part} />
         </g>
       ))}
       <Junction x={397} y={TCV_TEE_Y} temp={bleedTemp} inactive={packOff} />
+      <Junction x={TCV_LANE_X} y={STBY_TCV.topY} temp={bleedTemp} inactive={packOff} />
+      <Junction x={TCV_LANE_X} y={STBY_TCV.bottomY} temp={bleedTemp} inactive={packOff} />
       <Junction x={397} y={TRIM_TAP_Y} temp={bleedTemp} inactive={packOff} />
       <CheckValve x={TRIM_CHECK_X} y={TRIM_TAP_Y} angle={180} title="Check valve de suministro de trim air" />
       <Junction x={SHAFT_X} y={202} temp={T.turbineOut} inactive={packOff} />
@@ -525,7 +605,13 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <Fan x={SHAFT_X} y={FAN_Y} />
 
       <WaterSeparator x={WS_X} y={WS_Y} />
-      <ModulatingValve x={TCV_LANE_X} y={222.5} angle={90} title="Pack temperature control valve" />
+      <ModulatingValve x={TCV_LANE_X} y={TCV_Y} angle={90} title="Pack temperature control valve" />
+      <ModulatingValve
+        x={STBY_TCV.laneX}
+        y={STBY_TCV.valveY}
+        angle={90}
+        title="Standby pack temperature control valve"
+      />
       {/* Pack valve: the only pneumatic element shown in the ECS view */}
       <ShutoffValve x={397} y={240} open={packValveOpen} name="Pack valve" />
     </g>
@@ -548,7 +634,7 @@ function Diffuser({ x, y, title }: { x: number; y: number; title: string }) {
 /** Pilot foot-warming / windshield defog valve behind the rudder pedals. */
 function DualPurposeValve({ x, y, title }: { x: number; y: number; title: string }) {
   return (
-    <g transform={`translate(${x} ${y})`}>
+    <g transform={`translate(${x} ${y}) scale(${VALVE_SCALE})`}>
       <title>{title}</title>
       <circle r="1.3" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
       <line x1="-1.2" y1="0" x2="1.2" y2="0" className="stroke-white" strokeWidth="0.55" strokeLinecap="round" />
@@ -602,9 +688,10 @@ const FWD_RISER = { floorY: 199.5, ceilingY: 194.5 };
 const FWD_RISER_LANE_X = 368.5;
 const FWD_RISER_TURN_Y = 215;
 const FWD_RISER_ENTRY_DEG = 145;
-// Recirculation on each side of the mix manifold, outward from it:
-// check valve, HEPA filter, recirculation fan (distance from the centre).
-const RECIRC_DX = { check: 7, filter: 11, fan: 18 };
+// Recirculation on each side of the mix manifold, outward from it and
+// inboard of the flight deck supply: check valve, HEPA filter, recirculation
+// fan (distance from the centre).
+const RECIRC_DX = { check: 5.8, filter: 8.9, fan: 11.5 };
 const OVERHEAD_FWD_Y = 100;
 
 /**
@@ -664,10 +751,10 @@ function ForwardDistribution() {
               x={at(RECIRC_DX.check)}
               y={MIX_ABS[1]}
               angle={dir > 0 ? 180 : 0}
-              scale={0.7}
               title={`${side} recirculation check valve`}
             />
             <HepaFilter x={at(RECIRC_DX.filter)} y={MIX_ABS[1]} title={`${side} recirculation HEPA filter`} />
+            <RecircFan x={at(RECIRC_DX.fan)} y={MIX_ABS[1]} title={`${side} recirculation fan`} />
           </g>
         );
       })}
@@ -694,8 +781,6 @@ function ForwardDistribution() {
         </g>
       ))}
       <Duct points={[FD_TEE, [FD_X, FD_HEADER_Y]]} temp={fdTemp} inactive={manifoldOff} part="core" />
-      <Fan x={MIX_ABS[0] - RECIRC_DX.fan} y={MIX_ABS[1]} title="L recirculation fan" />
-      <Fan x={MIX_ABS[0] + RECIRC_DX.fan} y={MIX_ABS[1]} title="R recirculation fan" />
       {[FD_X, PILOT_X.capt, PILOT_X.fo].map((x) => (
         <Junction key={x} x={x} y={FD_HEADER_Y} temp={fdTemp} inactive={manifoldOff} />
       ))}
@@ -738,74 +823,102 @@ function ForwardDistribution() {
 // Trim air (FCOM 2.31): the supply from both packs feeds the trim air pressure
 // regulator and shutoff valve on the centerline, then one trim air modulating
 // valve per zone. Drawn first, so every other duct passes over it.
+// The zone valves sit centred on the airplane centerline: AFT CAB in the
+// middle runs straight up it, flight deck to the left, FWD CAB to the right.
+const TRIM_VALVE_SPACING = 6;
 const TRIM = {
-  prsovY: 256,
-  headerY: 245,
-  valveY: 239,
-  x: { flightDeck: 372, fwdCab: 378, aftCab: 384 },
+  prsovY: 245,
+  headerY: 240,
+  valveY: 234.3,
+  x: {
+    flightDeck: MIX_ABS[0] - TRIM_VALVE_SPACING,
+    aftCab: MIX_ABS[0],
+    fwdCab: MIX_ABS[0] + TRIM_VALVE_SPACING,
+  },
   flightDeckJoinY: 225,
-  fwdCabJogY: 234,
-  fwdCabLaneX: 375,
-  fwdCabJoinY: 204,
-  aftCabJogY: 231,
+  // FWD CAB crosses forward of the mix manifold to the forward riser feed
+  fwdCabCrossY: 205,
   aftCabSplitY: 210.5,
 };
 
 function trimJoins() {
   return {
     flightDeck: [FD_X, TRIM.flightDeckJoinY] as P,
-    fwdCab: [FWD_RISER_LANE_X, TRIM.fwdCabJoinY] as P,
+    fwdCab: [FWD_RISER_LANE_X, TRIM.fwdCabCrossY] as P,
     aftCabLeft: mixRayAtY(MIX_ABS, 180 - MIX_X_DEG, AFT_RISER.floorY),
     aftCabRight: mixRayAtY(MIX_ABS, MIX_X_DEG, AFT_RISER.floorY),
   };
 }
 
+const TRIM_ZONES: { zone: TrimZone; label: string }[] = [
+  { zone: "flightDeck", label: "flight deck" },
+  { zone: "aftCab", label: "AFT CAB" },
+  { zone: "fwdCab", label: "FWD CAB" },
+];
+
 function TrimAir() {
   const left = usePackSupply("L");
   const right = usePackSupply("R");
-  const off = left.packOff && right.packOff;
+  const { switches, trimValves, toggleTrimValve } = usePneumatic();
+  const supplyOff = left.packOff && right.packOff;
+  // The TRIM AIR switch drives the pressure regulator and shutoff valve.
+  const prsovOpen = switches.trimAir;
+  const headerOff = supplyOff || !prsovOpen;
   const temp = left.packOff ? right.bleedTemp : left.bleedTemp;
   const cx = MIX_ABS[0];
   const joins = trimJoins();
-  const routes: P[][] = [
-    // Supply up the centerline through the PRSOV to the zone valve header
-    [[cx, TRIM_TAP_Y + PACKS_OFFSET_Y], [cx, TRIM.headerY]],
-    [[TRIM.x.flightDeck, TRIM.headerY], [TRIM.x.aftCab, TRIM.headerY]],
+
+  // Supply side: from the centerline tap up to the PRSOV
+  const supply: P[] = [[cx, TRIM_TAP_Y + PACKS_OFFSET_Y], [cx, TRIM.prsovY]];
+  // Downstream of the PRSOV: the zone valve header
+  const header: P[][] = [
+    [[cx, TRIM.prsovY], [cx, TRIM.headerY]],
+    [[TRIM.x.flightDeck, TRIM.headerY], [TRIM.x.fwdCab, TRIM.headerY]],
+    ...TRIM_ZONES.map(({ zone }): P[] => [[TRIM.x[zone], TRIM.headerY], [TRIM.x[zone], TRIM.valveY]]),
+  ];
+  // Downstream of each zone modulating valve
+  const zoneRoutes: Record<TrimZone, P[][]> = {
     // Flight deck: into the flight deck supply
-    [[TRIM.x.flightDeck, TRIM.headerY], [TRIM.x.flightDeck, TRIM.flightDeckJoinY], joins.flightDeck],
-    // FWD CAB: up the left of the mix manifold into the forward riser feed
-    [
-      [TRIM.x.fwdCab, TRIM.headerY],
-      [TRIM.x.fwdCab, TRIM.fwdCabJogY],
-      [TRIM.fwdCabLaneX, TRIM.fwdCabJogY],
-      [TRIM.fwdCabLaneX, TRIM.fwdCabJoinY],
-      joins.fwdCab,
+    flightDeck: [[[TRIM.x.flightDeck, TRIM.valveY], [TRIM.x.flightDeck, TRIM.flightDeckJoinY], joins.flightDeck]],
+    // FWD CAB: up the right of the mix manifold, across forward of it into the forward riser feed
+    fwdCab: [[[TRIM.x.fwdCab, TRIM.valveY], [TRIM.x.fwdCab, TRIM.fwdCabCrossY], joins.fwdCab]],
+    // AFT CAB: straight up the centerline under the mix manifold, then to both aft riser outlets
+    aftCab: [
+      [[TRIM.x.aftCab, TRIM.valveY], [TRIM.x.aftCab, TRIM.aftCabSplitY]],
+      [joins.aftCabLeft, [joins.aftCabLeft[0], TRIM.aftCabSplitY], [joins.aftCabRight[0], TRIM.aftCabSplitY], joins.aftCabRight],
     ],
-    // AFT CAB: under the mix manifold, then to both aft riser outlets
-    [[TRIM.x.aftCab, TRIM.headerY], [TRIM.x.aftCab, TRIM.aftCabJogY], [cx, TRIM.aftCabJogY], [cx, TRIM.aftCabSplitY]],
-    [joins.aftCabLeft, [joins.aftCabLeft[0], TRIM.aftCabSplitY], [joins.aftCabRight[0], TRIM.aftCabSplitY], joins.aftCabRight],
+  };
+  const segments: { points: P[]; off: boolean }[] = [
+    { points: supply, off: supplyOff },
+    ...header.map((points) => ({ points, off: headerOff })),
+    ...TRIM_ZONES.flatMap(({ zone }) =>
+      zoneRoutes[zone].map((points) => ({ points, off: headerOff || !trimValves[zone] })),
+    ),
   ];
 
   return (
     <g>
       {(["casing", "core"] as const).map((part) => (
         <g key={part}>
-          {routes.map((points, index) => (
+          {segments.map(({ points, off }, index) => (
             <Duct key={index} points={points} temp={temp} inactive={off} part={part} />
           ))}
         </g>
       ))}
-      {[
-        [cx, TRIM.headerY],
-        [TRIM.x.fwdCab, TRIM.headerY],
-        [cx, TRIM.aftCabSplitY],
-      ].map(([x, y]) => (
-        <Junction key={`${x}-${y}`} x={x} y={y} temp={temp} inactive={off} />
+      <Junction x={cx} y={TRIM.headerY} temp={temp} inactive={headerOff} />
+      <Junction x={cx} y={TRIM.aftCabSplitY} temp={temp} inactive={headerOff || !trimValves.aftCab} />
+      <ShutoffValve x={cx} y={TRIM.prsovY} open={prsovOpen} name="Trim air pressure regulator and shutoff valve" />
+      {TRIM_ZONES.map(({ zone, label }) => (
+        <ModulatingValve
+          key={zone}
+          x={TRIM.x[zone]}
+          y={TRIM.valveY}
+          angle={90}
+          open={trimValves[zone]}
+          onToggle={() => toggleTrimValve(zone)}
+          title={`Trim air modulating valve · ${label}`}
+        />
       ))}
-      <ShutoffValve x={cx} y={TRIM.prsovY} open name="Trim air pressure regulator and shutoff valve" />
-      <ModulatingValve x={TRIM.x.flightDeck} y={TRIM.valveY} angle={90} title="Trim air modulating valve · flight deck" />
-      <ModulatingValve x={TRIM.x.fwdCab} y={TRIM.valveY} angle={90} title="Trim air modulating valve · FWD CAB" />
-      <ModulatingValve x={TRIM.x.aftCab} y={TRIM.valveY} angle={90} title="Trim air modulating valve · AFT CAB" />
     </g>
   );
 }
@@ -841,8 +954,8 @@ export function PackMockupLayer() {
         {/* Mix manifold, fed by both turbines */}
         <g transform={`translate(${MIX[0]} ${MIX[1]})`}>
           <title>Mix manifold</title>
-          <circle r="4" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
-          <circle r="3.3" fill="none" stroke={getTemperatureColor(T.turbineOut)} strokeWidth="0.32" />
+          <circle r={MIX_R} className="fill-sim-surface stroke-white" strokeWidth="0.55" />
+          <circle r={MIX_R - 0.7} fill="none" stroke={getTemperatureColor(T.turbineOut)} strokeWidth="0.32" />
         </g>
         {/* Both trim air supplies meet on the centerline */}
         <Junction
