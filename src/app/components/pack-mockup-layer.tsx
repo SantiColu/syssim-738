@@ -42,6 +42,7 @@ const T = {
   turbineOut: 2,
   ram: 15,
   mix: 12,
+  cabin: 24,
 };
 
 // Fore-aft shift of the pack set (packs and mix manifold) so the ram exhaust
@@ -68,7 +69,7 @@ const TCV_LANE_X = SHAFT_X - 4.8;
 const WS_X = 398.2;
 const WS_Y = 209;
 const EXHAUST_X = SHAFT_X - 2.5;
-const MIX: P = [379.5, 196];
+const MIX: P = [379.5, 190];
 
 // Pack supply → HX1, hot TCV bypass to the turbine outlet, turbine → mix manifold
 const BLEED_IN: P[] = [[397, 240], [397, HX1_Y + 1.2], [400, HX1_Y + 1.2]];
@@ -79,7 +80,28 @@ const TCV_BYPASS: P[] = [[397, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LANE_X,
 const TRIM_TAP_Y = 236.5;
 const TRIM_CHECK_X = 385.5;
 const TRIM_TAP: P[] = [[397, TRIM_TAP_Y], [MIX[0], TRIM_TAP_Y]];
-const TURBINE_OUT: P[] = [[SHAFT_X, 204.5], [SHAFT_X, 200.5], [MIX[0] + 2, MIX[1] + 0.6]];
+// Point on the mix manifold edge (just inside it) at `deg`, counterclockwise
+// from outboard right; ducts end there so the manifold covers their tips.
+function onMix([cx, cy]: P, deg: number): P {
+  const rad = (deg * Math.PI) / 180;
+  return [cx + 3.6 * Math.cos(rad), cy - 3.6 * Math.sin(rad)];
+}
+/** Point at height `y` on the ray from the mix manifold centre at `deg`. */
+function mixRayAtY([cx, cy]: P, deg: number, y: number): P {
+  const rad = (deg * Math.PI) / 180;
+  return [cx + ((cy - y) * Math.cos(rad)) / Math.sin(rad), y];
+}
+// Pack inlets (aft) and aft riser outlets (forward) meet the manifold on a
+// narrow X, this many degrees from the horizontal; the sides stay free.
+const MIX_X_DEG = 68;
+// Turbine outlet: aft of the manifold, then into it on the X diagonal.
+const TURBINE_OUT_Y = 198;
+const TURBINE_OUT: P[] = [
+  [SHAFT_X, 204.5],
+  [SHAFT_X, TURBINE_OUT_Y],
+  mixRayAtY(MIX, -MIX_X_DEG, TURBINE_OUT_Y),
+  onMix(MIX, -MIX_X_DEG),
+];
 
 /** Duct drawn like the network links: dark casing + coloured core. */
 function Duct({
@@ -330,9 +352,21 @@ function RamPlenum({ ramOff }: { ramOff: boolean }) {
 }
 
 /** Network check valve symbol; the arrow points downstream at `angle` 0. */
-function CheckValve({ x, y, angle = 0, title }: { x: number; y: number; angle?: number; title: string }) {
+function CheckValve({
+  x,
+  y,
+  angle = 0,
+  scale = 1,
+  title,
+}: {
+  x: number;
+  y: number;
+  angle?: number;
+  scale?: number;
+  title: string;
+}) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${scale})`}>
       <title>{title}</title>
       <rect x="-2.8" y="-1.9" width="5.6" height="3.8" rx="0.5" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
       <rect x="-2.0" y="-0.6" width="2.0" height="1.2" className="fill-zinc-200" />
@@ -341,11 +375,40 @@ function CheckValve({ x, y, angle = 0, title }: { x: number; y: number; angle?: 
   );
 }
 
-/** Network on/off valve symbol on the vertical pack supply duct. */
-function PackValve({ open }: { open: boolean }) {
+/** Recirculation HEPA filter, pleated, in line on a horizontal duct. */
+function HepaFilter({ x, y, title }: { x: number; y: number; title: string }) {
   return (
-    <g transform="translate(397 240) rotate(-90)">
-      <title>{`Pack valve · ${open ? "Abierta" : "Cerrada"}`}</title>
+    <g transform={`translate(${x} ${y})`}>
+      <title>{title}</title>
+      <rect x="-1.2" y="-1.7" width="2.4" height="3.4" rx="0.3" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
+      <path
+        d="M -0.6 -1.3 L 0.6 -0.65 L -0.6 0 L 0.6 0.65 L -0.6 1.3"
+        className="fill-none stroke-zinc-300"
+        strokeWidth="0.26"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
+  );
+}
+
+/** Network on/off valve symbol; `angle` -90 sits on a vertical duct. */
+function ShutoffValve({
+  x,
+  y,
+  angle = -90,
+  open,
+  name,
+}: {
+  x: number;
+  y: number;
+  angle?: number;
+  open: boolean;
+  name: string;
+}) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+      <title>{`${name} · ${open ? "Abierta" : "Cerrada"}`}</title>
       <circle r="2.2" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
       <line
         x1="-2.1"
@@ -464,7 +527,7 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <WaterSeparator x={WS_X} y={WS_Y} />
       <ModulatingValve x={TCV_LANE_X} y={222.5} angle={90} title="Pack temperature control valve" />
       {/* Pack valve: the only pneumatic element shown in the ECS view */}
-      <PackValve open={packValveOpen} />
+      <ShutoffValve x={397} y={240} open={packValveOpen} name="Pack valve" />
     </g>
   );
 }
@@ -523,6 +586,10 @@ function Riser({ x, floorY, ceilingY, title }: { x: number; floorY: number; ceil
 // Distribution), in absolute coordinates.
 const MIX_ABS: P = [MIX[0], MIX[1] + PACKS_OFFSET_Y];
 const FD_HEADER_Y = 78.5;
+// Flight deck supply: straight on forward from the left turbine outlet,
+// upstream of the mix manifold
+const FD_TEE: P = [759 - SHAFT_X, TURBINE_OUT_Y + PACKS_OFFSET_Y];
+const FD_X = FD_TEE[0];
 const PILOT_X = { capt: 372, fo: 387 };
 const OVERHEAD_DIFFUSER_X = { left: 365, right: 394 };
 // Sidewall risers against the wall: an aft pair just forward of the ram
@@ -530,8 +597,14 @@ const OVERHEAD_DIFFUSER_X = { left: 365, right: 394 };
 const RISER_X = { left: 358, right: 759 - 358 };
 const AFT_RISER = { floorY: 213, ceilingY: 208 };
 const FWD_RISER = { floorY: 199.5, ceilingY: 194.5 };
-// The mix manifold has only two floor outlets, one per side
-const MIX_OUTLET_DX = 3;
+// Forward left riser feed: fore-aft lane outboard of the aft riser outlet,
+// crossing it, then angling into the upper left side of the manifold.
+const FWD_RISER_LANE_X = 368.5;
+const FWD_RISER_TURN_Y = 215;
+const FWD_RISER_ENTRY_DEG = 145;
+// Recirculation on each side of the mix manifold, outward from it:
+// check valve, HEPA filter, recirculation fan (distance from the centre).
+const RECIRC_DX = { check: 7, filter: 11, fan: 18 };
 const OVERHEAD_FWD_Y = 100;
 
 /**
@@ -544,32 +617,65 @@ function ForwardDistribution() {
   // Mockup simplification: the manifold is fed as long as any pack runs.
   const manifoldOff = left.packOff && right.packOff;
   const fdTemp = left.packOff ? T.mix : T.turbineOut;
+  const aftLeftDeg = 180 - MIX_X_DEG;
 
   return (
     <g>
-      {/* Forward cabin: one mix manifold outlet per side to the sidewall risers;
-          the forward left riser is fed along the wall from the aft one */}
+      {/* Forward cabin: mix manifold outlets on the X diagonals to the aft risers... */}
       <Duct
         points={[
-          [MIX_ABS[0] - MIX_OUTLET_DX, MIX_ABS[1] - 2],
-          [MIX_ABS[0] - MIX_OUTLET_DX, AFT_RISER.floorY],
           [RISER_X.left, AFT_RISER.floorY],
-          [RISER_X.left, FWD_RISER.floorY],
+          mixRayAtY(MIX_ABS, aftLeftDeg, AFT_RISER.floorY),
+          onMix(MIX_ABS, aftLeftDeg),
         ]}
         temp={T.mix}
         inactive={manifoldOff}
       />
       <Duct
         points={[
-          [MIX_ABS[0] + MIX_OUTLET_DX, MIX_ABS[1] - 2],
-          [MIX_ABS[0] + MIX_OUTLET_DX, AFT_RISER.floorY],
           [RISER_X.right, AFT_RISER.floorY],
+          mixRayAtY(MIX_ABS, MIX_X_DEG, AFT_RISER.floorY),
+          onMix(MIX_ABS, MIX_X_DEG),
         ]}
         temp={T.mix}
         inactive={manifoldOff}
       />
+      {/* ...and the forward left riser feed, crossing the aft left one */}
+      <Duct
+        points={[
+          [RISER_X.left, FWD_RISER.floorY],
+          [FWD_RISER_LANE_X, FWD_RISER.floorY],
+          [FWD_RISER_LANE_X, FWD_RISER_TURN_Y],
+          onMix(MIX_ABS, FWD_RISER_ENTRY_DEG),
+        ]}
+        temp={T.mix}
+        inactive={manifoldOff}
+      />
+      {/* Recirculation: fan → HEPA filter → check valve → mix manifold, on each side */}
+      {([
+        ["L", -1],
+        ["R", 1],
+      ] as const).map(([side, dir]) => {
+        const at = (dx: number) => MIX_ABS[0] + dir * dx;
+        return (
+          <g key={side}>
+            <Duct points={[onMix(MIX_ABS, dir > 0 ? 0 : 180), [at(RECIRC_DX.fan), MIX_ABS[1]]]} temp={T.cabin} inactive={manifoldOff} />
+            <CheckValve
+              x={at(RECIRC_DX.check)}
+              y={MIX_ABS[1]}
+              angle={dir > 0 ? 180 : 0}
+              scale={0.7}
+              title={`${side} recirculation check valve`}
+            />
+            <HepaFilter x={at(RECIRC_DX.filter)} y={MIX_ABS[1]} title={`${side} recirculation HEPA filter`} />
+          </g>
+        );
+      })}
 
-      {/* Flight deck outlets; their supply from the left pack is not drawn yet */}
+      {/* Flight deck supply from the left pack outlet, upstream of the mix manifold */}
+      <Duct points={[FD_TEE, [FD_X, FD_HEADER_Y]]} temp={fdTemp} inactive={manifoldOff} part="casing" />
+
+      {/* Flight deck outlets */}
       {(["casing", "core"] as const).map((part) => (
         <g key={part}>
           <Duct
@@ -587,7 +693,10 @@ function ForwardDistribution() {
           <Duct points={[[PILOT_X.fo, FD_HEADER_Y], [PILOT_X.fo, 66]]} temp={fdTemp} inactive={manifoldOff} part={part} />
         </g>
       ))}
-      {[PILOT_X.capt, PILOT_X.fo].map((x) => (
+      <Duct points={[FD_TEE, [FD_X, FD_HEADER_Y]]} temp={fdTemp} inactive={manifoldOff} part="core" />
+      <Fan x={MIX_ABS[0] - RECIRC_DX.fan} y={MIX_ABS[1]} title="L recirculation fan" />
+      <Fan x={MIX_ABS[0] + RECIRC_DX.fan} y={MIX_ABS[1]} title="R recirculation fan" />
+      {[FD_X, PILOT_X.capt, PILOT_X.fo].map((x) => (
         <Junction key={x} x={x} y={FD_HEADER_Y} temp={fdTemp} inactive={manifoldOff} />
       ))}
       <Diffuser x={OVERHEAD_DIFFUSER_X.left} y={76.6} title="Difusor de techo del flight deck (detrás de la ventana No. 3 izq.)" />
@@ -599,7 +708,7 @@ function ForwardDistribution() {
 
       {/* Overhead distribution duct at ceiling level, fed by the risers */}
       <Duct
-        points={[[MIX_ABS[0], OVERHEAD_FWD_Y], [MIX_ABS[0], AFT_RISER.ceilingY]]}
+        points={[[MIX_ABS[0], OVERHEAD_FWD_Y], [MIX_ABS[0], FWD_RISER.ceilingY]]}
         temp={T.mix}
         inactive={manifoldOff}
         part="core"
@@ -626,11 +735,103 @@ function ForwardDistribution() {
   );
 }
 
+// Trim air (FCOM 2.31): the supply from both packs feeds the trim air pressure
+// regulator and shutoff valve on the centerline, then one trim air modulating
+// valve per zone. Drawn first, so every other duct passes over it.
+const TRIM = {
+  prsovY: 256,
+  headerY: 245,
+  valveY: 239,
+  x: { flightDeck: 372, fwdCab: 378, aftCab: 384 },
+  flightDeckJoinY: 225,
+  fwdCabJogY: 234,
+  fwdCabLaneX: 375,
+  fwdCabJoinY: 204,
+  aftCabJogY: 231,
+  aftCabSplitY: 210.5,
+};
+
+function trimJoins() {
+  return {
+    flightDeck: [FD_X, TRIM.flightDeckJoinY] as P,
+    fwdCab: [FWD_RISER_LANE_X, TRIM.fwdCabJoinY] as P,
+    aftCabLeft: mixRayAtY(MIX_ABS, 180 - MIX_X_DEG, AFT_RISER.floorY),
+    aftCabRight: mixRayAtY(MIX_ABS, MIX_X_DEG, AFT_RISER.floorY),
+  };
+}
+
+function TrimAir() {
+  const left = usePackSupply("L");
+  const right = usePackSupply("R");
+  const off = left.packOff && right.packOff;
+  const temp = left.packOff ? right.bleedTemp : left.bleedTemp;
+  const cx = MIX_ABS[0];
+  const joins = trimJoins();
+  const routes: P[][] = [
+    // Supply up the centerline through the PRSOV to the zone valve header
+    [[cx, TRIM_TAP_Y + PACKS_OFFSET_Y], [cx, TRIM.headerY]],
+    [[TRIM.x.flightDeck, TRIM.headerY], [TRIM.x.aftCab, TRIM.headerY]],
+    // Flight deck: into the flight deck supply
+    [[TRIM.x.flightDeck, TRIM.headerY], [TRIM.x.flightDeck, TRIM.flightDeckJoinY], joins.flightDeck],
+    // FWD CAB: up the left of the mix manifold into the forward riser feed
+    [
+      [TRIM.x.fwdCab, TRIM.headerY],
+      [TRIM.x.fwdCab, TRIM.fwdCabJogY],
+      [TRIM.fwdCabLaneX, TRIM.fwdCabJogY],
+      [TRIM.fwdCabLaneX, TRIM.fwdCabJoinY],
+      joins.fwdCab,
+    ],
+    // AFT CAB: under the mix manifold, then to both aft riser outlets
+    [[TRIM.x.aftCab, TRIM.headerY], [TRIM.x.aftCab, TRIM.aftCabJogY], [cx, TRIM.aftCabJogY], [cx, TRIM.aftCabSplitY]],
+    [joins.aftCabLeft, [joins.aftCabLeft[0], TRIM.aftCabSplitY], [joins.aftCabRight[0], TRIM.aftCabSplitY], joins.aftCabRight],
+  ];
+
+  return (
+    <g>
+      {(["casing", "core"] as const).map((part) => (
+        <g key={part}>
+          {routes.map((points, index) => (
+            <Duct key={index} points={points} temp={temp} inactive={off} part={part} />
+          ))}
+        </g>
+      ))}
+      {[
+        [cx, TRIM.headerY],
+        [TRIM.x.fwdCab, TRIM.headerY],
+        [cx, TRIM.aftCabSplitY],
+      ].map(([x, y]) => (
+        <Junction key={`${x}-${y}`} x={x} y={y} temp={temp} inactive={off} />
+      ))}
+      <ShutoffValve x={cx} y={TRIM.prsovY} open name="Trim air pressure regulator and shutoff valve" />
+      <ModulatingValve x={TRIM.x.flightDeck} y={TRIM.valveY} angle={90} title="Trim air modulating valve · flight deck" />
+      <ModulatingValve x={TRIM.x.fwdCab} y={TRIM.valveY} angle={90} title="Trim air modulating valve · FWD CAB" />
+      <ModulatingValve x={TRIM.x.aftCab} y={TRIM.valveY} angle={90} title="Trim air modulating valve · AFT CAB" />
+    </g>
+  );
+}
+
+/** Where trim air joins the distribution ducts, drawn over them. */
+function TrimAirJoins() {
+  const left = usePackSupply("L");
+  const right = usePackSupply("R");
+  const manifoldOff = left.packOff && right.packOff;
+  const joins = trimJoins();
+  return (
+    <g>
+      <Junction x={joins.flightDeck[0]} y={joins.flightDeck[1]} temp={T.mix} inactive={manifoldOff} />
+      <Junction x={joins.fwdCab[0]} y={joins.fwdCab[1]} temp={T.mix} inactive={manifoldOff} />
+      <Junction x={joins.aftCabLeft[0]} y={joins.aftCabLeft[1]} temp={T.mix} inactive={manifoldOff} />
+      <Junction x={joins.aftCabRight[0]} y={joins.aftCabRight[1]} temp={T.mix} inactive={manifoldOff} />
+    </g>
+  );
+}
+
 export function PackMockupLayer() {
   const left = usePackSupply("L");
   const right = usePackSupply("R");
   return (
     <g data-mockup="packs">
+      <TrimAir />
       <ForwardDistribution />
       <g transform={`translate(0 ${PACKS_OFFSET_Y})`}>
         <RightPack side="R" />
@@ -651,6 +852,8 @@ export function PackMockupLayer() {
           inactive={left.packOff && right.packOff}
         />
       </g>
+      <Junction x={FD_TEE[0]} y={FD_TEE[1]} temp={T.turbineOut} inactive={left.packOff} />
+      <TrimAirJoins />
     </g>
   );
 }
