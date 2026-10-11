@@ -21,10 +21,10 @@ function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
 
 const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-01", [
-    [362, 239],
-    [362, 270, "on-off"],
-    [362, 277],
-    [362, 283],
+    [361, 239],
+    [361, 276, "on-off"],
+    [361, 280],
+    [361, 286],
     [363, 315],
     [363, 330],
     [363, 400],
@@ -54,30 +54,30 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [381, 518],
   ]),
   legacyLine("legacy-04", [
-    [362, 277],
-    [372, 277, "on-off"],
-    [384, 277],
-    [397, 277],
+    [361, 280],
+    [372, 280, "on-off"],
+    [384, 280],
+    [398, 280],
   ]),
   legacyLine("legacy-05", [
-    [384, 277],
-    [384, 283, "check-valve-reverse"],
-    [384, 291]
+    [384, 280],
+    [384, 285, "check-valve-reverse"],
+    [384, 292]
   ]),
   legacyLine("legacy-06", [
-    [397, 277],
-    [397, 270, "on-off"],
-    [397, 239],
+    [398, 280],
+    [398, 276, "on-off"],
+    [398, 239],
   ]),
   legacyLine("legacy-07", [
-    [397, 277],
-    [397, 284],
-    [397, 300],
+    [398, 280],
+    [398, 287],
+    [398, 300],
     [380, 300],
   ]),
   legacyLine("legacy-08", [
-    [362, 283],
-    [351, 283],
+    [361, 286],
+    [351, 286],
     [351, 268],
     [351, 253],
     [344, 253],
@@ -133,8 +133,8 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [268, 282],
   ]),
   legacyLine("legacy-21", [
-    [397, 284],
-    [409, 284],
+    [398, 287],
+    [409, 287],
     [409, 268],
     [409, 254],
     [416, 254],
@@ -206,12 +206,12 @@ const NODE_POINTS = {
   eng2NinthStage: { x: 453, y: 254 },
   eng2FanAir: { x: 434, y: 212 },
   apu: { x: 381, y: 518 },
-  groundAir: { x: 384, y: 291 },
+  groundAir: { x: 384, y: 292 },
 
   // Switch-driven valves
-  lPackValve: { x: 362, y: 270 },
-  rPackValve: { x: 397, y: 270 },
-  isolationValve: { x: 372, y: 277 },
+  lPackValve: { x: 361, y: 276 },
+  rPackValve: { x: 398, y: 276 },
+  isolationValve: { x: 372, y: 280 },
   eng1BleedValve: { x: 329, y: 253 },
   eng2BleedValve: { x: 431, y: 254 },
   apuBleedValve: { x: 371, y: 496 },
@@ -229,7 +229,7 @@ const NODE_POINTS = {
   eng2HighStageValve: { x: 447, y: 254 },
 
   // Check valves and precoolers
-  groundAirCheckValve: { x: 384, y: 283 },
+  groundAirCheckValve: { x: 384, y: 285 },
   apuCheckValve: { x: 366, y: 475 },
   eng1FifthStageCheckValve: { x: 314, y: 236 },
   eng2FifthStageCheckValve: { x: 447, y: 236 },
@@ -237,16 +237,16 @@ const NODE_POINTS = {
   eng2Precooler: { x: 424, y: 254 },
 
   // Junctions
-  leftManifold: { x: 362, y: 277 },
-  rightManifold: { x: 397, y: 277 },
+  leftManifold: { x: 361, y: 280 },
+  rightManifold: { x: 398, y: 280 },
   eng1StageJunction: { x: 320, y: 253 },
   eng1CowlJunction: { x: 320, y: 245 },
   eng2StageJunction: { x: 440, y: 254 },
   eng2CowlJunction: { x: 440, y: 245 },
 
   // Consumers
-  lPack: { x: 362, y: 239 },
-  rPack: { x: 397, y: 239 },
+  lPack: { x: 361, y: 239 },
+  rPack: { x: 398, y: 239 },
   hydReservoirB: { x: 380, y: 300 },
   hydReservoirA: { x: 380, y: 315 },
   nitrogenGeneration: { x: 380, y: 330 },
