@@ -60,6 +60,8 @@ const stationToY = (sta: Station) => NOSE_Y + stationToInches(sta) * PX_PER_INCH
 
 /** Drawing y of the AC distribution bay limits, for systems laid out inside it. */
 export const AC_DIST_BAY_Y = { fwd: stationToY(STA.mixManifoldBay), aft: stationToY(STA.packBay) };
+/** Drawing y of the aft pressure bulkhead, where the cabin ends. */
+export const AFT_PRESSURE_BULKHEAD_Y = stationToY(STA.tailcone);
 
 /** Compartments front to back; each one ends where the next begins. */
 const COMPARTMENTS: { label: string; title: string; from: Station; to: Station; labelX?: number }[] = [

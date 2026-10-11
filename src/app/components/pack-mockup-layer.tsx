@@ -12,7 +12,7 @@ import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
-import { AC_DIST_BAY_Y } from "./lower-lobe-layer";
+import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y } from "./lower-lobe-layer";
 import { VALVE_SCALE } from "./pneumatic-network-layer";
 
 // Mockup-only ram door state, shared by the pack layer and the door layer.
@@ -57,12 +57,15 @@ const PACKS_OFFSET_Y = 30;
 
 // Right pack layout (network coordinates before PACKS_OFFSET_Y); the left pack
 // mirrors it.
-const HX_X = 402;
+const HX_X = 401.5;
 const HX2_Y = 215.1;
 const HX1_Y = 220.1;
-// Ram plenum walls around the HX stack
-const PLENUM_TOP = HX2_Y - 3.5;
-const PLENUM_BOTTOM = HX1_Y + 3.9;
+// Each HX symbol is a 7.6 x 5.2 rect turned 90° and scaled (0.66, 0.85)
+const HX_HALF = { across: 2.6 * 0.85, along: 3.8 * 0.66 };
+// Ram plenum walls exactly on the outline of the HX stack, so they overlap
+const PLENUM_TOP = HX2_Y - HX_HALF.along;
+const PLENUM_BOTTOM = HX1_Y + HX_HALF.along;
+const PLENUM_X = { inboard: HX_X - HX_HALF.across, outboard: HX_X + HX_HALF.across };
 const SHAFT_X = 394;
 const TURBINE_Y = 206.5;
 // Compressor level with the HX ports it joins: HX1 outlet below, HX2 inlet above
@@ -82,7 +85,11 @@ const STBY_TCV_LOOP: P[] = [
 // Vertical water separator on the HX2 outlet lane
 const WS_X = 398.2;
 const WS_Y = 209;
-const MIX: P = [379.5, 185.3];
+// Airplane centerline (the fuselage walls are at x = 355 and 405); the left
+// pack and everything mirrored is drawn about it.
+const CENTERLINE_X = 380;
+const MIRROR_TRANSFORM = `translate(${2 * CENTERLINE_X} 0) scale(-1 1)`;
+const MIX: P = [CENTERLINE_X, 185.3];
 
 // Pack supply lane, up from the pack valve (rPackValve in the network, before
 // PACKS_OFFSET_Y); outboard of the ACM so the ram exhaust drops straight aft.
@@ -384,45 +391,42 @@ function ModulatingValve({
   );
 }
 
-// Ram inlet opening in the fuselage skin at the wing root (absolute
-// coordinates: the doors are not shifted with the packs).
-const OPENING_TOP = 222.4;
-const OPENING_BOTTOM = 227.6;
-const SKIN_X = 405;
+// Ram air inlet at the wing root (absolute coordinates: the inlets are not
+// shifted with the packs): a narrow nose just aft of the AC distribution
+// bay's aft line, each side one smooth curve (concave forward, convex aft) out to the
+// width of the HX stack, closed by straight edges at the nose, the
+// inflection and aft, with the deflector plate inside. A plain ram air duct
+// runs from the aft edge to the HX plenum.
+const RAM_INLET = {
+  // Just aft of the bay line: half its stroke (0.175) + half the inlet's (0.275)
+  noseY: AC_DIST_BAY_Y.aft + 0.45,
+  aftY: 229.9,
+  noseHalfWidth: 0.65,
+  inboardX: PLENUM_X.inboard,
+  outboardX: PLENUM_X.outboard,
+};
+// Deflector plate: forward when the door is closed, aft when open. Its half
+// width fits the inlet at the closed position; open, it stretches to fit.
+const RAM_PLATE = { closedY: 226.8, openY: 228.5, halfWidth: 1.4, openStretch: 1.25 };
 
 /**
- * Ram air plenum inside the fuselage that holds both heat exchangers, fed by
- * a duct from the inlet opening at the wing root. Drawn in pack coordinates,
- * so the inlet end sits PACKS_OFFSET_Y forward of its absolute position.
+ * Ram air plenum around both heat exchangers, fed by a plain duct from the
+ * inlet housing at the wing root. Drawn in pack coordinates, so the inlet sits
+ * PACKS_OFFSET_Y forward of its absolute position.
  */
 function RamPlenum({ ramOff }: { ramOff: boolean }) {
-  const top = OPENING_TOP - PACKS_OFFSET_Y;
-  const bottom = OPENING_BOTTOM - PACKS_OFFSET_Y;
-  const outline = [
-    // Inlet scoop, full opening width at the skin
-    `M 404.4 ${top} L 399.2 ${top} L 399.2 ${bottom + 1.3}`,
-    // Narrower ram duct down to the plenum
-    `L 400 ${bottom + 2.8} L 400 ${PLENUM_TOP} L 399.2 ${PLENUM_TOP}`,
-    // Plenum around HX2 and HX1
-    `L 399.2 ${PLENUM_BOTTOM} L 404.4 ${PLENUM_BOTTOM} L 404.4 ${PLENUM_TOP} L 403.6 ${PLENUM_TOP}`,
-    `L 403.6 ${bottom + 2.8} L 404.4 ${bottom + 1.3} L 404.4 ${bottom}`,
-  ].join(" ");
+  const inletAftY = RAM_INLET.aftY - PACKS_OFFSET_Y;
   return (
     <g>
       <title>Ram air duct y plenum con HX secundario y primario</title>
-      <path d={`${outline} Z`} className="fill-sim-surface" />
-      <path
-        d={outline}
-        className="fill-none stroke-white"
+      <Duct points={[[HX_X, inletAftY], [HX_X, PLENUM_TOP]]} temp={T.ram} inactive={ramOff} />
+      <rect
+        x={PLENUM_X.inboard}
+        y={PLENUM_TOP}
+        width={PLENUM_X.outboard - PLENUM_X.inboard}
+        height={PLENUM_BOTTOM - PLENUM_TOP}
+        className="fill-sim-surface stroke-white"
         strokeWidth="0.55"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <Duct
-        points={[[SKIN_X, (top + bottom) / 2], [401.8, (top + bottom) / 2], [401.8, PLENUM_TOP + 0.8]]}
-        temp={T.ram}
-        inactive={ramOff}
-        part="core"
       />
     </g>
   );
@@ -692,14 +696,14 @@ const MIX_ABS: P = [MIX[0], MIX[1] + PACKS_OFFSET_Y];
 const FD_HEADER_Y = 78.5;
 // Flight deck supply: straight on forward from the left turbine outlet,
 // upstream of the mix manifold
-const FD_TEE: P = [759 - SHAFT_X, TURBINE_OUT_Y + PACKS_OFFSET_Y];
+const FD_TEE: P = [2 * CENTERLINE_X - SHAFT_X, TURBINE_OUT_Y + PACKS_OFFSET_Y];
 const FD_X = FD_TEE[0];
 const PILOT_X = { capt: 372, fo: 387 };
 const OVERHEAD_DIFFUSER_X = { left: 365, right: 394 };
 // Sidewall risers against the wall: the forward left one just forward of the
 // AC distribution bay, and the aft pair just forward of the mix manifold, one
 // cabin window aft of it.
-const RISER_X = { left: 358, right: 759 - 358 };
+const RISER_X = { left: 358, right: 2 * CENTERLINE_X - 358 };
 // Aft risers: air comes in at the forward end (floor duct from the mix
 // manifold) and leaves at the aft end (ceiling duct).
 // The risers' ends stay just inside the AC distribution bay lines: half the
@@ -722,6 +726,10 @@ const RECIRC_Y = MIX[1] + PACKS_OFFSET_Y;
 // fan (distance from the centre).
 const RECIRC_DX = { check: 5.8, filter: 8.9, fan: 11.5 };
 const OVERHEAD_FWD_Y = 100;
+// Overhead duct towards the aft cabin: off the aft risers' ceiling duct, just
+// left of the centerline (which the trim air column takes), to the aft end
+// of the cabin.
+const OVERHEAD_AFT = { x: CENTERLINE_X - 3, endY: AFT_PRESSURE_BULKHEAD_Y - 6 };
 
 /**
  * Flight deck supply from the left pack and forward cabin supply from the mix
@@ -983,6 +991,23 @@ function TrimAir() {
   );
 }
 
+/**
+ * Overhead duct towards the aft cabin. A separate layer drawn under the
+ * pneumatic network, so it stays behind the network's blocks it runs past.
+ */
+export function OverheadAftDuctLayer() {
+  const { manifoldOff } = useMixManifoldSupply();
+  return (
+    <Duct
+      points={[[OVERHEAD_AFT.x, AFT_RISER.ceilingY], [OVERHEAD_AFT.x, OVERHEAD_AFT.endY]]}
+      temp={T.mix}
+      inactive={manifoldOff}
+      part="core"
+      dashed
+    />
+  );
+}
+
 /** Where trim air joins the distribution ducts, drawn over them. */
 function TrimAirJoins() {
   const { manifoldOff } = useMixManifoldSupply();
@@ -1007,7 +1032,7 @@ export function PackMockupLayer() {
       <ForwardDistribution />
       <g transform={`translate(0 ${PACKS_OFFSET_Y})`}>
         <RightPack side="R" />
-        <g transform="translate(759 0) scale(-1 1)">
+        <g transform={MIRROR_TRANSFORM}>
           <RightPack side="L" />
         </g>
         {/* Mix manifold, fed by both turbines */}
@@ -1035,9 +1060,15 @@ export function PackMockupLayer() {
 /** Ram inlet door on the fuselage skin. Click toggles it (mockup only). */
 function RamDoor({ side }: { side: "L" | "R" }) {
   const [open, toggle] = useRamDoor(side);
-  // Ram air only flows while the pack runs (its ACM fan draws it in).
-  const { packOff } = usePackSupply(side);
-  const midY = (OPENING_TOP + OPENING_BOTTOM) / 2;
+  const { noseY, aftY, noseHalfWidth: n, inboardX, outboardX } = RAM_INLET;
+  const cx = (inboardX + outboardX) / 2;
+  // Vertical tangents at both ends give one smooth S per side: concave at the
+  // nose, convex at the aft corners.
+  const midY = (noseY + aftY) / 2;
+  const outline = [
+    `M ${cx - n} ${noseY} C ${cx - n} ${midY} ${inboardX} ${midY} ${inboardX} ${aftY}`,
+    `L ${outboardX} ${aftY} C ${outboardX} ${midY} ${cx + n} ${midY} ${cx + n} ${noseY}`,
+  ].join(" ");
   return (
     <g
       className="cursor-pointer"
@@ -1051,60 +1082,51 @@ function RamDoor({ side }: { side: "L" | "R" }) {
       }}
     >
       <title>{`Ram air inlet door ${side} · ${open ? "ABIERTA" : "CERRADA"} (clic para ${open ? "cerrar" : "abrir"})`}</title>
-      {/* Cut the fuselage skin where the opening is */}
-      <rect
-        x={SKIN_X - 0.6}
-        y={OPENING_TOP}
-        width="1.2"
-        height={OPENING_BOTTOM - OPENING_TOP}
-        className="fill-sim-surface"
-      />
-      {/* Opening lips */}
-      {[OPENING_TOP, OPENING_BOTTOM].map((y) => (
-        <line key={y} x1={SKIN_X - 0.6} y1={y} x2={SKIN_X + 0.5} y2={y} className="stroke-white" strokeWidth="0.55" strokeLinecap="round" />
-      ))}
-      {/* Incoming air */}
-      <g
-        className="stroke-sky-400 fill-none transition-opacity duration-300"
-        opacity={open && !packOff ? 0.9 : 0}
-        strokeWidth="0.4"
-        strokeLinecap="round"
+      {/* Inlet outline, closed at the nose, with a straight edge across at the inflection... */}
+      <path
+        d={`${outline} Z`}
+        className="fill-sim-surface stroke-white"
+        strokeWidth="0.55"
         strokeLinejoin="round"
-      >
-        {[407.2, 409].map((x) => (
-          <polyline key={x} points={`${x + 0.8},${midY - 0.8} ${x},${midY} ${x + 0.8},${midY + 0.8}`} />
-        ))}
-      </g>
-      {/* Door, hinged at the forward lip, swings outboard when open */}
-      <g transform={`translate(${SKIN_X} ${OPENING_TOP})`}>
-        <line
-          x1="0"
-          y1="0"
-          x2="0"
-          y2={OPENING_BOTTOM - OPENING_TOP}
-          className="stroke-white"
-          strokeWidth="0.75"
-          strokeLinecap="round"
-          style={{
-            transform: open ? "rotate(-38deg)" : "rotate(0deg)",
-            transformOrigin: "0 0",
-            transition: "transform 0.45s ease-in-out",
-          }}
-        />
-        <circle r="0.45" className="fill-white" />
-      </g>
+        strokeLinecap="round"
+      />
+      <line
+        x1={(cx - n + inboardX) / 2}
+        y1={midY}
+        x2={(cx + n + outboardX) / 2}
+        y2={midY}
+        className="stroke-white"
+        strokeWidth="0.55"
+        strokeLinecap="round"
+      />
+      {/* ...and the deflector plate inside, sliding between its closed and open positions */}
+      <line
+        x1={cx - RAM_PLATE.halfWidth}
+        y1={RAM_PLATE.closedY}
+        x2={cx + RAM_PLATE.halfWidth}
+        y2={RAM_PLATE.closedY}
+        className="stroke-white"
+        strokeWidth="0.6"
+        strokeLinecap="round"
+        style={{
+          transform: `translateY(${open ? RAM_PLATE.openY - RAM_PLATE.closedY : 0}px) scaleX(${open ? RAM_PLATE.openStretch : 1})`,
+          transformBox: "fill-box",
+          transformOrigin: "center",
+          transition: "transform 0.45s ease-in-out",
+        }}
+      />
       {/* Generous hit area */}
-      <rect x={SKIN_X - 1.5} y={OPENING_TOP - 1.5} width="7" height="8.5" fill="transparent" />
+      <rect x={inboardX - 1} y={noseY - 1} width={outboardX - inboardX + 2} height={aftY - noseY + 2} fill="transparent" />
     </g>
   );
 }
 
-/** Drawn after the fuselage outline so the doors can cut the skin. */
+/** Drawn after the fuselage outline, on top of the plan view. */
 export function RamDoorsLayer() {
   return (
     <g data-mockup="ram-doors">
       <RamDoor side="R" />
-      <g transform="translate(759 0) scale(-1 1)">
+      <g transform={MIRROR_TRANSFORM}>
         <RamDoor side="L" />
       </g>
     </g>

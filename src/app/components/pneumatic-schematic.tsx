@@ -14,7 +14,7 @@ import {
   PneumaticSourceLegendIcon,
 } from "./pneumatic-network-layer";
 import { OverheatSensorsLayer } from "./overheat-sensors-layer";
-import { PackMockupLayer, RamDoorsLayer } from "./pack-mockup-layer";
+import { OverheadAftDuctLayer, PackMockupLayer, RamDoorsLayer } from "./pack-mockup-layer";
 import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
 import { WindshieldWipersLayer } from "./windshield-wipers-layer";
 import { AirDataProbesLayer } from "./air-data-probes-layer";
@@ -373,6 +373,7 @@ export function PneumaticSchematic() {
             aria-hidden="true"
           />
           <LowerLobeLayer />
+          {showEcs && <OverheadAftDuctLayer />}
           {showPneumatic && (
             <>
               <PneumaticNetworkLayer
