@@ -19,6 +19,7 @@ import { FlightDeckWindowsLayer } from "./flight-deck-windows-layer";
 import { WindshieldWipersLayer } from "./windshield-wipers-layer";
 import { AirDataProbesLayer } from "./air-data-probes-layer";
 import { useSystemTab } from "./system-tab-context";
+import { LowerLobeLayer } from "./lower-lobe-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -371,6 +372,7 @@ export function PneumaticSchematic() {
             clipPath="url(#boeing-737-800-clip)"
             aria-hidden="true"
           />
+          <LowerLobeLayer />
           {showPneumatic && (
             <>
               <PneumaticNetworkLayer
