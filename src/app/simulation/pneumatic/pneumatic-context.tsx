@@ -16,10 +16,12 @@ import {
   INITIAL_MANUAL_VALVES,
   INITIAL_SOURCES,
   INITIAL_SWITCHES,
+  INITIAL_TRIM_VALVES,
   type IsoValvePosition,
   type PackPosition,
   type PneumaticSourcesState,
   type PneumaticSwitchesState,
+  type TrimZone,
   type WindowHeatSwitches,
 } from "./runtime-state";
 import type {
@@ -69,6 +71,9 @@ export interface PneumaticContextValue {
   setEng2Bleed: (on: boolean) => void;
   setLRecircFan: (on: boolean) => void;
   setRRecircFan: (on: boolean) => void;
+  setTrimAir: (on: boolean) => void;
+  trimValves: Record<TrimZone, boolean>;
+  toggleTrimValve: (zone: TrimZone) => void;
   setWingAntiIce: (on: boolean) => void;
   setEng1AntiIce: (on: boolean) => void;
   setEng2AntiIce: (on: boolean) => void;
@@ -269,6 +274,11 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     setSwitches((s) => ({ ...s, lRecircFan: on }));
   const setRRecircFan = (on: boolean) =>
     setSwitches((s) => ({ ...s, rRecircFan: on }));
+  const setTrimAir = (on: boolean) =>
+    setSwitches((s) => ({ ...s, trimAir: on }));
+  const [trimValves, setTrimValves] = useState(INITIAL_TRIM_VALVES);
+  const toggleTrimValve = (zone: TrimZone) =>
+    setTrimValves((valves) => ({ ...valves, [zone]: !valves[zone] }));
 
   const setWingAntiIce = useCallback(
     (on: boolean) => {
@@ -448,6 +458,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       setEng2Bleed,
       setLRecircFan,
       setRRecircFan,
+      setTrimAir,
+      trimValves,
+      toggleTrimValve,
       setWingAntiIce,
       setEng1AntiIce,
       setEng2AntiIce,
@@ -514,6 +527,7 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       isLeftBleedTripOff,
       isRightBleedTripOff,
       manualValves,
+      trimValves,
       windowOverheat,
       windowHeatTest,
       setWindowHeat,
@@ -554,6 +568,9 @@ const fallbackValue: PneumaticContextValue = {
   setEng2Bleed: () => {},
   setLRecircFan: () => {},
   setRRecircFan: () => {},
+  setTrimAir: () => {},
+  trimValves: INITIAL_TRIM_VALVES,
+  toggleTrimValve: () => {},
   setWingAntiIce: () => {},
   setEng1AntiIce: () => {},
   setEng2AntiIce: () => {},

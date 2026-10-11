@@ -8,6 +8,7 @@ import {
 import {
   PointerKnob,
 } from "./knobs";
+import { usePneumatic } from "../../simulation/pneumatic/pneumatic-context";
 
 export function TrimAirSwitch({
   position = "ON",
@@ -653,7 +654,8 @@ export function TemperaturePanel() {
   const [zoneAngles, setZoneAngles] = useState<[number, number, number]>([
     0, 0, 0,
   ]); // [CONT CAB, FWD CAB, AFT CAB]
-  const [trimAir, setTrimAir] = useState<"ON" | "OFF">("ON");
+  const { switches, setTrimAir } = usePneumatic();
+  const trimAir = switches.trimAir ? "ON" : "OFF";
 
   const handleSourceStep = (dir: number) => {
     setSourceIndex((prev) =>
@@ -755,8 +757,8 @@ export function TemperaturePanel() {
         >
           <TrimAirSwitch
             position={trimAir}
-            onWheelStep={(dir) => setTrimAir(dir < 0 ? "OFF" : "ON")}
-            onClick={() => setTrimAir((p) => (p === "ON" ? "OFF" : "ON"))}
+            onWheelStep={(dir) => setTrimAir(dir >= 0)}
+            onClick={() => setTrimAir(!switches.trimAir)}
             size={48}
           />
           {/* OFF and ON labels stacked on the right */}
@@ -772,7 +774,7 @@ export function TemperaturePanel() {
               color: "white",
               cursor: "pointer",
             }}
-            onClick={() => setTrimAir((p) => (p === "ON" ? "OFF" : "ON"))}
+            onClick={() => setTrimAir(!switches.trimAir)}
           >
             <span>OFF</span>
             <span>ON</span>

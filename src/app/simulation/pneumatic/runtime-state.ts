@@ -20,11 +20,22 @@ export interface PneumaticSwitchesState {
   eng2Bleed: boolean;
   lRecircFan: boolean;
   rRecircFan: boolean;
+  /** TRIM AIR switch: drives the trim air pressure regulator and shutoff valve. */
+  trimAir: boolean;
   wingAntiIce: boolean;
   eng1AntiIce: boolean;
   eng2AntiIce: boolean;
   windowHeat: WindowHeatSwitches;
 }
+
+export type TrimZone = "flightDeck" | "fwdCab" | "aftCab";
+
+/** Trim air modulating valves, operated by hand for now (true = open). */
+export const INITIAL_TRIM_VALVES: Record<TrimZone, boolean> = {
+  flightDeck: true,
+  fwdCab: true,
+  aftCab: true,
+};
 
 export interface PneumaticSourcesState {
   eng1Running: boolean;
@@ -59,6 +70,7 @@ export const INITIAL_SWITCHES: PneumaticSwitchesState = {
   eng2Bleed: true,
   lRecircFan: true,
   rRecircFan: true,
+  trimAir: true,
   wingAntiIce: false,
   eng1AntiIce: false,
   eng2AntiIce: false,
