@@ -74,7 +74,7 @@ export const WING_BODY_OVERHEAT_SENSORS: WingBodySensorDefinition[] = [
     name: "Keel Beam",
     zone: "Viga de Quilla (Keel Beam)",
     x: 370,
-    y: 342,
+    y: 324.5,
     side: "left",
   },
   {
@@ -133,9 +133,9 @@ export const BLEED_TRIP_SENSORS: BleedTripSensorDefinition[] = [
     id: "eng1-downstream",
     name: "ENG 1 Bleed Trip Sensor (Downstream)",
     zone: "Línea de sangrado motor 1 (Después de intercambiador de calor)",
-    x: 356,
-    y: 286,
-    rotation: 0,
+    x: 351,
+    y: 272.5,
+    rotation: 90, // Base on the fore-aft run at x=351, stem points outboard
     side: "left",
   },
   // Right Engine Bleed Trip Off sensors (symmetrical)
@@ -152,9 +152,9 @@ export const BLEED_TRIP_SENSORS: BleedTripSensorDefinition[] = [
     id: "eng2-downstream",
     name: "ENG 2 Bleed Trip Sensor (Downstream)",
     zone: "Línea de sangrado motor 2 (Después de intercambiador de calor)",
-    x: 404,
-    y: 286,
-    rotation: 0,
+    x: 409,
+    y: 272.5,
+    rotation: -90, // Base on the fore-aft run at x=409, stem points outboard
     side: "right",
   },
 ];
