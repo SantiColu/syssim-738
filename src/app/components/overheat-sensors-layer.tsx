@@ -65,8 +65,8 @@ export const WING_BODY_OVERHEAT_SENSORS: WingBodySensorDefinition[] = [
     id: 3,
     name: "Left-Hand Air Conditioning Bay",
     zone: "Bahía de Aire Acondicionado Izquierda (Pack L)",
-    x: 357,
-    y: 248,
+    x: 355.5,
+    y: 224,
     side: "left",
   },
   {
@@ -106,8 +106,8 @@ export const WING_BODY_OVERHEAT_SENSORS: WingBodySensorDefinition[] = [
     id: 8,
     name: "Right-Hand Air Conditioning Bay",
     zone: "Bahía de Aire Acondicionado Derecha (Pack R)",
-    x: 403,
-    y: 248,
+    x: 404.5,
+    y: 224,
     side: "right",
   },
 ];
