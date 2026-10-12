@@ -6,7 +6,7 @@
 // exchangers sit inside the ram air inlet, the ACM shaft runs fore-aft.
 // No simulation logic: colours use illustrative station temperatures.
 
-import { useSyncExternalStore } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
@@ -54,6 +54,32 @@ export function useGroundCart() {
     groundCartListeners.forEach((listener) => listener());
   };
   return [connected, toggle] as const;
+}
+
+// Mockup-only flight deck outlets the crew opens and closes by hand. Closing
+// one only stops the air leaving it: the ducts feeding it stay as they are.
+const FD_OUTLET_KINDS = ["ceiling", "gasper", "defog", "foot"] as const;
+type FdOutletKind = (typeof FD_OUTLET_KINDS)[number];
+type FdOutlet = `${FdOutletKind}${"L" | "R"}`;
+const fdOutletStore = Object.fromEntries(
+  FD_OUTLET_KINDS.flatMap((kind) => [`${kind}L`, `${kind}R`]).map((outlet) => [outlet, true]),
+) as Record<FdOutlet, boolean>;
+const fdOutletListeners = new Set<() => void>();
+const subscribeFdOutlets = (listener: () => void) => {
+  fdOutletListeners.add(listener);
+  return () => fdOutletListeners.delete(listener);
+};
+function useFdOutlet(outlet: FdOutlet) {
+  const open = useSyncExternalStore(
+    subscribeFdOutlets,
+    () => fdOutletStore[outlet],
+    () => true,
+  );
+  const toggle = () => {
+    fdOutletStore[outlet] = !fdOutletStore[outlet];
+    fdOutletListeners.forEach((listener) => listener());
+  };
+  return [open, toggle] as const;
 }
 
 type P = [number, number];
@@ -677,27 +703,118 @@ function RightPack({ side }: { side: "L" | "R" }) {
   );
 }
 
-/** Air outlet (floor / overhead diffuser): small grille. */
-function Diffuser({ x, y, title }: { x: number; y: number; title: string }) {
+/**
+ * Clickable wrapper for outlets the crew opens and closes by hand, like the
+ * manual valves: a dashed outline on hover, toggled by click or keyboard.
+ */
+function OutletToggle({
+  open,
+  onToggle,
+  name,
+  hoverOutline,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  name: string;
+  hoverOutline: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <g
+      className="group cursor-pointer select-none focus:outline-none"
+      role="button"
+      tabIndex={0}
+      aria-pressed={open}
+      aria-label={`${name}: ${open ? "abierto" : "cerrado"}. Clic para alternar.`}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+    >
+      <title>{`${name} · ${open ? "ABIERTO" : "CERRADO"} (clic para ${open ? "cerrar" : "abrir"})`}</title>
+      <g
+        className="fill-transparent stroke-white opacity-0 transition-opacity duration-150 group-hover:opacity-85"
+        strokeWidth="0.2"
+        strokeDasharray="0.5 0.4"
+      >
+        {hoverOutline}
+      </g>
+      {children}
+    </g>
+  );
+}
+
+/** Inner lines of an outlet: temperature coloured while air flows through it. */
+function outletLineProps(temp: number, flowing: boolean) {
+  return flowing ? { stroke: getTemperatureColor(temp) } : { className: "stroke-zinc-500" };
+}
+
+/** Air outlet (floor / ceiling diffuser): small grille, one slat per 0.55 of width. */
+function Diffuser({
+  x,
+  y,
+  width = 2.6,
+  temp,
+  flowing,
+}: {
+  x: number;
+  y: number;
+  width?: number;
+  temp: number;
+  flowing: boolean;
+}) {
+  const slats = Math.max(1, Math.round((width - 1) / 0.55));
   return (
     <g transform={`translate(${x} ${y})`}>
-      <title>{title}</title>
-      <rect x="-1.3" y="-0.8" width="2.6" height="1.6" rx="0.3" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
-      {[-0.55, 0, 0.55].map((lx) => (
-        <line key={lx} x1={lx} y1="-0.45" x2={lx} y2="0.45" className="stroke-zinc-300" strokeWidth="0.24" strokeLinecap="round" />
+      <rect x={-width / 2} y="-0.8" width={width} height="1.6" rx="0.3" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
+      {Array.from({ length: slats }, (_, i) => (i - (slats - 1) / 2) * 0.55).map((lx) => (
+        <line key={lx} x1={lx} y1="-0.45" x2={lx} y2="0.45" {...outletLineProps(temp, flowing)} strokeWidth="0.24" strokeLinecap="round" />
       ))}
     </g>
   );
 }
 
-/** Pilot foot-warming / windshield defog valve behind the rudder pedals. */
-function DualPurposeValve({ x, y, title }: { x: number; y: number; title: string }) {
+/** Gasper: swivelling eyeball outlet. */
+function Gasper({ x, y, temp, flowing }: { x: number; y: number; temp: number; flowing: boolean }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(${VALVE_SCALE})`}>
-      <title>{title}</title>
-      <circle r="1.3" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
-      <line x1="-1.2" y1="0" x2="1.2" y2="0" className="stroke-white" strokeWidth="0.55" strokeLinecap="round" />
-      <circle r="0.32" className="fill-sim-surface stroke-white" strokeWidth="0.28" />
+    <g transform={`translate(${x} ${y})`}>
+      <circle r="0.95" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
+      <circle r="0.4" fill="none" {...outletLineProps(temp, flowing)} strokeWidth="0.26" />
+    </g>
+  );
+}
+
+/** Placement of a nozzle drawn along the segment from `from` to `to`. */
+function nozzleFrame(from: P, to: P) {
+  const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const angle = (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI;
+  return { length, transform: `translate(${(from[0] + to[0]) / 2} ${(from[1] + to[1]) / 2}) rotate(${angle})` };
+}
+
+/** Hover outline around a defog nozzle. */
+function DefogNozzleOutline({ from, to }: { from: P; to: P }) {
+  const { length, transform } = nozzleFrame(from, to);
+  return <rect transform={transform} x={-length / 2 - 0.6} y="-1.2" width={length + 1.2} height="2.4" rx="1" />;
+}
+
+/** Windshield defog outlet: long slotted nozzle along the windshield base. */
+function DefogNozzle({ from, to, temp, flowing }: { from: P; to: P; temp: number; flowing: boolean }) {
+  const { length, transform } = nozzleFrame(from, to);
+  const slots = Math.floor((length - 0.8) / 0.7);
+  return (
+    <g transform={transform}>
+      <rect x={-length / 2} y="-0.6" width={length} height="1.2" rx="0.5" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
+      {Array.from({ length: slots }, (_, i) => (i - (slots - 1) / 2) * 0.7).map((lx) => (
+        <line key={lx} x1={lx} y1="-0.3" x2={lx} y2="0.3" {...outletLineProps(temp, flowing)} strokeWidth="0.22" strokeLinecap="round" />
+      ))}
     </g>
   );
 }
@@ -746,7 +863,56 @@ const FD_HEADER_Y = 78.5;
 const FD_TEE: P = [2 * CENTERLINE_X - SHAFT_X, TURBINE_OUT_Y + PACKS_OFFSET_Y];
 const FD_X = FD_TEE[0];
 const PILOT_X = { capt: 372, fo: 387 };
-const OVERHEAD_DIFFUSER_X = { left: 365, right: 394 };
+// Flight deck ceiling: a short vertical duct up the wall at each end of the
+// header, each feeding a ceiling grille inboard of it.
+const FD_WALL_DUCT = { dx: 16.5, floorY: FD_HEADER_Y, ceilingY: 75.5 };
+const FD_CEILING_GRILLE = { dx: 11.5, width: 4 };
+// Ahead of each pilot the column tees into a gasper
+// outboard, the windshield defog nozzle and the foot grille inboard.
+const FD_OUTLET_TEE_Y = 62.2;
+const FD_OUTLETS = { gasperX: 369.8, defogX: 373.9, footX: 377, footY: 58 };
+// Defog nozzle just inside the base (forward edge) of the left windshield,
+// from its outboard to its inboard end.
+const DEFOG_NOZZLE: [P, P] = [
+  [371.44, 55.54],
+  [378.16, 51.92],
+];
+// The defog feed ends on the nozzle's centreline
+const DEFOG_FEED_END_Y =
+  DEFOG_NOZZLE[0][1] +
+  ((FD_OUTLETS.defogX - DEFOG_NOZZLE[0][0]) / (DEFOG_NOZZLE[1][0] - DEFOG_NOZZLE[0][0])) *
+    (DEFOG_NOZZLE[1][1] - DEFOG_NOZZLE[0][1]);
+/** Captain side x mirrored onto the first officer side. */
+const mirror = (x: number) => 2 * CENTERLINE_X - x;
+const SIDES = [
+  { label: "izq.", sx: (x: number) => x, side: "L" },
+  { label: "der.", sx: mirror, side: "R" },
+] as const;
+
+/**
+ * Hand-operated flight deck outlet: clickable, with its inner lines coloured
+ * while air leaves it (supply on and outlet open).
+ */
+function FdOutletControl({
+  outlet,
+  name,
+  supplied,
+  hoverOutline,
+  children,
+}: {
+  outlet: FdOutlet;
+  name: string;
+  supplied: boolean;
+  hoverOutline: ReactNode;
+  children: (flowing: boolean) => ReactNode;
+}) {
+  const [open, toggle] = useFdOutlet(outlet);
+  return (
+    <OutletToggle open={open} onToggle={toggle} name={name} hoverOutline={hoverOutline}>
+      {children(supplied && open)}
+    </OutletToggle>
+  );
+}
 // Sidewall risers against the wall: the forward left one just forward of the
 // AC distribution bay, and the aft pair just forward of the mix manifold, one
 // cabin window aft of it.
@@ -923,34 +1089,119 @@ function ForwardDistribution() {
       {/* Flight deck supply from the left pack outlet, upstream of the mix manifold */}
       <Duct points={[FD_TEE, [FD_X, FD_HEADER_Y]]} temp={fdTemp} inactive={manifoldOff} part="casing" />
 
-      {/* Flight deck outlets */}
+      {/* Flight deck outlets: header out to the wall ducts, pilot columns up to their outlet tees */}
       {(["casing", "core"] as const).map((part) => (
         <g key={part}>
           <Duct
-            points={[
-              [OVERHEAD_DIFFUSER_X.left, 76.8],
-              [OVERHEAD_DIFFUSER_X.left, FD_HEADER_Y],
-              [OVERHEAD_DIFFUSER_X.right, FD_HEADER_Y],
-              [OVERHEAD_DIFFUSER_X.right, 76.8],
-            ]}
+            points={[[CENTERLINE_X - FD_WALL_DUCT.dx, FD_HEADER_Y], [CENTERLINE_X + FD_WALL_DUCT.dx, FD_HEADER_Y]]}
             temp={fdTemp}
             inactive={manifoldOff}
             part={part}
           />
-          <Duct points={[[PILOT_X.capt, FD_HEADER_Y], [PILOT_X.capt, 66]]} temp={fdTemp} inactive={manifoldOff} part={part} />
-          <Duct points={[[PILOT_X.fo, FD_HEADER_Y], [PILOT_X.fo, 66]]} temp={fdTemp} inactive={manifoldOff} part={part} />
+          {SIDES.map(({ label, sx }) => (
+            <g key={label}>
+              <Duct
+                points={[[sx(PILOT_X.capt), FD_HEADER_Y], [sx(PILOT_X.capt), FD_OUTLET_TEE_Y]]}
+                temp={fdTemp}
+                inactive={manifoldOff}
+                part={part}
+              />
+              <Duct
+                points={[
+                  [sx(FD_OUTLETS.gasperX), FD_OUTLET_TEE_Y],
+                  [sx(FD_OUTLETS.footX), FD_OUTLET_TEE_Y],
+                  [sx(FD_OUTLETS.footX), FD_OUTLETS.footY],
+                ]}
+                temp={fdTemp}
+                inactive={manifoldOff}
+                part={part}
+              />
+              <Duct
+                points={[[sx(FD_OUTLETS.defogX), FD_OUTLET_TEE_Y], [sx(FD_OUTLETS.defogX), DEFOG_FEED_END_Y]]}
+                temp={fdTemp}
+                inactive={manifoldOff}
+                part={part}
+              />
+            </g>
+          ))}
         </g>
       ))}
       <Duct points={[FD_TEE, [FD_X, FD_HEADER_Y]]} temp={fdTemp} inactive={manifoldOff} part="core" />
       {[FD_X, PILOT_X.capt, PILOT_X.fo].map((x) => (
         <Junction key={x} x={x} y={FD_HEADER_Y} temp={fdTemp} inactive={manifoldOff} />
       ))}
-      <Diffuser x={OVERHEAD_DIFFUSER_X.left} y={76.6} title="Difusor de techo del flight deck (detrás de la ventana No. 3 izq.)" />
-      <Diffuser x={OVERHEAD_DIFFUSER_X.right} y={76.6} title="Difusor de techo del flight deck (detrás de la ventana No. 3 der.)" />
-      <Diffuser x={PILOT_X.capt} y={71.5} title="Difusor de piso bajo el asiento del Captain" />
-      <Diffuser x={PILOT_X.fo} y={71.5} title="Difusor de piso bajo el asiento del First Officer" />
-      <DualPurposeValve x={PILOT_X.capt} y={66} title="Válvula de pies / desempañado del Captain (detrás de los pedales)" />
-      <DualPurposeValve x={PILOT_X.fo} y={66} title="Válvula de pies / desempañado del First Officer (detrás de los pedales)" />
+      {SIDES.map(({ label, sx, side }) => (
+        <g key={label}>
+          <Junction x={sx(PILOT_X.capt)} y={FD_OUTLET_TEE_Y} temp={fdTemp} inactive={manifoldOff} />
+          <Junction x={sx(FD_OUTLETS.defogX)} y={FD_OUTLET_TEE_Y} temp={fdTemp} inactive={manifoldOff} />
+          <Riser
+            x={sx(CENTERLINE_X - FD_WALL_DUCT.dx)}
+            floorY={FD_WALL_DUCT.floorY}
+            ceilingY={FD_WALL_DUCT.ceilingY}
+            title={`Conducto vertical de pared del flight deck ${label}`}
+          />
+          <FdOutletControl
+            outlet={`ceiling${side}`}
+            name={`Rejilla de techo del flight deck ${label}`}
+            supplied={!manifoldOff}
+            hoverOutline={
+              <rect
+                x={sx(CENTERLINE_X - FD_CEILING_GRILLE.dx) - FD_CEILING_GRILLE.width / 2 - 0.6}
+                y={FD_WALL_DUCT.ceilingY - 1.4}
+                width={FD_CEILING_GRILLE.width + 1.2}
+                height="2.8"
+                rx="0.6"
+              />
+            }
+          >
+            {(flowing) => (
+              <Diffuser
+                x={sx(CENTERLINE_X - FD_CEILING_GRILLE.dx)}
+                y={FD_WALL_DUCT.ceilingY}
+                width={FD_CEILING_GRILLE.width}
+                temp={fdTemp}
+                flowing={flowing}
+              />
+            )}
+          </FdOutletControl>
+          <FdOutletControl
+            outlet={`defog${side}`}
+            name={`Desempañador del parabrisas ${label} (base del parabrisas No. 1)`}
+            supplied={!manifoldOff}
+            hoverOutline={
+              <DefogNozzleOutline
+                from={[sx(DEFOG_NOZZLE[0][0]), DEFOG_NOZZLE[0][1]]}
+                to={[sx(DEFOG_NOZZLE[1][0]), DEFOG_NOZZLE[1][1]]}
+              />
+            }
+          >
+            {(flowing) => (
+              <DefogNozzle
+                from={[sx(DEFOG_NOZZLE[0][0]), DEFOG_NOZZLE[0][1]]}
+                to={[sx(DEFOG_NOZZLE[1][0]), DEFOG_NOZZLE[1][1]]}
+                temp={fdTemp}
+                flowing={flowing}
+              />
+            )}
+          </FdOutletControl>
+          <FdOutletControl
+            outlet={`gasper${side}`}
+            name={`Gasper (ojo orientable) ${label}`}
+            supplied={!manifoldOff}
+            hoverOutline={<circle cx={sx(FD_OUTLETS.gasperX)} cy={FD_OUTLET_TEE_Y} r="1.6" />}
+          >
+            {(flowing) => <Gasper x={sx(FD_OUTLETS.gasperX)} y={FD_OUTLET_TEE_Y} temp={fdTemp} flowing={flowing} />}
+          </FdOutletControl>
+          <FdOutletControl
+            outlet={`foot${side}`}
+            name={`Rejilla de pies ${label}`}
+            supplied={!manifoldOff}
+            hoverOutline={<rect x={sx(FD_OUTLETS.footX) - 1.9} y={FD_OUTLETS.footY - 1.4} width="3.8" height="2.8" rx="0.6" />}
+          >
+            {(flowing) => <Diffuser x={sx(FD_OUTLETS.footX)} y={FD_OUTLETS.footY} temp={fdTemp} flowing={flowing} />}
+          </FdOutletControl>
+        </g>
+      ))}
 
       <Riser x={RISER_X.left} {...AFT_RISER} title="Sidewall riser izquierdo trasero (FWD CAB)" />
       <Riser x={RISER_X.right} {...AFT_RISER} title="Sidewall riser derecho (FWD CAB)" />
@@ -1079,9 +1330,24 @@ function TrimAir() {
  * network and every other duct.
  */
 export function OverheadDuctLayer() {
-  const { manifoldOff } = useMixManifoldSupply();
+  const { left, manifoldOff } = useMixManifoldSupply();
+  const fdTemp = left.packOff ? T.mix : T.turbineOut;
   return (
     <g>
+      {/* Flight deck: each wall duct to its ceiling grille */}
+      {SIDES.map(({ label, sx }) => (
+        <Duct
+          key={label}
+          points={[
+            [sx(CENTERLINE_X - FD_WALL_DUCT.dx), FD_WALL_DUCT.ceilingY],
+            [sx(CENTERLINE_X - FD_CEILING_GRILLE.dx), FD_WALL_DUCT.ceilingY],
+          ]}
+          temp={fdTemp}
+          inactive={manifoldOff}
+          part="core"
+          dashed
+        />
+      ))}
       <OverheadDucts from={OVERHEAD_FWD_Y} to={FWD_RISER.ceilingY} inactive={manifoldOff} />
       <Duct
         points={[[RISER_X.left, AFT_RISER.ceilingY], [RISER_X.right, AFT_RISER.ceilingY]]}

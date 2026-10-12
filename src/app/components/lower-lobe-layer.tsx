@@ -67,11 +67,13 @@ export const AFT_CARGO_Y = stationToY(STA.aftCargo);
 export const AFT_PRESSURE_BULKHEAD_Y = stationToY(STA.tailcone);
 
 /** Compartments front to back; each one ends where the next begins. */
-const COMPARTMENTS: { label: string; title: string; from: Station; to: Station; labelX?: number }[] = [
+const COMPARTMENTS: { label: string; title: string; from: Station; to: Station; labelX?: number; labelY?: number }[] = [
   // The nose is narrow: these labels sit further inboard
   { label: "RADOME", title: "Radome / weather radar", from: STA.radome, to: STA.fwdArea, labelX: 377 },
-  { label: "FWD AREA", title: "Area forward of the nose wheel well", from: STA.fwdArea, to: STA.noseWheelWell, labelX: 371 },
-  { label: "NLG WELL", title: "Nose wheel well", from: STA.noseWheelWell, to: STA.electronicsBay, labelX: 364 },
+  // Forward of the windshield, clear of the defog nozzle
+  { label: "FWD AREA", title: "Area forward of the nose wheel well", from: STA.fwdArea, to: STA.noseWheelWell, labelX: 371, labelY: 50.5 },
+  // Aft half of the well, clear of the flight deck wall duct above it
+  { label: "NLG WELL", title: "Nose wheel well", from: STA.noseWheelWell, to: STA.electronicsBay, labelX: 364, labelY: 86 },
   { label: "E/E BAY", title: "Electrical and electronics bay", from: STA.electronicsBay, to: STA.fwdCargo, labelX: 360 },
   { label: "FWD CARGO", title: "Forward cargo compartment", from: STA.fwdCargo, to: STA.mixManifoldBay },
   { label: "AC DIST", title: "Air distribution (mix manifold) bay, forward of the wing root", from: STA.mixManifoldBay, to: STA.packBay },
@@ -103,10 +105,10 @@ export function LowerLobeLayer() {
           opacity={0.45}
         />
       ))}
-      {COMPARTMENTS.map(({ label, title, from, to, labelX = LABEL_X }) => (
+      {COMPARTMENTS.map(({ label, title, from, to, labelX = LABEL_X, labelY = (stationToY(from) + stationToY(to)) / 2 }) => (
         <text
           key={label}
-          transform={`translate(${labelX} ${(stationToY(from) + stationToY(to)) / 2}) rotate(-90)`}
+          transform={`translate(${labelX} ${labelY}) rotate(-90)`}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize="1.7"
