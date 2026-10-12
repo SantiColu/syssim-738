@@ -9,6 +9,11 @@ import type {
   ValveKind,
 } from "../simulation/pneumatic/types";
 import {
+  colorScaleGradient,
+  PRESSURE_COLOR_STOPS,
+  TEMPERATURE_COLOR_STOPS,
+} from "../simulation/pneumatic/types";
+import {
   PneumaticAccessoryLegendIcon,
   PneumaticNetworkLayer,
   PneumaticSourceLegendIcon,
@@ -28,8 +33,12 @@ const MAX_ZOOM = 6;
 const BUTTON_ZOOM_STEP = 0.5;
 const WHEEL_ZOOM_STEP = 0.25;
 const COLOR_SCALE_VALUES: Record<PneumaticColorMode, number[]> = {
-  temperature: [0, 45, 160, 240, 320, 400],
+  temperature: [0, 50, 100, 200, 300, 400],
   pressure: [0, 10, 20, 30, 40, 50],
+};
+const COLOR_SCALE_GRADIENTS: Record<PneumaticColorMode, string> = {
+  temperature: colorScaleGradient(TEMPERATURE_COLOR_STOPS),
+  pressure: colorScaleGradient(PRESSURE_COLOR_STOPS),
 };
 // With the ECS layer on, the packs it draws replace the network "Pack" blocks.
 const ECS_PACK_NODES: ReadonlySet<string> = new Set([
@@ -501,11 +510,8 @@ export function PneumaticSchematic() {
           <div className="w-36 shrink-0">
             <div className="flex items-center gap-1.5">
               <div
-                className={`h-2 flex-1 border border-white/15 ${
-                  colorMode === "temperature"
-                    ? "bg-[linear-gradient(90deg,#52525b_0%,#38bdf8_1%,#38bdf8_11.25%,rgb(250,130,130)_40%,rgb(235,55,55)_60%,rgb(200,25,25)_80%,rgb(255,18,18)_100%)]"
-                    : "bg-[linear-gradient(90deg,#52525b_0%,#6366f1_20%,#38bdf8_40%,#22c55e_60%,#facc15_80%,#f97316_100%)]"
-                }`}
+                className="h-2 flex-1 border border-white/15"
+                style={{ backgroundImage: COLOR_SCALE_GRADIENTS[colorMode] }}
                 aria-hidden="true"
               />
               <span className="w-4 text-[6px] text-sim-text-strong">
