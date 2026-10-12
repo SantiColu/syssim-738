@@ -38,6 +38,8 @@ function pointsToPath(points: Point[]) {
 
 /** Size of every valve symbol (network and ECS mockup); precoolers and air starters keep theirs. */
 export const VALVE_SCALE = 0.525;
+/** Size of the pressure source markers (engine stages, fan air, APU, ground air). */
+const SOURCE_SCALE = 0.7;
 
 function getValveAngle(
   nodeId: string,
@@ -490,23 +492,25 @@ function SourceInletNode({
         </title>
       )}
 
-      {/* Source marker follows the selected pressure/temperature color scale. */}
-      <circle
-        r="2.2"
-        fill={isEnergized ? mediumColor : "#3f3f46"}
-        stroke="#090d16"
-        strokeWidth="0.5"
-      />
+      <g transform={`scale(${SOURCE_SCALE})`}>
+        {/* Source marker follows the selected pressure/temperature color scale. */}
+        <circle
+          r="2.2"
+          fill={isEnergized ? mediumColor : "#3f3f46"}
+          stroke="#090d16"
+          strokeWidth="0.5"
+        />
 
-      {/* Subtle hover indicator ring */}
-      <circle
-        r="4.2"
-        fill="none"
-        stroke={isEnergized ? mediumColor : "#71717a"}
-        className="opacity-0 transition-opacity duration-150 group-hover:opacity-60"
-        strokeWidth="0.5"
-        strokeDasharray="1.5 1"
-      />
+        {/* Subtle hover indicator ring */}
+        <circle
+          r="4.2"
+          fill="none"
+          stroke={isEnergized ? mediumColor : "#71717a"}
+          className="opacity-0 transition-opacity duration-150 group-hover:opacity-60"
+          strokeWidth="0.5"
+          strokeDasharray="1.5 1"
+        />
+      </g>
     </g>
   );
 }
