@@ -775,10 +775,11 @@ const RECIRC_DX = { check: 5.8, filter: 8.9, fan: 11.5 };
 const OVERHEAD_FWD_Y = 100;
 // Two overhead ducts at ceiling level, one each side of the centerline, run
 // forward and aft of the risers' ceiling ducts to the ends of the cabin. Each
-// one feeds branches outboard, towards the sidewall outlets.
+// one feeds branches outboard, each ending in a T along the cabin towards the
+// sidewall outlets.
 const OVERHEAD_X = { left: CENTERLINE_X - 2.5, right: CENTERLINE_X + 2.5 };
 const OVERHEAD_AFT_END_Y = AFT_PRESSURE_BULKHEAD_Y - 6;
-const OVERHEAD_BRANCH = { length: 7, pitch: 8 };
+const OVERHEAD_BRANCH = { length: 7, pitch: 8, teeHalf: 1.5 };
 
 /** Branch positions along an overhead duct, inset from both ends. */
 function branchYs(from: number, to: number): number[] {
@@ -810,16 +811,21 @@ function OverheadDucts({
         [OVERHEAD_X.right, 1],
       ] as const).map(([x, out]) => (
         <g key={x}>
-          {ys.map((y) => (
-            <Duct
-              key={y}
-              points={[[x, y], [x + out * OVERHEAD_BRANCH.length, y]]}
-              temp={T.mix}
-              inactive={inactive}
-              part="core"
-              dashed
-            />
-          ))}
+          {ys.map((y) => {
+            const endX = x + out * OVERHEAD_BRANCH.length;
+            return (
+              <g key={y}>
+                <Duct points={[[x, y], [endX, y]]} temp={T.mix} inactive={inactive} part="core" dashed />
+                <Duct
+                  points={[[endX, y - OVERHEAD_BRANCH.teeHalf], [endX, y + OVERHEAD_BRANCH.teeHalf]]}
+                  temp={T.mix}
+                  inactive={inactive}
+                  part="core"
+                  dashed
+                />
+              </g>
+            );
+          })}
           <Duct points={[[x, from], [x, to]]} temp={T.mix} inactive={inactive} part="core" dashed />
         </g>
       ))}
