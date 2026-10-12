@@ -94,7 +94,10 @@ const MIX: P = [CENTERLINE_X, 185.3];
 // Pack supply lane, up from the pack valve (rPackValve in the network, before
 // PACKS_OFFSET_Y); outboard of the ACM so the ram exhaust drops straight aft.
 const SUPPLY_X = 398;
-const PACK_VALVE_Y = 246;
+const PACK_VALVE_Y = 241;
+// Ram air exhaust louvers beside the pack valve, centered on it, between the
+// trim air tap ahead and the crossfeed behind
+const RAM_EXHAUST = { y: PACK_VALVE_Y, length: 4.2 };
 
 // Pack supply → HX1, hot TCV bypass to the turbine outlet, turbine → mix manifold
 const BLEED_IN: P[] = [[SUPPLY_X, PACK_VALVE_Y], [SUPPLY_X, HX1_Y + 1.2], [400, HX1_Y + 1.2]];
@@ -527,20 +530,25 @@ function RamExhaust({
   y,
   angle = 0,
   scale = 1.05,
+  length = 2.6,
   title = "Salida de ram air (louvers)",
 }: {
   x: number;
   y: number;
   angle?: number;
   scale?: number;
+  /** Fore-aft length before scaling. */
+  length?: number;
   title?: string;
 }) {
+  // Three slats, evenly spaced along the grille
+  const slats = [1, 2, 3].map((i) => -length / 2 + (length * i) / 4);
   return (
     <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${scale})`}>
       <title>{title}</title>
-      <rect x="-1.6" y="-1.3" width="3.2" height="2.6" rx="0.4" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
-      {[-0.75, -0.15, 0.45, 1.05].map((ly) => (
-        <line key={ly} x1="-1" y1={ly - 0.3} x2="1" y2={ly + 0.2} className="stroke-zinc-300" strokeWidth="0.28" />
+      <rect x="-1.6" y={-length / 2} width="3.2" height={length} rx="0.4" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
+      {slats.map((sy) => (
+        <line key={sy} x1="-1" y1={sy} x2="1" y2={sy} className="stroke-zinc-300" strokeWidth="0.28" strokeLinecap="round" />
       ))}
     </g>
   );
@@ -571,8 +579,12 @@ function RightPack({ side }: { side: "L" | "R" }) {
         inactive={ramOff}
       />
       {/* ...then straight aft to the louvers, across the hot TCV bypass and trim tap */}
-      <Duct points={[[SHAFT_X, FAN_Y + 1.8], [SHAFT_X, 240.6]]} temp={T.ram} inactive={ramOff} />
-      <RamExhaust x={SHAFT_X} y={242} />
+      <Duct
+        points={[[SHAFT_X, FAN_Y + 1.8], [SHAFT_X, RAM_EXHAUST.y - (RAM_EXHAUST.length * 1.05) / 2]]}
+        temp={T.ram}
+        inactive={ramOff}
+      />
+      <RamExhaust x={SHAFT_X} y={RAM_EXHAUST.y} length={RAM_EXHAUST.length} />
 
       {/* Pack supply, TCV bypass and turbine outlet meet at two tees */}
       {(["casing", "core"] as const).map((part) => (
