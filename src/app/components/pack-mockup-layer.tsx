@@ -35,6 +35,27 @@ function useRamDoor(side: "L" | "R") {
   return [open, toggle] as const;
 }
 
+// Mockup-only ground conditioned air connection, shared by the pack layer
+// and the distribution ducts it feeds.
+let groundCartConnected = false;
+const groundCartListeners = new Set<() => void>();
+const subscribeGroundCart = (listener: () => void) => {
+  groundCartListeners.add(listener);
+  return () => groundCartListeners.delete(listener);
+};
+export function useGroundCart() {
+  const connected = useSyncExternalStore(
+    subscribeGroundCart,
+    () => groundCartConnected,
+    () => false,
+  );
+  const toggle = () => {
+    groundCartConnected = !groundCartConnected;
+    groundCartListeners.forEach((listener) => listener());
+  };
+  return [connected, toggle] as const;
+}
+
 type P = [number, number];
 
 // Illustrative temperatures along the cycle (°C)
@@ -45,7 +66,10 @@ const T = {
   hx2Out: 40,
   turbineOut: 2,
   ram: 15,
+  // Ram air leaving the heat exchangers, warmed by the bleed air it cooled
+  ramExhaust: 90,
   mix: 12,
+  groundCart: 8,
   cabin: 24,
 };
 
@@ -126,8 +150,14 @@ function mixRayAtY([cx, cy]: P, deg: number, y: number): P {
 const MIX_X_DEG = 68;
 // Turbine outlet: aft of the manifold, then into it on the X diagonal.
 const TURBINE_OUT_Y = 198;
-const TURBINE_OUT: P[] = [
+// Split at the corner, where the left side tees off the flight deck supply:
+// with the left pack off, mix manifold air still reaches the flight deck
+// through the downstream part.
+const TURBINE_OUT_UPSTREAM: P[] = [
   [SHAFT_X, 204.5],
+  [SHAFT_X, TURBINE_OUT_Y],
+];
+const TURBINE_OUT_DOWNSTREAM: P[] = [
   [SHAFT_X, TURBINE_OUT_Y],
   mixRayAtY(MIX, -MIX_X_DEG, TURBINE_OUT_Y),
   onMix(MIX, -MIX_X_DEG),
@@ -568,20 +598,24 @@ function usePackSupply(side: "L" | "R") {
 function RightPack({ side }: { side: "L" | "R" }) {
   const [doorOpen] = useRamDoor(side);
   const { packValveOpen, packOff, bleedTemp } = usePackSupply(side);
+  const { manifoldOff } = useMixManifoldSupply();
   const ramOff = packOff || !doorOpen;
+  // Left side: the flight deck tee keeps the duct to the manifold flowing
+  const outletOff = side === "L" ? manifoldOff : packOff;
+  const outletTemp = packOff ? T.mix : T.turbineOut;
 
   return (
     <g>
       {/* Ram air: from the bottom of the HX stack straight into the side of the ACM fan... */}
       <Duct
         points={[[HX_X, HX1_Y + 2.5], [HX_X, FAN_Y], [SHAFT_X + 1.8, FAN_Y]]}
-        temp={T.ram}
+        temp={T.ramExhaust}
         inactive={ramOff}
       />
       {/* ...then straight aft to the louvers, across the hot TCV bypass and trim tap */}
       <Duct
         points={[[SHAFT_X, FAN_Y + 1.8], [SHAFT_X, RAM_EXHAUST.y - (RAM_EXHAUST.length * 1.05) / 2]]}
-        temp={T.ram}
+        temp={T.ramExhaust}
         inactive={ramOff}
       />
       <RamExhaust x={SHAFT_X} y={RAM_EXHAUST.y} length={RAM_EXHAUST.length} />
@@ -593,7 +627,8 @@ function RightPack({ side }: { side: "L" | "R" }) {
           <Duct points={TRIM_TAP} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={TCV_BYPASS} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={STBY_TCV_LOOP} temp={bleedTemp} inactive={packOff} part={part} />
-          <Duct points={TURBINE_OUT} temp={T.turbineOut} inactive={packOff} part={part} />
+          <Duct points={TURBINE_OUT_UPSTREAM} temp={T.turbineOut} inactive={packOff} part={part} />
+          <Duct points={TURBINE_OUT_DOWNSTREAM} temp={outletTemp} inactive={outletOff} part={part} />
         </g>
       ))}
       <Junction x={SUPPLY_X} y={TCV_TEE_Y} temp={bleedTemp} inactive={packOff} />
@@ -620,7 +655,7 @@ function RightPack({ side }: { side: "L" | "R" }) {
         y1={TURBINE_Y - 2}
         x2={SHAFT_X}
         y2={FAN_Y}
-        className="stroke-zinc-400"
+        className="stroke-white"
         strokeWidth="0.6"
         strokeLinecap="round"
       />
@@ -762,8 +797,10 @@ function useMixManifoldSupply() {
     rPackOperating: !right.packOff,
     inFlight: false,
   });
-  // The mix manifold is fed by any running pack or recirculation fan.
-  const manifoldOff = left.packOff && right.packOff && !fans.left && !fans.right;
+  const [groundCart] = useGroundCart();
+  // The mix manifold is fed by any running pack, recirculation fan or the
+  // ground conditioned air connection.
+  const manifoldOff = left.packOff && right.packOff && !fans.left && !fans.right && !groundCart;
   return { left, fans, manifoldOff };
 }
 
@@ -1054,6 +1091,7 @@ export function PackMockupLayer() {
           {!manifoldOff && (
             <circle r={MIX_R - 0.7} fill="none" stroke={getTemperatureColor(T.mix)} strokeWidth="0.32" />
           )}
+          <GroundCartConnection />
         </g>
         {/* Both trim air supplies meet on the centerline */}
         <Junction
@@ -1063,8 +1101,36 @@ export function PackMockupLayer() {
           inactive={left.packOff && right.packOff}
         />
       </g>
-      <Junction x={FD_TEE[0]} y={FD_TEE[1]} temp={T.turbineOut} inactive={left.packOff} />
+      <Junction
+        x={FD_TEE[0]}
+        y={FD_TEE[1]}
+        temp={left.packOff ? T.mix : T.turbineOut}
+        inactive={manifoldOff}
+      />
       <TrimAirJoins />
+    </g>
+  );
+}
+
+/**
+ * Ground conditioned air connection: on the belly right under the mix
+ * manifold, through its check valve, so in plan view it sits at the manifold
+ * centre. Drawn like the network source markers; the cart is connected from
+ * the GND COND button in the source controls.
+ */
+function GroundCartConnection() {
+  const [connected] = useGroundCart();
+  return (
+    <g>
+      <title>
+        {`Conexión de aire acondicionado de tierra (al mix manifold por su check valve) · ${connected ? `CONECTADA · ${T.groundCart} °C` : "DESCONECTADA"}`}
+      </title>
+      <circle
+        r="1.54"
+        fill={connected ? getTemperatureColor(T.groundCart) : "#3f3f46"}
+        stroke="#090d16"
+        strokeWidth="0.35"
+      />
     </g>
   );
 }

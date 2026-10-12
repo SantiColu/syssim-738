@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import { AircraftSideSchematic } from "./aircraft-side-schematic";
+import { useGroundCart } from "./pack-mockup-layer";
 import { PanelExportButton } from "./panel-export-button";
 import { PneumaticSchematic } from "./pneumatic-schematic";
+import { useSystemTab } from "./system-tab-context";
 
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 
@@ -14,6 +16,8 @@ export function SystemPanel() {
   const [activeView] = useState<SystemView>("main");
   const { sourcesState, toggleEng1, toggleEng2, toggleApu, toggleGndAir } =
     usePneumatic();
+  const { isActive } = useSystemTab();
+  const [groundCartConnected, toggleGroundCart] = useGroundCart();
 
   return (
     <section
@@ -65,7 +69,7 @@ export function SystemPanel() {
           data-export-exclude
           className="absolute top-2 right-2.5 z-40 flex items-center border border-sim-border bg-sim-surface text-[7px] tracking-[0.14em] shadow-lg divide-x divide-sim-border max-[560px]:text-[6px]"
           role="toolbar"
-          aria-label="Controles de motores, APU y aire de tierra"
+          aria-label="Controles de motores, APU, aire de tierra y aire acondicionado de tierra"
         >
           {/* ENG 1 Button */}
           <button
@@ -166,6 +170,33 @@ export function SystemPanel() {
             />
             <span>GND AIR</span>
           </button>
+
+          {/* GND AIR COND Button: conditioned air cart at the mix manifold (ECS view) */}
+          {isActive("ecs") && (
+            <button
+              type="button"
+              onClick={toggleGroundCart}
+              title={
+                groundCartConnected
+                  ? "Aire acondicionado de tierra conectado al mix manifold (Click para desconectar)"
+                  : "Aire acondicionado de tierra desconectado (Click para conectar al mix manifold)"
+              }
+              className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
+                groundCartConnected
+                  ? "text-sim-cyan bg-sim-cyan/15"
+                  : "text-sim-text-muted hover:text-sim-text"
+              }`}
+            >
+              <span
+                className={`size-1.5 rounded-full transition-all ${
+                  groundCartConnected
+                    ? "bg-sim-cyan shadow-[0_0_6px_var(--color-sim-cyan)]"
+                    : "bg-zinc-600"
+                }`}
+              />
+              <span>GND COND</span>
+            </button>
+          )}
         </div>
       )}
 
