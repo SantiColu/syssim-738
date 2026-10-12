@@ -12,7 +12,7 @@ import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
-import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y } from "./lower-lobe-layer";
+import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y, AFT_CARGO_Y } from "./lower-lobe-layer";
 import { VALVE_SCALE } from "./pneumatic-network-layer";
 
 // Mockup-only ram door state, shared by the pack layer and the door layer.
@@ -176,7 +176,7 @@ function Duct({
   inactive?: boolean;
   /** Tees draw every casing first, then every core, so no casing cuts a core. */
   part?: "both" | "casing" | "core";
-  /** Ceiling-level duct: dashed core, drawn over the floor ducts it crosses. */
+  /** Ceiling-level duct: dashed core, drawn under the floor ducts it crosses. */
   dashed?: boolean;
 }) {
   const d = points.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
@@ -773,10 +773,59 @@ const RECIRC_Y = MIX[1] + PACKS_OFFSET_Y;
 // fan (distance from the centre).
 const RECIRC_DX = { check: 5.8, filter: 8.9, fan: 11.5 };
 const OVERHEAD_FWD_Y = 100;
-// Overhead duct towards the aft cabin: off the aft risers' ceiling duct, just
-// left of the centerline (which the trim air column takes), to the aft end
-// of the cabin.
-const OVERHEAD_AFT = { x: CENTERLINE_X - 3, endY: AFT_PRESSURE_BULKHEAD_Y - 6 };
+// Two overhead ducts at ceiling level, one each side of the centerline, run
+// forward and aft of the risers' ceiling ducts to the ends of the cabin. Each
+// one feeds branches outboard, towards the sidewall outlets.
+const OVERHEAD_X = { left: CENTERLINE_X - 2.5, right: CENTERLINE_X + 2.5 };
+const OVERHEAD_AFT_END_Y = AFT_PRESSURE_BULKHEAD_Y - 6;
+const OVERHEAD_BRANCH = { length: 7, pitch: 8 };
+
+/** Branch positions along an overhead duct, inset from both ends. */
+function branchYs(from: number, to: number): number[] {
+  const count = Math.floor((to - from) / OVERHEAD_BRANCH.pitch);
+  const start = from + (to - from - count * OVERHEAD_BRANCH.pitch) / 2;
+  return Array.from({ length: count + 1 }, (_, i) => start + i * OVERHEAD_BRANCH.pitch);
+}
+
+/**
+ * Pair of overhead ducts between two stations, with their branches from
+ * `branchFrom` on (aft ducts: none over the packs and the network blocks aft of them).
+ */
+function OverheadDucts({
+  from,
+  to,
+  branchFrom = from,
+  inactive,
+}: {
+  from: number;
+  to: number;
+  branchFrom?: number;
+  inactive: boolean;
+}) {
+  const ys = branchYs(branchFrom + 2, to - 2);
+  return (
+    <g>
+      {([
+        [OVERHEAD_X.left, -1],
+        [OVERHEAD_X.right, 1],
+      ] as const).map(([x, out]) => (
+        <g key={x}>
+          {ys.map((y) => (
+            <Duct
+              key={y}
+              points={[[x, y], [x + out * OVERHEAD_BRANCH.length, y]]}
+              temp={T.mix}
+              inactive={inactive}
+              part="core"
+              dashed
+            />
+          ))}
+          <Duct points={[[x, from], [x, to]]} temp={T.mix} inactive={inactive} part="core" dashed />
+        </g>
+      ))}
+    </g>
+  );
+}
 
 /**
  * Flight deck supply from the left pack and forward cabin supply from the mix
@@ -897,28 +946,6 @@ function ForwardDistribution() {
       <DualPurposeValve x={PILOT_X.capt} y={66} title="Válvula de pies / desempañado del Captain (detrás de los pedales)" />
       <DualPurposeValve x={PILOT_X.fo} y={66} title="Válvula de pies / desempañado del First Officer (detrás de los pedales)" />
 
-      {/* Overhead distribution duct at ceiling level, fed by the risers */}
-      <Duct
-        points={[[MIX_ABS[0], OVERHEAD_FWD_Y], [MIX_ABS[0], FWD_RISER.ceilingY]]}
-        temp={T.mix}
-        inactive={manifoldOff}
-        part="core"
-        dashed
-      />
-      <Duct
-        points={[[RISER_X.left, AFT_RISER.ceilingY], [RISER_X.right, AFT_RISER.ceilingY]]}
-        temp={T.mix}
-        inactive={manifoldOff}
-        part="core"
-        dashed
-      />
-      <Duct
-        points={[[RISER_X.left, FWD_RISER.ceilingY], [MIX_ABS[0], FWD_RISER.ceilingY]]}
-        temp={T.mix}
-        inactive={manifoldOff}
-        part="core"
-        dashed
-      />
       <Riser x={RISER_X.left} {...AFT_RISER} title="Sidewall riser izquierdo trasero (FWD CAB)" />
       <Riser x={RISER_X.right} {...AFT_RISER} title="Sidewall riser derecho (FWD CAB)" />
       <Riser x={RISER_X.left} {...FWD_RISER} title="Sidewall riser izquierdo delantero (FWD CAB)" />
@@ -1041,19 +1068,36 @@ function TrimAir() {
 }
 
 /**
- * Overhead duct towards the aft cabin. A separate layer drawn under the
- * pneumatic network, so it stays behind the network's blocks it runs past.
+ * Ceiling-level ducts: the risers' ceiling ducts and the overhead ducts with
+ * their branches. Secondary, so a separate layer drawn under the pneumatic
+ * network and every other duct.
  */
-export function OverheadAftDuctLayer() {
+export function OverheadDuctLayer() {
   const { manifoldOff } = useMixManifoldSupply();
   return (
-    <Duct
-      points={[[OVERHEAD_AFT.x, AFT_RISER.ceilingY], [OVERHEAD_AFT.x, OVERHEAD_AFT.endY]]}
-      temp={T.mix}
-      inactive={manifoldOff}
-      part="core"
-      dashed
-    />
+    <g>
+      <OverheadDucts from={OVERHEAD_FWD_Y} to={FWD_RISER.ceilingY} inactive={manifoldOff} />
+      <Duct
+        points={[[RISER_X.left, AFT_RISER.ceilingY], [RISER_X.right, AFT_RISER.ceilingY]]}
+        temp={T.mix}
+        inactive={manifoldOff}
+        part="core"
+        dashed
+      />
+      <Duct
+        points={[[RISER_X.left, FWD_RISER.ceilingY], [OVERHEAD_X.right, FWD_RISER.ceilingY]]}
+        temp={T.mix}
+        inactive={manifoldOff}
+        part="core"
+        dashed
+      />
+      <OverheadDucts
+        from={AFT_RISER.ceilingY}
+        to={OVERHEAD_AFT_END_Y}
+        branchFrom={AFT_CARGO_Y}
+        inactive={manifoldOff}
+      />
+    </g>
   );
 }
 
