@@ -21,16 +21,16 @@ function legacyLine(id: string, points: LegacyTuple[]): LegacyPneumaticLine {
 
 const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-01", [
-    [362, 239],
+    [362, 261],
     [362, 271, "on-off"],
     [362, 275],
     [362, 278.5],
     [362, 297.5],
-    [363, 312.5],
-    [363, 400],
-    [363, 435],
-    [366, 475, "check-valve-reverse"],
-    [371, 496, "solenoid"],
+    [362, 312.5],
+    [362, 400],
+    [362, 435],
+    [368.7, 475, "check-valve-reverse"],
+    [372.3, 496, "solenoid"],
     [376, 518],
   ]),
   legacyLine("legacy-hyd-a", [
@@ -38,11 +38,11 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [380, 297.5],
   ]),
   legacyLine("legacy-ngs", [
-    [363, 312.5],
+    [362, 312.5],
     [380, 312.5],
   ]),
   legacyLine("legacy-water-tank", [
-    [363, 400],
+    [362, 400],
     [392, 400],
   ]),
   legacyLine("legacy-02", [
@@ -68,7 +68,7 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
   legacyLine("legacy-06", [
     [398, 275],
     [398, 271, "on-off"],
-    [398, 239],
+    [398, 261],
   ]),
   legacyLine("legacy-07", [
     [398, 275],
@@ -215,7 +215,7 @@ const NODE_POINTS = {
   isolationValve: { x: 372, y: 275 },
   eng1BleedValve: { x: 329, y: 253 },
   eng2BleedValve: { x: 431, y: 253 },
-  apuBleedValve: { x: 371, y: 496 },
+  apuBleedValve: { x: 372.3, y: 496 },
   lWingAntiIceValve: { x: 345, y: 268 },
   rWingAntiIceValve: { x: 415, y: 268 },
   eng1CowlAntiIceValve: { x: 314, y: 245 },
@@ -231,7 +231,7 @@ const NODE_POINTS = {
 
   // Check valves and precoolers
   groundAirCheckValve: { x: 387, y: 278 },
-  apuCheckValve: { x: 366, y: 475 },
+  apuCheckValve: { x: 368.7, y: 475 },
   eng1FifthStageCheckValve: { x: 314, y: 236 },
   eng2FifthStageCheckValve: { x: 446, y: 236 },
   eng1Precooler: { x: 337, y: 253 },
@@ -246,8 +246,8 @@ const NODE_POINTS = {
   eng2CowlJunction: { x: 440, y: 245 },
 
   // Consumers
-  lPack: { x: 362, y: 239 },
-  rPack: { x: 398, y: 239 },
+  lPack: { x: 362, y: 261 },
+  rPack: { x: 398, y: 261 },
   hydReservoirB: { x: 380, y: 286.5 },
   hydReservoirA: { x: 380, y: 297.5 },
   nitrogenGeneration: { x: 380, y: 312.5 },
