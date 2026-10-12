@@ -10,6 +10,7 @@ import { type ReactNode, useSyncExternalStore } from "react";
 import { PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
+import { useOutflowValve } from "../simulation/ecs/outflow-valve-store";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
 import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y, AFT_CARGO_Y } from "./lower-lobe-layer";
@@ -1424,6 +1425,86 @@ export function PackMockupLayer() {
         inactive={manifoldOff}
       />
       <TrimAirJoins />
+      <PressurizationValves />
+    </g>
+  );
+}
+
+// Pressurization (FCOM 2.40 schematic): on the right aft lower lobe, at the
+// aft right door and just forward of the aft pressure bulkhead. From the belly
+// up the side (so outboard in plan view): a positive pressure relief valve,
+// the outflow valve and the other positive pressure relief valve, inboard of
+// the door outline. The negative pressure relief door sits on its own a
+// little forward of the door, slightly higher up the side.
+const OUTFLOW_VALVE = { x: 392, y: AFT_PRESSURE_BULKHEAD_Y - 2.7 };
+const RELIEF_VALVE_DX = 2.9;
+const NEGATIVE_RELIEF = { x: 394.5, y: AFT_PRESSURE_BULKHEAD_Y - 12.5 };
+
+/**
+ * Outflow valve: skin-mounted door in its frame, swung open as far as the
+ * pressurization panel drives it, its frame coloured while cabin air leaves
+ * through it.
+ */
+function OutflowValve({ supplied }: { supplied: boolean }) {
+  const { position, mode } = useOutflowValve();
+  const flowing = supplied && position > 0;
+  const percent = Math.round(position * 100);
+  return (
+    <g transform={`translate(${OUTFLOW_VALVE.x} ${OUTFLOW_VALVE.y})`}>
+      <title>{`Outflow valve · ${percent === 0 ? "CERRADA" : `ABIERTA ${percent} %`} · ${mode}${flowing ? "" : " · sin flujo de cabina"}`}</title>
+      <rect x="-1.5" y="-1.5" width="3" height="3" rx="0.6" className="fill-sim-surface stroke-white" strokeWidth="0.45" />
+      {flowing && (
+        <rect x="-0.95" y="-0.95" width="1.9" height="1.9" rx="0.3" fill="none" stroke={getTemperatureColor(T.cabin)} strokeWidth="0.3" />
+      )}
+      {/* Door hinged on its forward edge, swinging outboard as it opens */}
+      <line
+        x1="0"
+        y1="-1.1"
+        x2="0"
+        y2="1.1"
+        className={position > 0 ? "stroke-white" : "stroke-zinc-400"}
+        strokeWidth="0.45"
+        strokeLinecap="round"
+        transform={`rotate(${-35 * position} 0 -1.1)`}
+      />
+    </g>
+  );
+}
+
+/** Positive pressure relief valve: slot with its poppet, closed (relieves above 9.1 psi). */
+function PressureReliefValve({ x, title }: { x: number; title: string }) {
+  return (
+    <g transform={`translate(${x} ${OUTFLOW_VALVE.y})`}>
+      <title>{`${title} · CERRADA (alivia a 9,1 psi de presión diferencial)`}</title>
+      <rect x="-0.65" y="-1.3" width="1.3" height="2.6" rx="0.65" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
+      <circle r="0.32" className="fill-none stroke-zinc-400" strokeWidth="0.24" />
+    </g>
+  );
+}
+
+/**
+ * Negative pressure relief valve: a plain skin door the outside air pushes
+ * inward when it exceeds cabin pressure. Shown closed.
+ */
+function NegativeReliefValve() {
+  return (
+    <g transform={`translate(${NEGATIVE_RELIEF.x} ${NEGATIVE_RELIEF.y})`}>
+      <title>Válvula de alivio de presión negativa · CERRADA (compuerta que se empuja hacia adentro si la presión exterior supera a la de cabina)</title>
+      <rect x="-1" y="-1.3" width="2" height="2.6" rx="0.3" className="fill-sim-surface stroke-white" strokeWidth="0.4" />
+      {/* Chevron pointing inboard: the way the door swings and air comes in */}
+      <path d="M 0.2 -0.5 L -0.25 0 L 0.2 0.5" className="fill-none stroke-zinc-400" strokeWidth="0.24" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+  );
+}
+
+function PressurizationValves() {
+  const { manifoldOff } = useMixManifoldSupply();
+  return (
+    <g>
+      <NegativeReliefValve />
+      <PressureReliefValve x={OUTFLOW_VALVE.x + RELIEF_VALVE_DX} title="Válvula de alivio de presión positiva superior" />
+      <OutflowValve supplied={!manifoldOff} />
+      <PressureReliefValve x={OUTFLOW_VALVE.x - RELIEF_VALVE_DX} title="Válvula de alivio de presión positiva inferior" />
     </g>
   );
 }

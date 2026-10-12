@@ -16,11 +16,15 @@ export function Placard({
   return <div className={`ap-placard ap-${color}`}>{children}</div>;
 }
 
+/** Needle swing to the first / last tick of the scale. */
+const VALVE_INDICATOR_HALF_SWEEP_DEG = 70;
+
 export function ValvePositionIndicator({ position = 0 }: { position?: number }) {
-  // position from -1 (CLOSE) to 1 (OPEN), 0 is middle
-  const needleAngle = position * 45;
+  // position from -1 (CLOSE) to 1 (OPEN), 0 is middle; the ends land on the
+  // end ticks of the scale
+  const needleAngle = position * VALVE_INDICATOR_HALF_SWEEP_DEG;
   const ticks = Array.from({ length: 15 }, (_, index) => {
-    const radians = ((-70 + index * 10) * Math.PI) / 180;
+    const radians = ((-VALVE_INDICATOR_HALF_SWEEP_DEG + index * 10) * Math.PI) / 180;
     return {
       x1: 75 + Math.sin(radians) * 43,
       y1: 76 - Math.cos(radians) * 43,

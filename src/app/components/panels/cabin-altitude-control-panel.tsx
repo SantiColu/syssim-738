@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type PointerEvent } from "react";
+import { useOutflowValve } from "../../simulation/ecs/outflow-valve-store";
+import type { OutflowSwitch, PressurizationMode } from "../../simulation/ecs/outflow-valve";
 import {
   Screw,
   Placard,
@@ -101,27 +103,27 @@ export function LandingScaleTable() {
   );
 }
 
+const MODES: PressurizationMode[] = ["AUTO", "ALTN", "MAN"];
+/** How long a mouse wheel step holds the spring-loaded valve switch over. */
+const VALVE_SWITCH_WHEEL_HOLD_MS = 300;
+
 export function CabinAltitudeControlPanel() {
-  const [modeIndex, setModeIndex] = useState<number>(0); // 0: AUTO, 1: ALTN, 2: MAN
-  const [valvePos, setValvePos] = useState<"CLOSE" | "OFF" | "OPEN">("OFF");
+  const { mode: currentMode, switchPosition: valvePos, position: valvePosition, setMode, setSwitch } = useOutflowValve();
+  const modeIndex = MODES.indexOf(currentMode);
+  const wheelRelease = useRef<number | null>(null);
   const [fltAlt, setFltAlt] = useState<number>(10000);
   const [landAlt, setLandAlt] = useState<number>(500);
   const [fltKnobAngle, setFltKnobAngle] = useState<number>(0);
   const [landKnobAngle, setLandKnobAngle] = useState<number>(0);
 
   const modeAngles = [-35, 0, 35];
-  const currentMode =
-    modeIndex === 0 ? "AUTO" : modeIndex === 1 ? "ALTN" : "MAN";
 
   const handleModeStep = (direction: number) => {
-    setModeIndex((prev) => {
-      if (direction > 0) return Math.min(2, prev + 1);
-      return Math.max(0, prev - 1);
-    });
+    setMode(MODES[direction > 0 ? Math.min(2, modeIndex + 1) : Math.max(0, modeIndex - 1)]);
   };
 
   const handleModeClick = () => {
-    setModeIndex((prev) => (prev + 1) % 3);
+    setMode(MODES[(modeIndex + 1) % 3]);
   };
 
   const handleFltWheel = (direction: number) => {
@@ -140,18 +142,34 @@ export function CabinAltitudeControlPanel() {
     setLandKnobAngle((prev) => prev + direction * 20);
   };
 
+  // The valve switch is spring-loaded to the centre: it stays over only while
+  // held (pointer down), then springs back to OFF.
+  const holdValveSwitch = (position: OutflowSwitch) => (e: PointerEvent<HTMLElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setSwitch(position);
+  };
+  const releaseValveSwitch = () => setSwitch("OFF");
+  const valveReleaseHandlers = {
+    onPointerUp: releaseValveSwitch,
+    onPointerCancel: releaseValveSwitch,
+    onLostPointerCapture: releaseValveSwitch,
+  };
+  // Pressing the switch's left half pushes it to CLOSE, the right half to OPEN
+  const holdValveSwitchBySide = (e: PointerEvent<HTMLElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    holdValveSwitch(e.clientX < box.left + box.width / 2 ? "CLOSE" : "OPEN")(e);
+  };
+
   const handleValveWheel = (direction: number) => {
     // direction < 0 is scroll up -> CLOSE (UP)
     // direction > 0 is scroll down -> OPEN (DOWN)
-    setValvePos(direction < 0 ? "CLOSE" : "OPEN");
+    setSwitch(direction < 0 ? "CLOSE" : "OPEN");
+    if (wheelRelease.current !== null) window.clearTimeout(wheelRelease.current);
+    wheelRelease.current = window.setTimeout(releaseValveSwitch, VALVE_SWITCH_WHEEL_HOLD_MS);
   };
 
-  const handleValveClick = () => {
-    setValvePos((prev) => (prev === "CLOSE" ? "OPEN" : "CLOSE"));
-  };
-
-  const needlePosition =
-    valvePos === "CLOSE" ? -0.8 : valvePos === "OPEN" ? 0.8 : 0;
+  // Needle from CLOSE (-1) to OPEN (1)
+  const needlePosition = valvePosition * 2 - 1;
 
   return (
     <section
@@ -229,8 +247,10 @@ export function CabinAltitudeControlPanel() {
                 color: "white",
                 textAlign: "center",
                 cursor: "pointer",
+                touchAction: "none",
               }}
-              onClick={() => setValvePos("CLOSE")}
+              onPointerDown={holdValveSwitch("CLOSE")}
+              {...valveReleaseHandlers}
             >
               <span>C</span>
               <span>L</span>
@@ -239,21 +259,26 @@ export function CabinAltitudeControlPanel() {
               <span>E</span>
             </div>
 
-            {/* Horizontal Toggle Switch */}
-            <AircraftToggleSwitch
-              position={
-                valvePos === "CLOSE"
-                  ? "UP"
-                  : valvePos === "OPEN"
-                    ? "DOWN"
-                    : "CENTER"
-              }
-              orientation="horizontal"
-              circleColor="light"
-              onWheelStep={handleValveWheel}
-              onClick={handleValveClick}
-              size={48}
-            />
+            {/* Horizontal toggle switch, spring-loaded to the centre */}
+            <div
+              style={{ display: "inline-flex", touchAction: "none" }}
+              onPointerDown={holdValveSwitchBySide}
+              {...valveReleaseHandlers}
+            >
+              <AircraftToggleSwitch
+                position={
+                  valvePos === "CLOSE"
+                    ? "UP"
+                    : valvePos === "OPEN"
+                      ? "DOWN"
+                      : "CENTER"
+                }
+                orientation="horizontal"
+                circleColor="light"
+                onWheelStep={handleValveWheel}
+                size={48}
+              />
+            </div>
 
             {/* Vertical O P E N on the right */}
             <div
@@ -268,8 +293,10 @@ export function CabinAltitudeControlPanel() {
                 color: "white",
                 textAlign: "center",
                 cursor: "pointer",
+                touchAction: "none",
               }}
-              onClick={() => setValvePos("OPEN")}
+              onPointerDown={holdValveSwitch("OPEN")}
+              {...valveReleaseHandlers}
             >
               <span>O</span>
               <span>P</span>
