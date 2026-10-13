@@ -124,20 +124,29 @@ describe("check valves", () => {
     expect(node(N.leftManifold).energized).toBe(false);
   });
 
-  it("stop 9th stage air from flowing back into the 5th stage port", () => {
+  it.each([
+    [N.eng1FifthStage, N.eng1NinthStage, N.eng1StageJunction, N.eng1FifthStageCheckValve],
+    [N.eng2FifthStage, N.eng2NinthStage, N.eng2StageJunction, N.eng2FifthStageCheckValve],
+  ])("stop 9th stage air from flowing back into the 5th stage port (%s)", (fifth, ninth, junction, checkValve) => {
     const runtime = computeRuntimeState(
       INITIAL_SWITCHES,
       INITIAL_SOURCES,
       INITIAL_MANUAL_VALVES,
       INITIAL_BLEED_TRIP_SENSORS,
     );
-    runtime.sources[N.eng1FifthStage] = {
-      ...runtime.sources[N.eng1FifthStage]!,
+    runtime.sources[fifth] = {
+      ...runtime.sources[fifth]!,
       enabled: false,
     };
     const solution = solvePneumaticNetwork(MAIN_PNEUMATIC_SYSTEM.network, runtime);
-    expect(solution.nodes[N.eng1StageJunction].sourceId).toBe(N.eng1NinthStage);
-    expect(solution.nodes[N.eng1FifthStageCheckValve].energized).toBe(false);
+    expect(solution.nodes[junction].sourceId).toBe(ninth);
+    expect(solution.nodes[checkValve].energized).toBe(false);
+  });
+
+  it("let 5th stage air through to the stage junction on both engines", () => {
+    const { node } = solve();
+    expect(node(N.eng1FifthStageCheckValve).energized).toBe(true);
+    expect(node(N.eng2FifthStageCheckValve).energized).toBe(true);
   });
 });
 
