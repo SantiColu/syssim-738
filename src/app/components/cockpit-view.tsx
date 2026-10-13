@@ -5,6 +5,7 @@ import {
   CabinAltitudeControlPanel,
   CabinAltitudePanel,
   EquipmentCoolingPanel,
+  GlareshieldWarningPanel,
   LeftWiperPanel,
   RightWiperPanel,
   TemperaturePanel,
@@ -44,6 +45,14 @@ type CockpitPanelSlot = {
   scale?: number;
 };
 
+function CaptainWarningPanel() {
+  return <GlareshieldWarningPanel side="capt" />;
+}
+
+function FirstOfficerWarningPanel() {
+  return <GlareshieldWarningPanel side="fo" />;
+}
+
 // Interactive panels placed over the cockpit artwork. The minimap highlights
 // the same slots.
 const COCKPIT_PANELS: CockpitPanelSlot[] = [
@@ -65,6 +74,9 @@ const COCKPIT_PANELS: CockpitPanelSlot[] = [
   { id: "left-wiper", Panel: LeftWiperPanel, x: 1472, y: 2066, width: 140, height: 152, panelWidth: 140, panelHeight: 152 },
   // Right Windshield Wiper Panel (Fitted into tall elongated panel svg_22)
   { id: "right-wiper", Panel: RightWiperPanel, x: 1616, y: 2066, width: 140, height: 152, panelWidth: 140, panelHeight: 152 },
+  // Master FIRE WARN / MASTER CAUTION and system annunciators on the glareshield wings
+  { id: "warning-capt", Panel: CaptainWarningPanel, x: 482, y: 2540, width: 256, height: 77, panelWidth: 512, panelHeight: 154, scale: 0.5 },
+  { id: "warning-fo", Panel: FirstOfficerWarningPanel, x: 2626, y: 2540, width: 256, height: 77, panelWidth: 512, panelHeight: 154, scale: 0.5 },
 ];
 
 export function CockpitView() {

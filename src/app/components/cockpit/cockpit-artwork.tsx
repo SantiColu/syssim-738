@@ -22,13 +22,10 @@ const GLARESHIELD_PANELS: CockpitRect[] = [
   { id: "warning-annunciators-fo", x: 2626, y: 2540, width: 256, height: 77 },
 ];
 
-const GLARESHIELD_LIGHTS: CockpitRect[] = [
-  { id: "six-pack-capt", x: 618, y: 2546, width: 110, height: 65 },
-  { id: "six-pack-fo", x: 2636, y: 2546, width: 110, height: 65 },
-  { id: "master-caution-capt", x: 555, y: 2547, width: 55, height: 50 },
-  { id: "master-caution-fo", x: 2754, y: 2547, width: 55, height: 50 },
-  { id: "fire-warn-capt", x: 492, y: 2547, width: 55, height: 50 },
-  { id: "fire-warn-fo", x: 2817, y: 2547, width: 55, height: 50 },
+// Groove of the molded lip that runs from each wing tip to the warning lights.
+const GLARESHIELD_WING_LIPS = [
+  "M 131 2570 C 113 2577 113 2607 141 2612 L 282 2613 C 352 2613 402 2575 498 2550",
+  "M 3233 2570 C 3251 2577 3251 2607 3223 2612 L 3082 2613 C 3012 2613 2962 2575 2866 2550",
 ];
 
 const MIP_PATH =
@@ -610,6 +607,17 @@ export function CockpitArtwork() {
         stroke="var(--color-cockpit-stroke-dark)"
         strokeWidth="4"
       />
+      {GLARESHIELD_WING_LIPS.map((d) => (
+        <g key={d} fill="none" strokeLinecap="round">
+          <path d={d} stroke="var(--color-cockpit-stroke-dark)" strokeWidth="4" />
+          <path
+            d={d}
+            transform="translate(0 3)"
+            stroke="var(--color-cockpit-stroke)"
+            strokeWidth="1.5"
+          />
+        </g>
+      ))}
       {GLARESHIELD_WING_SEAMS.map((x) => (
         <line
           key={x}
@@ -622,11 +630,6 @@ export function CockpitArtwork() {
         />
       ))}
       <CockpitRects rects={GLARESHIELD_PANELS} />
-      <CockpitRects
-        rects={GLARESHIELD_LIGHTS}
-        fill="var(--color-cockpit-fill-secondary)"
-        stroke="var(--color-cockpit-stroke-dark)"
-      />
     </>
   );
 }
