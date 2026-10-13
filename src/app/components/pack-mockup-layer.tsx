@@ -118,8 +118,8 @@ const SHAFT_X = 394;
 const TURBINE_Y = 217.6;
 // Compressor just aft of the HX ports it joins: HX1 outlet below, HX2 inlet above
 const COMPRESSOR_Y = 222.6;
-const FAN_Y = 230.9;
-const TCV_LANE_X = SHAFT_X - 4.8;
+const FAN_Y = 229.4;
+const TCV_LANE_X = SHAFT_X - 5.2;
 const TCV_Y = 222.5;
 // Standby pack temperature control valve (FCOM 2.31 pack schematic): in
 // parallel with the TCV, on a loop just inboard of its lane.
@@ -133,11 +133,11 @@ const STBY_TCV_LOOP: P[] = [
 // High pressure water extraction loop (737NG pack schematic). The condenser
 // sits on the turbine axis, between two water extractors; the reheater
 // outboard of it, above the HX plenum.
-const CONDENSER = { x: SHAFT_X, y: 208.4, w: 3.6, h: 3.6 };
-const WATER_EXTRACTOR = { w: 3.6, h: 1.5, topY: 205.4, bottomY: 211.4 };
+const CONDENSER = { x: SHAFT_X, y: 208.7, w: 3.6, h: 3.6 };
+const WATER_EXTRACTOR = { w: 3.6, h: 1.5, topY: CONDENSER.y - 3.55, bottomY: CONDENSER.y + 3.55 };
 // The reheater spans both water extractors, so each one drains straight
 // across into its condenser-side face.
-const REHEATER = { x: 398.4, y: 208.4, w: 3.2, h: 7.2 };
+const REHEATER = { x: 398.4, y: CONDENSER.y, w: 3.2, h: 9.2 };
 const REHEATER_EDGE = {
   top: REHEATER.y - REHEATER.h / 2,
   bottom: REHEATER.y + REHEATER.h / 2,
@@ -145,7 +145,7 @@ const REHEATER_EDGE = {
 };
 const CONDENSER_EDGE = { inboard: CONDENSER.x - CONDENSER.w / 2, outboard: CONDENSER.x + CONDENSER.w / 2 };
 // Condenser hot outlet lane, inboard, feeding both water extractors
-const WE_FEED_X = 391.3;
+const WE_FEED_X = 390.9;
 // Reheater aft face: HX2 outlet in (leaving the HX2 through its inboard face)
 // and, beside it on the condenser side, the turbine supply out, which drops
 // into the side of the turbine.
@@ -158,8 +158,8 @@ const TURBINE_INLET_Y = TURBINE_Y - 1.3;
 // pack discharge between the TCV bypass tee and the pack check valve.
 const PACK_TRIP_SENSOR_AT: Record<PackTripStage, { x: number; y: number; angle: number }> = {
   compressorDischarge: { x: 397.2, y: HX2_Y + 1.2, angle: -90 },
-  turbineInlet: { x: REHEATER_TURBINE_OUT_X, y: 213.7, angle: 180 },
-  packDischarge: { x: SHAFT_X, y: 200.7, angle: 0 },
+  turbineInlet: { x: REHEATER_TURBINE_OUT_X, y: 214.5, angle: 180 },
+  packDischarge: { x: SHAFT_X, y: 200.5, angle: 0 },
 };
 // Airplane centerline (the fuselage walls are at x = 355 and 405); the left
 // pack and everything mirrored is drawn about it.
@@ -179,7 +179,7 @@ const RAM_EXHAUST = { y: PACK_VALVE_Y, length: 4.2 };
 const BLEED_IN: P[] = [[SUPPLY_X, PACK_VALVE_Y], [SUPPLY_X, HX1_Y + 1.2], [HX_PORT_X, HX1_Y + 1.2]];
 const TCV_TEE_Y = 234.3;
 // The TCV bypass joins the pack discharge forward of the condenser
-const TCV_JOIN_Y = 203.1;
+const TCV_JOIN_Y = 202.9;
 const TCV_BYPASS: P[] = [[SUPPLY_X, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LANE_X, TCV_JOIN_Y], [SHAFT_X, TCV_JOIN_Y]];
 // Trim air supply: tapped off each pack supply downstream of the pack valve,
 // through a check valve, joining the other side on the airplane centerline.
