@@ -222,7 +222,8 @@ export const WING_ANTI_ICE_SENSORS: AntiIceSensorDefinition[] = [
  * - Bottom/stem entirely solid filled (no gaps or split lines)
  * - Solid white in normal state, solid amber when tripped
  */
-function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
+/** Sensor probe, a solid T hanging from its duct (at y = 0) towards +y. */
+export function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
   const color = isTripped ? "#ffb300" : "#ffffff";
 
   return (
@@ -230,10 +231,10 @@ function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
       {/* Overheat pulsating glow aura */}
       {isTripped && (
         <rect
-          x="-1.65"
+          x="-1.5"
           y="-0.2"
-          width="3.3"
-          height="3.4"
+          width="3.0"
+          height="2.7"
           rx="0.25"
           fill="none"
           stroke="#ffb300"
@@ -246,10 +247,10 @@ function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
       {/* Hover outline when normal */}
       {!isTripped && (
         <rect
-          x="-1.6"
+          x="-1.45"
           y="-0.2"
-          width="3.2"
-          height="3.3"
+          width="2.9"
+          height="2.6"
           rx="0.25"
           fill="none"
           stroke="#ffffff"
@@ -261,7 +262,7 @@ function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
 
       {/* Solid "T" glyph flipped along X-axis (hangs down from the pipe at y=0) */}
       <path
-        d="M -0.45 0 L 0.45 0 L 0.45 1.75 L 1.35 1.75 L 1.35 2.85 L -1.35 2.85 L -1.35 1.75 L -0.45 1.75 Z"
+        d="M -0.2 0 L 0.2 0 L 0.2 1.6 L 1.2 1.6 L 1.2 2.15 L -1.2 2.15 L -1.2 1.6 L -0.2 1.6 Z"
         fill={color}
         className="transition-colors duration-150"
       />
