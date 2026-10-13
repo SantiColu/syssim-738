@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { AircraftToggleSwitch, AircraftPushButton } from "./aircraft-panels";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
+import { useRamDoor } from "../simulation/ecs/ram-door-store";
 
 function ToggleSwitch({
   labelTop,
@@ -159,6 +160,8 @@ export function PneumaticPanel() {
     isRightBleedTripOff,
     resetBleedTripSensors,
   } = usePneumatic();
+  const [isLeftRamDoorOpen] = useRamDoor("L");
+  const [isRightRamDoorOpen] = useRamDoor("R");
 
   const lNeedleAngle =
     150 + (Math.min(80, Math.max(0, leftDuctPressurePsi)) / 80) * 180;
@@ -215,14 +218,14 @@ export function PneumaticPanel() {
             <br />
             BLEED
           </Annunciator>
-          <Annunciator color="blue">
+          <Annunciator color="blue" lit={isLeftRamDoorOpen}>
             RAM DOOR
             <br />
             FULL OPEN
           </Annunciator>
         </div>
         <div className="absolute top-3.75 left-72.5 -translate-x-1/2 flex gap-0 z-20">
-          <Annunciator color="blue">
+          <Annunciator color="blue" lit={isRightRamDoorOpen}>
             RAM DOOR
             <br />
             FULL OPEN

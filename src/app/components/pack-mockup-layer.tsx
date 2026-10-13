@@ -11,30 +11,11 @@ import { PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
 import { useOutflowValve } from "../simulation/ecs/outflow-valve-store";
+import { useRamDoor } from "../simulation/ecs/ram-door-store";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
 import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y, AFT_CARGO_Y } from "./lower-lobe-layer";
 import { VALVE_SCALE } from "./pneumatic-network-layer";
-
-// Mockup-only ram door state, shared by the pack layer and the door layer.
-const ramDoorStore: Record<"L" | "R", boolean> = { L: true, R: true };
-const ramDoorListeners = new Set<() => void>();
-const subscribeRamDoors = (listener: () => void) => {
-  ramDoorListeners.add(listener);
-  return () => ramDoorListeners.delete(listener);
-};
-function useRamDoor(side: "L" | "R") {
-  const open = useSyncExternalStore(
-    subscribeRamDoors,
-    () => ramDoorStore[side],
-    () => true,
-  );
-  const toggle = () => {
-    ramDoorStore[side] = !ramDoorStore[side];
-    ramDoorListeners.forEach((listener) => listener());
-  };
-  return [open, toggle] as const;
-}
 
 // Mockup-only ground conditioned air connection, shared by the pack layer
 // and the distribution ducts it feeds.
