@@ -30,6 +30,7 @@ import type {
   PneumaticSolution,
 } from "./types";
 import { INITIAL_PACK_TRIP_SENSORS, isPackTripped } from "../ecs/pack-trip";
+import { INITIAL_DUCT_OVERHEAT } from "../ecs/zone-temp";
 
 export {
   INTERACTIVE_MANUAL_VALVES,
@@ -75,6 +76,10 @@ export interface PneumaticContextValue {
   setTrimAir: (on: boolean) => void;
   trimValves: Record<TrimZone, boolean>;
   toggleTrimValve: (zone: TrimZone) => void;
+  /** Duct overheat per zone: closes its trim air valve and lights ZONE TEMP. */
+  ductOverheat: Record<TrimZone, boolean>;
+  toggleDuctOverheat: (zone: TrimZone) => void;
+  resetDuctOverheat: () => void;
   setWingAntiIce: (on: boolean) => void;
   setEng1AntiIce: (on: boolean) => void;
   setEng2AntiIce: (on: boolean) => void;
@@ -286,6 +291,10 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const setTrimAir = (on: boolean) =>
     setSwitches((s) => ({ ...s, trimAir: on }));
   const [trimValves, setTrimValves] = useState(INITIAL_TRIM_VALVES);
+  const [ductOverheat, setDuctOverheat] = useState(INITIAL_DUCT_OVERHEAT);
+  const toggleDuctOverheat = (zone: TrimZone) =>
+    setDuctOverheat((prev) => ({ ...prev, [zone]: !prev[zone] }));
+  const resetDuctOverheat = () => setDuctOverheat(INITIAL_DUCT_OVERHEAT);
   const toggleTrimValve = (zone: TrimZone) =>
     setTrimValves((valves) => ({ ...valves, [zone]: !valves[zone] }));
 
@@ -480,6 +489,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       setTrimAir,
       trimValves,
       toggleTrimValve,
+      ductOverheat,
+      toggleDuctOverheat,
+      resetDuctOverheat,
       setWingAntiIce,
       setEng1AntiIce,
       setEng2AntiIce,
@@ -555,6 +567,7 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       isRightPackTripOff,
       manualValves,
       trimValves,
+      ductOverheat,
       windowOverheat,
       windowHeatTest,
       setWindowHeat,
@@ -598,6 +611,9 @@ const fallbackValue: PneumaticContextValue = {
   setTrimAir: () => {},
   trimValves: INITIAL_TRIM_VALVES,
   toggleTrimValve: () => {},
+  ductOverheat: INITIAL_DUCT_OVERHEAT,
+  toggleDuctOverheat: () => {},
+  resetDuctOverheat: () => {},
   setWingAntiIce: () => {},
   setEng1AntiIce: () => {},
   setEng2AntiIce: () => {},

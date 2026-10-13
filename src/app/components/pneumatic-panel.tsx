@@ -162,6 +162,7 @@ export function PneumaticPanel() {
     isLeftPackTripOff,
     isRightPackTripOff,
     resetPackTripSensors,
+    resetDuctOverheat,
   } = usePneumatic();
   const [isLeftRamDoorOpen] = useRamDoor("L");
   const [isRightRamDoorOpen] = useRamDoor("R");
@@ -482,9 +483,10 @@ export function PneumaticPanel() {
             labelBottom="RESET"
             size={36}
             onClick={() => {
-              // FCOM 2.10: resets BLEED TRIP OFF and PACK lights
+              // FCOM 2.10: resets BLEED TRIP OFF, PACK and ZONE TEMP lights
               resetBleedTripSensors();
               resetPackTripSensors();
+              resetDuctOverheat();
             }}
           />
         </div>

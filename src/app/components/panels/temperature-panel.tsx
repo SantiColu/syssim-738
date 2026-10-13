@@ -9,6 +9,7 @@ import {
   PointerKnob,
 } from "./knobs";
 import { usePneumatic } from "../../simulation/pneumatic/pneumatic-context";
+import { DUCT_OVERHEAT_SENSORS } from "../../simulation/ecs/zone-temp";
 
 export function TrimAirSwitch({
   position = "ON",
@@ -654,7 +655,7 @@ export function TemperaturePanel() {
   const [zoneAngles, setZoneAngles] = useState<[number, number, number]>([
     0, 0, 0,
   ]); // [CONT CAB, FWD CAB, AFT CAB]
-  const { switches, setTrimAir } = usePneumatic();
+  const { switches, setTrimAir, ductOverheat } = usePneumatic();
   const trimAir = switches.trimAir ? "ON" : "OFF";
 
   const handleSourceStep = (dir: number) => {
@@ -782,7 +783,7 @@ export function TemperaturePanel() {
         </div>
       </div>
       <div className="zone-controls" style={{ top: "290px" }}>
-        {(["CONT CAB", "FWD CAB", "AFT CAB"] as const).map((label, index) => (
+        {DUCT_OVERHEAT_SENSORS.map(({ zone, light: label }, index) => (
           <div
             key={label}
             style={{
@@ -791,7 +792,7 @@ export function TemperaturePanel() {
               alignItems: "center",
             }}
           >
-            <Placard>
+            <Placard lit={ductOverheat[zone]}>
               ZONE
               <br />
               TEMP

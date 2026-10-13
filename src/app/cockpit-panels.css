@@ -68,6 +68,11 @@
   color: #4d6dff;
   border-color: #183cff;
 }
+.ap-placard.ap-unlit {
+  color: #555a5c;
+  background: #0c0d0e;
+  border-color: #4a4e50;
+}
 .ap-toggle {
   position: relative;
   width: 48px;

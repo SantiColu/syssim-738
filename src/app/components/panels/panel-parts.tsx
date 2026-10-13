@@ -9,11 +9,14 @@ export function Screw({ className = "" }: { className?: string }) {
 export function Placard({
   children,
   color = "amber",
+  lit = true,
 }: {
   children: ReactNode;
   color?: "amber" | "green" | "blue";
+  /** Annunciator lights can go dark; plain placards stay lit. */
+  lit?: boolean;
 }) {
-  return <div className={`ap-placard ap-${color}`}>{children}</div>;
+  return <div className={`ap-placard ap-${color}${lit ? "" : " ap-unlit"}`}>{children}</div>;
 }
 
 /** Needle swing to the first / last tick of the scale. */

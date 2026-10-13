@@ -13,6 +13,7 @@ import { recircFansRunning } from "../simulation/ecs/recirc-fans";
 import { useOutflowValve } from "../simulation/ecs/outflow-valve-store";
 import { useRamDoor } from "../simulation/ecs/ram-door-store";
 import { PACK_TRIP_SENSORS, PACK_TRIP_STAGES, type PackTripStage } from "../simulation/ecs/pack-trip";
+import { DUCT_OVERHEAT_SENSORS, isTrimValveOpen } from "../simulation/ecs/zone-temp";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
 import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y, AFT_CARGO_Y } from "./lower-lobe-layer";
@@ -569,19 +570,30 @@ function CheckValve({ x, y, angle = 0, title }: { x: number; y: number; angle?: 
 }
 
 /**
- * Pack overheat sensor: the same probe as the network's sensors, sticking out
- * of its duct at `angle` (0 = outboard). Click toggles an overheat, which
- * trips the pack off.
+ * Clickable overheat sensor: the same probe as the network's sensors,
+ * sticking out of its duct at `angle` (0 = +x). Click toggles an overheat.
  */
-function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage }) {
-  const { packTripSensors, togglePackTripSensor } = usePneumatic();
-  const sensor = PACK_TRIP_SENSORS.find((s) => s.side === side && s.stage === stage)!;
-  const { x, y, angle } = PACK_TRIP_SENSOR_AT[stage];
-  const tripped = Boolean(packTripSensors[sensor.id]);
+function OverheatSensor({
+  x,
+  y,
+  angle,
+  tripped,
+  onToggle,
+  label,
+  title,
+}: {
+  x: number;
+  y: number;
+  angle: number;
+  tripped: boolean;
+  onToggle: () => void;
+  label: string;
+  title: string;
+}) {
   const toggle = (event: React.SyntheticEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    togglePackTripSensor(sensor.id);
+    onToggle();
   };
 
   return (
@@ -590,7 +602,7 @@ function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage
       role="button"
       tabIndex={0}
       aria-pressed={tripped}
-      aria-label={`Sensor de sobretemperatura del pack ${side}: ${sensor.name}. ${tripped ? "Sobretemperatura activa" : "Normal"}`}
+      aria-label={`${label}. ${tripped ? "Sobretemperatura activa" : "Normal"}`}
       data-interactive="true"
       className="group cursor-pointer focus:outline-none"
       onPointerDown={(event) => event.stopPropagation()}
@@ -601,15 +613,29 @@ function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage
         if (event.key === "Enter" || event.key === " ") toggle(event);
       }}
     >
-      <title>
-        {`Sensor de sobretemperatura · pack ${side} · ${sensor.name}
-Luz de cabina asociada: PACK (${side === "L" ? "IZQUIERDA" : "DERECHA"})
-Estado: ${tripped ? "SOBRETEMPERATURA · pack valve cerrada" : "NORMAL"}
-(Clic para ${tripped ? "enfriar; la luz se apaga con TRIP RESET" : "simular una sobretemperatura y disparar el pack"})`}
-      </title>
+      <title>{title}</title>
       <rect x="-1.6" y="-0.3" width="3.2" height="3.4" fill="transparent" />
       <ProbeGlyph isTripped={tripped} />
     </g>
+  );
+}
+
+/** Pack overheat sensor: an overheat trips the pack off. */
+function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage }) {
+  const { packTripSensors, togglePackTripSensor } = usePneumatic();
+  const sensor = PACK_TRIP_SENSORS.find((s) => s.side === side && s.stage === stage)!;
+  const tripped = Boolean(packTripSensors[sensor.id]);
+  return (
+    <OverheatSensor
+      {...PACK_TRIP_SENSOR_AT[stage]}
+      tripped={tripped}
+      onToggle={() => togglePackTripSensor(sensor.id)}
+      label={`Sensor de sobretemperatura del pack ${side}: ${sensor.name}`}
+      title={`Sensor de sobretemperatura · pack ${side} · ${sensor.name}
+Luz de cabina asociada: PACK (${side === "L" ? "IZQUIERDA" : "DERECHA"})
+Estado: ${tripped ? "SOBRETEMPERATURA · pack valve cerrada" : "NORMAL"}
+(Clic para ${tripped ? "enfriar; la luz se apaga con TRIP RESET" : "simular una sobretemperatura y disparar el pack"})`}
+    />
   );
 }
 
@@ -1117,6 +1143,39 @@ const OVERHEAD_X = { left: CENTERLINE_X - 2.5, right: CENTERLINE_X + 2.5 };
 const OVERHEAD_AFT_END_Y = AFT_PRESSURE_BULKHEAD_Y - 6;
 const OVERHEAD_BRANCH = { length: 7, pitch: 8, teeHalf: 1.5 };
 
+// Duct overheat sensors, downstream of the trim air joins (`angle` 0 = +x):
+// on the flight deck supply forward of the forward riser feed, pointing
+// outboard; on the forward riser ceiling duct between the overhead ducts,
+// pointing forward; on the aft risers' ceiling duct right of the manifold,
+// pointing aft.
+const DUCT_OVERHEAT_SENSOR_AT: Record<TrimZone, { x: number; y: number; angle: number }> = {
+  flightDeck: { x: FD_X, y: 205.1, angle: 180 },
+  fwdCab: { x: CENTERLINE_X, y: FWD_RISER.ceilingY, angle: -90 },
+  aftCab: { x: 389.4, y: AFT_RISER.ceilingY, angle: 90 },
+};
+
+/** One duct overheat sensor per zone: an overheat lights its ZONE TEMP light. */
+function DuctOverheatSensors() {
+  const { ductOverheat, toggleDuctOverheat } = usePneumatic();
+  return (
+    <g>
+      {DUCT_OVERHEAT_SENSORS.map(({ zone, name, light }) => (
+        <OverheatSensor
+          key={zone}
+          {...DUCT_OVERHEAT_SENSOR_AT[zone]}
+          tripped={ductOverheat[zone]}
+          onToggle={() => toggleDuctOverheat(zone)}
+          label={`Sensor de sobretemperatura de ducto: ${name}`}
+          title={`Sensor de sobretemperatura de ducto · ${name}
+Luz de cabina asociada: ZONE TEMP (${light})
+Estado: ${ductOverheat[zone] ? "SOBRETEMPERATURA · trim air modulating valve cerrada" : "NORMAL"}
+(Clic para ${ductOverheat[zone] ? "enfriar; la luz se apaga con TRIP RESET" : "simular una sobretemperatura en el ducto"})`}
+        />
+      ))}
+    </g>
+  );
+}
+
 /** Branch positions along an overhead duct, inset from both ends. */
 function branchYs(from: number, to: number): number[] {
   const count = Math.floor((to - from) / OVERHEAD_BRANCH.pitch);
@@ -1425,7 +1484,11 @@ const TRIM_ZONES: { zone: TrimZone; label: string }[] = [
 function TrimAir() {
   const left = usePackSupply("L");
   const right = usePackSupply("R");
-  const { switches, trimValves, toggleTrimValve } = usePneumatic();
+  const { switches, trimValves: selected, toggleTrimValve, ductOverheat } = usePneumatic();
+  // A duct overheat closes its zone's valve whatever its selection
+  const trimValves = Object.fromEntries(
+    TRIM_ZONES.map(({ zone }) => [zone, isTrimValveOpen(selected[zone], ductOverheat[zone])]),
+  ) as Record<TrimZone, boolean>;
   const supplyOff = left.packOff && right.packOff;
   // The TRIM AIR switch drives the pressure regulator and shutoff valve.
   const prsovOpen = switches.trimAir;
@@ -1489,7 +1552,7 @@ function TrimAir() {
           angle={90}
           open={trimValves[zone]}
           onToggle={() => toggleTrimValve(zone)}
-          title={`Trim air modulating valve · ${label}`}
+          title={`Trim air modulating valve · ${label}${ductOverheat[zone] ? " · CERRADA POR SOBRETEMPERATURA DE DUCTO" : ""}`}
         />
       ))}
     </g>
@@ -1597,6 +1660,8 @@ export function PackMockupLayer() {
       />
       <TrimAirJoins />
       <PressurizationValves />
+      {/* Over the overhead ducts, which are drawn under everything */}
+      <DuctOverheatSensors />
     </g>
   );
 }
