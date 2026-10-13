@@ -231,10 +231,10 @@ export function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
       {/* Overheat pulsating glow aura */}
       {isTripped && (
         <rect
-          x="-1.5"
+          x="-0.95"
           y="-0.2"
-          width="3.0"
-          height="2.7"
+          width="1.9"
+          height="2.3"
           rx="0.25"
           fill="none"
           stroke="#ffb300"
@@ -247,10 +247,10 @@ export function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
       {/* Hover outline when normal */}
       {!isTripped && (
         <rect
-          x="-1.45"
+          x="-0.9"
           y="-0.2"
-          width="2.9"
-          height="2.6"
+          width="1.8"
+          height="2.2"
           rx="0.25"
           fill="none"
           stroke="#ffffff"
@@ -262,7 +262,7 @@ export function ProbeGlyph({ isTripped }: { isTripped: boolean }) {
 
       {/* Solid "T" glyph flipped along X-axis (hangs down from the pipe at y=0) */}
       <path
-        d="M -0.2 0 L 0.2 0 L 0.2 1.6 L 1.2 1.6 L 1.2 2.15 L -1.2 2.15 L -1.2 1.6 L -0.2 1.6 Z"
+        d="M -0.2 0 L 0.2 0 L 0.2 1.2 L 0.6 1.2 L 0.6 1.75 L -0.6 1.75 L -0.6 1.2 L -0.2 1.2 Z"
         fill={color}
         className="transition-colors duration-150"
       />
