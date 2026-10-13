@@ -16,6 +16,8 @@ import {
   COCKPIT_SVG_VIEWBOX_HEIGHT,
   COCKPIT_SVG_VIEWBOX_WIDTH,
   COCKPIT_SVG_VIEWBOX_X,
+  COCKPIT_WORLD_HEIGHT,
+  COCKPIT_WORLD_WIDTH,
   COCKPIT_ZOOM_STEP,
   getVisibleSvgArea,
   MAX_COCKPIT_ZOOM,
@@ -109,15 +111,15 @@ export function CockpitView() {
         className="absolute origin-top-left flex flex-col items-center contain-[layout_paint]"
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-          width: "2400px",
-          height: "6000px",
+          width: `${COCKPIT_WORLD_WIDTH}px`,
+          height: `${COCKPIT_WORLD_HEIGHT}px`,
         }}
       >
         <svg
           ref={cockpitSvgRef}
-          viewBox="750 0 1800 4500"
-          width="2400"
-          height="6000"
+          viewBox={`${COCKPIT_SVG_VIEWBOX_X} 0 ${COCKPIT_SVG_VIEWBOX_WIDTH} ${COCKPIT_SVG_VIEWBOX_HEIGHT}`}
+          width={COCKPIT_WORLD_WIDTH}
+          height={COCKPIT_WORLD_HEIGHT}
           style={{ pointerEvents: "none" }}
         >
           <g id="cockpit-artwork" style={{ pointerEvents: "auto" }}>
@@ -150,7 +152,7 @@ export function CockpitView() {
       >
         <div className="p-1.5">
           <svg
-            className="block aspect-2/5 w-full touch-none cursor-crosshair bg-sim-surface"
+            className="block aspect-56/95 w-full touch-none cursor-crosshair bg-sim-surface"
             viewBox={`${COCKPIT_SVG_VIEWBOX_X} 0 ${COCKPIT_SVG_VIEWBOX_WIDTH} ${COCKPIT_SVG_VIEWBOX_HEIGHT}`}
             role="img"
             aria-label="Minimapa interactivo del cockpit"

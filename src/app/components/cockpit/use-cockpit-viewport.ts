@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export const COCKPIT_WORLD_WIDTH = 2400;
-export const COCKPIT_WORLD_HEIGHT = 6000;
-export const COCKPIT_SVG_VIEWBOX_X = 750;
-export const COCKPIT_SVG_VIEWBOX_WIDTH = 1800;
-export const COCKPIT_SVG_VIEWBOX_HEIGHT = 4500;
-const COCKPIT_RENDERED_SVG_HEIGHT = 6000;
+export const COCKPIT_WORLD_WIDTH = 4480;
+export const COCKPIT_WORLD_HEIGHT = 7600;
+export const COCKPIT_SVG_VIEWBOX_X = 0;
+export const COCKPIT_SVG_VIEWBOX_WIDTH = 3360;
+export const COCKPIT_SVG_VIEWBOX_HEIGHT = 5700;
+const COCKPIT_RENDERED_SVG_HEIGHT = COCKPIT_WORLD_HEIGHT;
 export const MIN_COCKPIT_ZOOM = 0.05;
 export const MAX_COCKPIT_ZOOM = 3;
 export const COCKPIT_ZOOM_STEP = 0.25;
@@ -109,7 +109,7 @@ export function useCockpitViewport() {
     setViewport({ width: rect.width, height: rect.height });
     const initialScale = 0.25;
     // Keep the existing initial cockpit framing; FIT uses the complete SVG.
-    const initialX = (rect.width - 2400 * initialScale) / 2;
+    const initialX = (rect.width - COCKPIT_WORLD_WIDTH * initialScale) / 2;
     const initialY = (rect.height - 3600 * initialScale) / 2;
     const initialTransform = {
       x: initialX,
