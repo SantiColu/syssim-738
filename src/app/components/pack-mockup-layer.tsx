@@ -185,7 +185,10 @@ const TCV_BYPASS: P[] = [[SUPPLY_X, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LA
 // through a check valve, joining the other side on the airplane centerline.
 const TRIM_TAP_Y = 236.5;
 const TRIM_CHECK_X = 385.5;
-const TRIM_TAP: P[] = [[SUPPLY_X, TRIM_TAP_Y], [MIX[0], TRIM_TAP_Y]];
+// Split at the check valve: the centerline side also holds the other pack's
+// trim air pressure.
+const TRIM_TAP_UPSTREAM: P[] = [[SUPPLY_X, TRIM_TAP_Y], [TRIM_CHECK_X, TRIM_TAP_Y]];
+const TRIM_TAP_DOWNSTREAM: P[] = [[TRIM_CHECK_X, TRIM_TAP_Y], [MIX[0], TRIM_TAP_Y]];
 const MIX_R = 3.0;
 // Point on the mix manifold edge (just inside it) at `deg`, counterclockwise
 // from outboard right; ducts end there so the manifold covers their tips.
@@ -208,14 +211,15 @@ const MIX_X_DEG = 68;
 // discharge sensor and the pack check valve.
 const TURBINE_OUT_Y = 194.6;
 const PACK_CHECK_Y = 197.5;
-// Split at the corner, where the left side tees off the flight deck supply:
-// with the left pack off, mix manifold air still reaches the flight deck
-// through the downstream part.
-const TURBINE_OUT_UPSTREAM: P[] = [
+// Split at the pack check valve: upstream only ever carries this pack's air;
+// downstream holds mix manifold pressure with the pack off (and on the left
+// side still feeds the flight deck through its tee at the corner).
+const PACK_OUT_UPSTREAM: P[] = [
   [SHAFT_X, TCV_JOIN_Y],
-  [SHAFT_X, TURBINE_OUT_Y],
+  [SHAFT_X, PACK_CHECK_Y],
 ];
-const TURBINE_OUT_DOWNSTREAM: P[] = [
+const PACK_OUT_DOWNSTREAM: P[] = [
+  [SHAFT_X, PACK_CHECK_Y],
   [SHAFT_X, TURBINE_OUT_Y],
   mixRayAtY(MIX, -MIX_X_DEG, TURBINE_OUT_Y),
   onMix(MIX, -MIX_X_DEG),
@@ -730,11 +734,14 @@ function usePackSupply(side: "L" | "R") {
 function RightPack({ side }: { side: "L" | "R" }) {
   const [doorOpen] = useRamDoor(side);
   const { packValveOpen, packOff, bleedTemp } = usePackSupply(side);
+  const otherPack = usePackSupply(side === "L" ? "R" : "L");
   const { manifoldOff } = useMixManifoldSupply();
   const ramOff = packOff || !doorOpen;
-  // Left side: the flight deck tee keeps the duct to the manifold flowing
-  const outletOff = side === "L" ? manifoldOff : packOff;
+  // Downstream of each check valve the duct still holds pressure from the
+  // other side (mix manifold, other pack's trim supply) with this pack off.
   const outletTemp = packOff ? T.mix : T.packOut;
+  const trimTapOff = packOff && otherPack.packOff;
+  const trimTapTemp = packOff ? otherPack.bleedTemp : bleedTemp;
 
   return (
     <g>
@@ -756,12 +763,13 @@ function RightPack({ side }: { side: "L" | "R" }) {
       {(["casing", "core"] as const).map((part) => (
         <g key={part}>
           <Duct points={BLEED_IN} temp={bleedTemp} inactive={packOff} part={part} />
-          <Duct points={TRIM_TAP} temp={bleedTemp} inactive={packOff} part={part} />
+          <Duct points={TRIM_TAP_UPSTREAM} temp={bleedTemp} inactive={packOff} part={part} />
+          <Duct points={TRIM_TAP_DOWNSTREAM} temp={trimTapTemp} inactive={trimTapOff} part={part} />
           <Duct points={TCV_BYPASS} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={STBY_TCV_LOOP} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={[[SHAFT_X, CONDENSER.y], [SHAFT_X, TCV_JOIN_Y]]} temp={T.packOut} inactive={packOff} part={part} />
-          <Duct points={TURBINE_OUT_UPSTREAM} temp={T.packOut} inactive={packOff} part={part} />
-          <Duct points={TURBINE_OUT_DOWNSTREAM} temp={outletTemp} inactive={outletOff} part={part} />
+          <Duct points={PACK_OUT_UPSTREAM} temp={T.packOut} inactive={packOff} part={part} />
+          <Duct points={PACK_OUT_DOWNSTREAM} temp={outletTemp} inactive={manifoldOff} part={part} />
         </g>
       ))}
       <Junction x={SUPPLY_X} y={TCV_TEE_Y} temp={bleedTemp} inactive={packOff} />
@@ -1235,7 +1243,9 @@ function ForwardDistribution() {
         const running = side === "L" ? fans.left : fans.right;
         return (
           <g key={side}>
-            <Duct points={[[at(2), RECIRC_Y], [at(RECIRC_DX.fan), RECIRC_Y]]} temp={T.cabin} inactive={!running} />
+            {/* Manifold side of the check valve holds manifold pressure with the fan off */}
+            <Duct points={[[at(2), RECIRC_Y], [at(RECIRC_DX.check), RECIRC_Y]]} temp={running ? T.cabin : T.mix} inactive={manifoldOff} />
+            <Duct points={[[at(RECIRC_DX.check), RECIRC_Y], [at(RECIRC_DX.fan), RECIRC_Y]]} temp={T.cabin} inactive={!running} />
             <CheckValve
               x={at(RECIRC_DX.check)}
               y={RECIRC_Y}
