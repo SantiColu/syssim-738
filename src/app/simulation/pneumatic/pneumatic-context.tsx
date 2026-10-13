@@ -105,6 +105,9 @@ export interface PneumaticContextValue {
   leftDuctPressurePsi: number;
   rightDuctPressurePsi: number;
   isDualBleed: boolean;
+  /** Wing-body OVHT TEST switch held (FCOM 2.10.3). */
+  isWingBodyOvhtTest: boolean;
+  setWingBodyOvhtTest: (pressed: boolean) => void;
   overheatSensors: Record<number, boolean>;
   toggleOverheatSensor: (id: number) => void;
   resetOverheatSensors: () => void;
@@ -172,6 +175,7 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     "OVHT" | "CENTER" | "PWR TEST"
   >("CENTER");
   const windowTestTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isWingBodyOvhtTest, setWingBodyOvhtTest] = useState(false);
 
   const [cowlOverpressure, setCowlOverpressureState] = useState<{
     eng1: boolean;
@@ -517,6 +521,8 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       leftDuctPressurePsi,
       rightDuctPressurePsi,
       isDualBleed,
+      isWingBodyOvhtTest,
+      setWingBodyOvhtTest,
       overheatSensors,
       toggleOverheatSensor,
       resetOverheatSensors,
@@ -556,6 +562,7 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       leftDuctPressurePsi,
       rightDuctPressurePsi,
       isDualBleed,
+      isWingBodyOvhtTest,
       overheatSensors,
       isLeftWingBodyOverheat,
       isRightWingBodyOverheat,
@@ -644,6 +651,8 @@ const fallbackValue: PneumaticContextValue = {
   leftDuctPressurePsi: fallbackSolution.nodes[PNEUMATIC_NODE.leftManifold]?.pressurePsi ?? 0,
   rightDuctPressurePsi: fallbackSolution.nodes[PNEUMATIC_NODE.rightManifold]?.pressurePsi ?? 0,
   isDualBleed: false,
+  isWingBodyOvhtTest: false,
+  setWingBodyOvhtTest: () => {},
   overheatSensors: INITIAL_OVERHEAT_SENSORS,
   toggleOverheatSensor: () => {},
   resetOverheatSensors: () => {},

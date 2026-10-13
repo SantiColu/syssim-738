@@ -140,7 +140,6 @@ function Annunciator({
 }
 
 export function PneumaticPanel() {
-  const [isOvhtTest, setIsOvhtTest] = useState(false);
   const {
     switches,
     setLPack,
@@ -154,6 +153,8 @@ export function PneumaticPanel() {
     leftDuctPressurePsi,
     rightDuctPressurePsi,
     isDualBleed,
+    isWingBodyOvhtTest,
+    setWingBodyOvhtTest,
     isLeftWingBodyOverheat,
     isRightWingBodyOverheat,
     isLeftBleedTripOff,
@@ -393,8 +394,8 @@ export function PneumaticPanel() {
           <AircraftPushButton
             labelTop="OVHT"
             labelBottom="TEST"
-            onPressStart={() => setIsOvhtTest(true)}
-            onPressEnd={() => setIsOvhtTest(false)}
+            onPressStart={() => setWingBodyOvhtTest(true)}
+            onPressEnd={() => setWingBodyOvhtTest(false)}
             size={36}
           />
         </div>
@@ -444,32 +445,33 @@ export function PneumaticPanel() {
           />
         </div>
 
-        {/* Annunciators Grid */}
+        {/* Annunciators Grid. OVHT TEST lights only the WING-BODY OVERHEAT
+            lights (FCOM 2.10.3). */}
         <div className="absolute top-90 left-35 -translate-x-1/2 flex flex-col gap-0.5 z-10">
-          <Annunciator color="amber" lit={isOvhtTest || isLeftPackTripOff}>
+          <Annunciator color="amber" lit={isLeftPackTripOff}>
             PACK
           </Annunciator>
-          <Annunciator color="amber" lit={isOvhtTest || isLeftWingBodyOverheat}>
+          <Annunciator color="amber" lit={isWingBodyOvhtTest || isLeftWingBodyOverheat}>
             WING-BODY
             <br />
             OVERHEAT
           </Annunciator>
-          <Annunciator color="amber" lit={isOvhtTest || isLeftBleedTripOff}>
+          <Annunciator color="amber" lit={isLeftBleedTripOff}>
             BLEED
             <br />
             TRIP OFF
           </Annunciator>
         </div>
         <div className="absolute top-90 left-65 -translate-x-1/2 flex flex-col gap-0.5 z-10">
-          <Annunciator color="amber" lit={isOvhtTest || isRightPackTripOff}>
+          <Annunciator color="amber" lit={isRightPackTripOff}>
             PACK
           </Annunciator>
-          <Annunciator color="amber" lit={isOvhtTest || isRightWingBodyOverheat}>
+          <Annunciator color="amber" lit={isWingBodyOvhtTest || isRightWingBodyOverheat}>
             WING-BODY
             <br />
             OVERHEAT
           </Annunciator>
-          <Annunciator color="amber" lit={isOvhtTest || isRightBleedTripOff}>
+          <Annunciator color="amber" lit={isRightBleedTripOff}>
             BLEED
             <br />
             TRIP OFF
