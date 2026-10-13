@@ -12,6 +12,7 @@ import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
 import { useOutflowValve } from "../simulation/ecs/outflow-valve-store";
 import { useRamDoor } from "../simulation/ecs/ram-door-store";
+import { PACK_TRIP_SENSORS, PACK_TRIP_STAGES, type PackTripStage } from "../simulation/ecs/pack-trip";
 import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
 import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y, AFT_CARGO_Y } from "./lower-lobe-layer";
@@ -117,6 +118,14 @@ const STBY_TCV_LOOP: P[] = [
 // Vertical water separator on the HX2 outlet lane
 const WS_X = 398.2;
 const WS_Y = 209;
+// Pack overheat sensors, one per stage of the cooling cycle, each sticking out
+// of its duct: compressor → HX2, water separator → turbine, and the pack
+// discharge between the TCV bypass tee and the pack check valve.
+const PACK_TRIP_SENSOR_AT: Record<PackTripStage, { x: number; y: number; angle: number }> = {
+  compressorDischarge: { x: 396.4, y: HX2_Y + 1.2, angle: -90 },
+  turbineInlet: { x: 397.3, y: TURBINE_Y - 1, angle: -90 },
+  packDischarge: { x: SHAFT_X, y: 199.6, angle: 0 },
+};
 // Airplane centerline (the fuselage walls are at x = 355 and 405); the left
 // pack and everything mirrored is drawn about it.
 const CENTERLINE_X = 380;
@@ -156,8 +165,11 @@ function mixRayAtY([cx, cy]: P, deg: number, y: number): P {
 // Pack inlets (aft) and aft riser outlets (forward) meet the manifold on a
 // narrow X, this many degrees from the horizontal; the sides stay free.
 const MIX_X_DEG = 68;
-// Turbine outlet: aft of the manifold, then into it on the X diagonal.
-const TURBINE_OUT_Y = 198;
+// Turbine outlet: aft of the manifold, then into it on the X diagonal. Far
+// enough forward to leave room on the run up from the turbine for the pack
+// discharge sensor and the pack check valve.
+const TURBINE_OUT_Y = 193.5;
+const PACK_CHECK_Y = 196.4;
 // Split at the corner, where the left side tees off the flight deck supply:
 // with the left pack off, mix manifold air still reaches the flight deck
 // through the downstream part.
@@ -485,6 +497,66 @@ function CheckValve({ x, y, angle = 0, title }: { x: number; y: number; angle?: 
   );
 }
 
+/**
+ * Pack overheat sensor: a probe sticking out of its duct at `angle` (0 =
+ * outboard). Click toggles an overheat, which trips the pack off.
+ */
+function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage }) {
+  const { packTripSensors, togglePackTripSensor } = usePneumatic();
+  const sensor = PACK_TRIP_SENSORS.find((s) => s.side === side && s.stage === stage)!;
+  const { x, y, angle } = PACK_TRIP_SENSOR_AT[stage];
+  const tripped = Boolean(packTripSensors[sensor.id]);
+  const toggle = (event: React.SyntheticEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    togglePackTripSensor(sensor.id);
+  };
+
+  return (
+    <g
+      transform={`translate(${x} ${y}) rotate(${angle})`}
+      role="button"
+      tabIndex={0}
+      aria-pressed={tripped}
+      aria-label={`Sensor de sobretemperatura del pack ${side}: ${sensor.name}. ${tripped ? "Sobretemperatura activa" : "Normal"}`}
+      data-interactive="true"
+      className="group cursor-pointer focus:outline-none"
+      onPointerDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={toggle}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") toggle(event);
+      }}
+    >
+      <title>
+        {`Sensor de sobretemperatura · pack ${side} · ${sensor.name}
+Luz de cabina asociada: PACK (${side === "L" ? "IZQUIERDA" : "DERECHA"})
+Estado: ${tripped ? "SOBRETEMPERATURA · pack valve cerrada" : "NORMAL"}
+(Clic para ${tripped ? "enfriar; la luz se apaga con TRIP RESET" : "simular una sobretemperatura y disparar el pack"})`}
+      </title>
+      <rect x="0" y="-1.3" width="2.6" height="2.6" fill="transparent" />
+      <rect
+        x="0.15"
+        y="-1.15"
+        width="2.3"
+        height="2.3"
+        rx="0.4"
+        className="fill-none stroke-white opacity-0 group-hover:opacity-60 group-focus-visible:opacity-60"
+        strokeWidth="0.12"
+        strokeDasharray="0.35 0.25"
+      />
+      <path
+        d="M 0.45 0 H 1.9 M 1.9 -0.7 V 0.7"
+        className={`fill-none [stroke-linecap:round] ${
+          tripped ? "stroke-[#ffb300] drop-shadow-[0_0_0.4px_#ffb300]" : "stroke-zinc-200"
+        }`}
+        strokeWidth={tripped ? "0.42" : "0.34"}
+      />
+    </g>
+  );
+}
+
 /** Recirculation HEPA filter, pleated, in line on a horizontal duct (narrow along it). */
 function HepaFilter({ x, y, title }: { x: number; y: number; title: string }) {
   return (
@@ -645,6 +717,7 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <Junction x={SUPPLY_X} y={TRIM_TAP_Y} temp={bleedTemp} inactive={packOff} />
       <CheckValve x={TRIM_CHECK_X} y={TRIM_TAP_Y} angle={180} title="Check valve de suministro de trim air" />
       <Junction x={SHAFT_X} y={202} temp={T.turbineOut} inactive={packOff} />
+      <CheckValve x={SHAFT_X} y={PACK_CHECK_Y} angle={-90} title={`Check valve de salida del pack ${side} al mix manifold`} />
       {/* HX1 → compressor and compressor → HX2, straight across at the compressor level */}
       <Duct points={[[400, HX1_Y - 1.2], [SHAFT_X + 2.1, HX1_Y - 1.2]]} temp={T.hx1Out} inactive={packOff} />
       <Duct points={[[SHAFT_X + 1.2, HX2_Y + 1.2], [400, HX2_Y + 1.2]]} temp={T.compOut} inactive={packOff} />
@@ -672,6 +745,9 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <Fan x={SHAFT_X} y={FAN_Y} />
 
       <WaterSeparator x={WS_X} y={WS_Y} inactive={packOff} />
+      {PACK_TRIP_STAGES.map((stage) => (
+        <PackTripSensor key={stage} side={side} stage={stage} />
+      ))}
       <ModulatingValve x={TCV_LANE_X} y={TCV_Y} angle={90} title="Pack temperature control valve" />
       <ModulatingValve
         x={STBY_TCV.laneX}
@@ -1207,7 +1283,7 @@ const TRIM = {
     aftCab: MIX_ABS[0],
     fwdCab: MIX_ABS[0] + TRIM_VALVE_SPACING,
   },
-  flightDeckJoinY: 225,
+  flightDeckJoinY: 221.5,
   // FWD CAB crosses forward of the mix manifold, then drops into the forward riser feed
   fwdCabCrossY: 206,
   fwdCabJoinX: 368.5,

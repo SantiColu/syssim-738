@@ -159,6 +159,9 @@ export function PneumaticPanel() {
     isLeftBleedTripOff,
     isRightBleedTripOff,
     resetBleedTripSensors,
+    isLeftPackTripOff,
+    isRightPackTripOff,
+    resetPackTripSensors,
   } = usePneumatic();
   const [isLeftRamDoorOpen] = useRamDoor("L");
   const [isRightRamDoorOpen] = useRamDoor("R");
@@ -442,7 +445,7 @@ export function PneumaticPanel() {
 
         {/* Annunciators Grid */}
         <div className="absolute top-90 left-35 -translate-x-1/2 flex flex-col gap-0.5 z-10">
-          <Annunciator color="amber" lit={isOvhtTest}>
+          <Annunciator color="amber" lit={isOvhtTest || isLeftPackTripOff}>
             PACK
           </Annunciator>
           <Annunciator color="amber" lit={isOvhtTest || isLeftWingBodyOverheat}>
@@ -457,7 +460,7 @@ export function PneumaticPanel() {
           </Annunciator>
         </div>
         <div className="absolute top-90 left-65 -translate-x-1/2 flex flex-col gap-0.5 z-10">
-          <Annunciator color="amber" lit={isOvhtTest}>
+          <Annunciator color="amber" lit={isOvhtTest || isRightPackTripOff}>
             PACK
           </Annunciator>
           <Annunciator color="amber" lit={isOvhtTest || isRightWingBodyOverheat}>
@@ -479,7 +482,9 @@ export function PneumaticPanel() {
             labelBottom="RESET"
             size={36}
             onClick={() => {
+              // FCOM 2.10: resets BLEED TRIP OFF and PACK lights
               resetBleedTripSensors();
+              resetPackTripSensors();
             }}
           />
         </div>

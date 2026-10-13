@@ -29,6 +29,7 @@ import type {
   PneumaticRuntimeState,
   PneumaticSolution,
 } from "./types";
+import { INITIAL_PACK_TRIP_SENSORS, isPackTripped } from "../ecs/pack-trip";
 
 export {
   INTERACTIVE_MANUAL_VALVES,
@@ -109,6 +110,12 @@ export interface PneumaticContextValue {
   resetBleedTripSensors: () => void;
   isLeftBleedTripOff: boolean;
   isRightBleedTripOff: boolean;
+  /** Pack overheat sensors (ECS), keyed by packTripSensorId. */
+  packTripSensors: Record<string, boolean>;
+  togglePackTripSensor: (id: string) => void;
+  resetPackTripSensors: () => void;
+  isLeftPackTripOff: boolean;
+  isRightPackTripOff: boolean;
   manualValves: Record<string, boolean>;
   toggleManualValve: (valveId: string) => void;
   setManualValve: (valveId: string, open: boolean) => void;
@@ -148,6 +155,8 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     useState<Record<number, boolean>>(INITIAL_OVERHEAT_SENSORS);
   const [bleedTripSensors, setBleedTripSensors] =
     useState<Record<string, boolean>>(INITIAL_BLEED_TRIP_SENSORS);
+  const [packTripSensors, setPackTripSensors] =
+    useState<Record<string, boolean>>(INITIAL_PACK_TRIP_SENSORS);
   const [windowOverheat, setWindowOverheat] = useState<WindowHeatSwitches>({
     sideL: false,
     fwdL: false,
@@ -365,6 +374,15 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     bleedTripSensors["eng2-upstream"] || bleedTripSensors["eng2-downstream"],
   );
 
+  const togglePackTripSensor = (id: string) =>
+    setPackTripSensors((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const resetPackTripSensors = () =>
+    setPackTripSensors(INITIAL_PACK_TRIP_SENSORS);
+
+  const isLeftPackTripOff = isPackTripped(packTripSensors, "L");
+  const isRightPackTripOff = isPackTripped(packTripSensors, "R");
+
   const runtimeState = useMemo(
     () =>
       computeRuntimeState(
@@ -372,8 +390,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
         sourcesState,
         manualValves,
         bleedTripSensors,
+        packTripSensors,
       ),
-    [switches, sourcesState, manualValves, bleedTripSensors],
+    [switches, sourcesState, manualValves, bleedTripSensors, packTripSensors],
   );
 
   const solution = useMemo(
@@ -496,6 +515,11 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       resetBleedTripSensors,
       isLeftBleedTripOff,
       isRightBleedTripOff,
+      packTripSensors,
+      togglePackTripSensor,
+      resetPackTripSensors,
+      isLeftPackTripOff,
+      isRightPackTripOff,
       manualValves,
       toggleManualValve,
       setManualValve,
@@ -526,6 +550,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       bleedTripSensors,
       isLeftBleedTripOff,
       isRightBleedTripOff,
+      packTripSensors,
+      isLeftPackTripOff,
+      isRightPackTripOff,
       manualValves,
       trimValves,
       windowOverheat,
@@ -611,6 +638,11 @@ const fallbackValue: PneumaticContextValue = {
   resetBleedTripSensors: () => {},
   isLeftBleedTripOff: false,
   isRightBleedTripOff: false,
+  packTripSensors: INITIAL_PACK_TRIP_SENSORS,
+  togglePackTripSensor: () => {},
+  resetPackTripSensors: () => {},
+  isLeftPackTripOff: false,
+  isRightPackTripOff: false,
   manualValves: INITIAL_MANUAL_VALVES,
   toggleManualValve: () => {},
   setManualValve: () => {},

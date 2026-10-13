@@ -1,5 +1,6 @@
 import { MAIN_PNEUMATIC_SYSTEM, PNEUMATIC_NODE } from "./main-network";
 import type { PneumaticRuntimeState } from "./types";
+import { isPackTripped } from "../ecs/pack-trip";
 
 export type PackPosition = "OFF" | "AUTO" | "HIGH";
 export type IsoValvePosition = "CLOSE" | "AUTO" | "OPEN";
@@ -101,6 +102,7 @@ export function computeRuntimeState(
   sourcesState: PneumaticSourcesState,
   manualValves?: Record<string, boolean>,
   bleedTripSensors?: Record<string, boolean>,
+  packTripSensors?: Record<string, boolean>,
 ): PneumaticRuntimeState {
   // Isolation valve logic per Boeing FCOM 2.10.2 & 2.20.2:
   // - CLOSE: closes isolation valve
@@ -132,6 +134,10 @@ export function computeRuntimeState(
   const isRightBleedTripped = Boolean(
     bleedTripSensors?.["eng2-upstream"] || bleedTripSensors?.["eng2-downstream"],
   );
+
+  // Pack overheat (FCOM 2.30): the pack valve closes until TRIP RESET.
+  const isLeftPackTripped = isPackTripped(packTripSensors, "L");
+  const isRightPackTripped = isPackTripped(packTripSensors, "R");
 
   // Configure pneumatic sources based on simulation engine/APU/GND air status
   const sources: PneumaticRuntimeState["sources"] = {
@@ -181,12 +187,13 @@ export function computeRuntimeState(
   }
 
   // Valves driven by the overhead switches, plus the manually operated ones.
-  // Engine and APU bleed valves are pressure-operated and close on a bleed trip.
+  // Engine and APU bleed valves are pressure-operated and close on a bleed
+  // trip; pack valves close on a pack trip.
   const accessories: PneumaticRuntimeState["accessories"] = {
     ...MAIN_PNEUMATIC_SYSTEM.initialState.accessories,
-    [PNEUMATIC_NODE.lPackValve]: { open: switches.lPack !== "OFF" },
+    [PNEUMATIC_NODE.lPackValve]: { open: switches.lPack !== "OFF" && !isLeftPackTripped },
     [PNEUMATIC_NODE.isolationValve]: { open: isIsoOpen },
-    [PNEUMATIC_NODE.rPackValve]: { open: switches.rPack !== "OFF" },
+    [PNEUMATIC_NODE.rPackValve]: { open: switches.rPack !== "OFF" && !isRightPackTripped },
     [PNEUMATIC_NODE.eng1BleedValve]: {
       open: switches.eng1Bleed && !isLeftBleedTripped,
     },
