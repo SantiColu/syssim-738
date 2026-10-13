@@ -6,7 +6,7 @@
 // exchangers sit inside the ram air inlet, the ACM shaft runs fore-aft.
 // No simulation logic: colours use illustrative station temperatures.
 
-import { type ReactNode, useSyncExternalStore } from "react";
+import { type ReactNode, useId, useSyncExternalStore } from "react";
 import { PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import { recircFansRunning } from "../simulation/ecs/recirc-fans";
@@ -17,6 +17,7 @@ import type { TrimZone } from "../simulation/pneumatic/runtime-state";
 import { getTemperatureColor } from "../simulation/pneumatic/types";
 import { AC_DIST_BAY_Y, AFT_PRESSURE_BULKHEAD_Y, AFT_CARGO_Y } from "./lower-lobe-layer";
 import { VALVE_SCALE } from "./pneumatic-network-layer";
+import { ProbeGlyph } from "./overheat-sensors-layer";
 
 // Mockup-only ground conditioned air connection, shared by the pack layer
 // and the distribution ducts it feeds.
@@ -73,7 +74,16 @@ const T = {
   hx1Out: 95,
   compOut: 170,
   hx2Out: 40,
-  turbineOut: 2,
+  // High pressure water extraction loop: reheater hot pass → condenser hot
+  // pass → water extractors → reheater cold pass → turbine
+  reheaterHotOut: 30,
+  condenserHotOut: 14,
+  turbineIn: 26,
+  // Turbine exhaust before it cools the condenser (kept above 0, which the
+  // colour scale shows as no air)
+  turbineExhaust: 1,
+  // Pack discharge, after the condenser cold pass and the TCV bypass
+  packOut: 5,
   ram: 15,
   // Ram air leaving the heat exchangers, warmed by the bleed air it cooled
   ramExhaust: 90,
@@ -90,20 +100,25 @@ const PACKS_OFFSET_Y = 30;
 
 // Right pack layout (network coordinates before PACKS_OFFSET_Y); the left pack
 // mirrors it.
-const HX_X = 401.5;
-const HX2_Y = 215.1;
-const HX1_Y = 220.1;
-// Each HX symbol is a 7.6 x 5.2 rect turned 90° and scaled (0.66, 0.85)
-const HX_HALF = { across: 2.6 * 0.85, along: 3.8 * 0.66 };
+const HX_X = 401.8;
+const HX2_Y = 219.5;
+const HX1_Y = 224.5;
+// Each HX symbol is a 7.6 x 5.2 rect turned 90° and scaled (along, across)
+const HX_SCALE = { along: 0.66, across: 0.75 };
+const HX_HALF = { across: 2.6 * HX_SCALE.across, along: 3.8 * HX_SCALE.along };
 // Ram plenum walls exactly on the outline of the HX stack, so they overlap
 const PLENUM_TOP = HX2_Y - HX_HALF.along;
 const PLENUM_BOTTOM = HX1_Y + HX_HALF.along;
 const PLENUM_X = { inboard: HX_X - HX_HALF.across, outboard: HX_X + HX_HALF.across };
+// Where ducts start inside the HX symbols, so they leave through its inboard face
+const HX_PORT_X = HX_X - 1.5;
 const SHAFT_X = 394;
-const TURBINE_Y = 206.5;
-// Compressor level with the HX ports it joins: HX1 outlet below, HX2 inlet above
-const COMPRESSOR_Y = (HX2_Y + HX1_Y) / 2;
-const FAN_Y = 226.5;
+// ACM aft (Turbine – Compressor – Fan), so the high pressure water extraction
+// loop fits forward of the turbine on the shaft axis.
+const TURBINE_Y = 217.6;
+// Compressor just aft of the HX ports it joins: HX1 outlet below, HX2 inlet above
+const COMPRESSOR_Y = 222.6;
+const FAN_Y = 230.9;
 const TCV_LANE_X = SHAFT_X - 4.8;
 const TCV_Y = 222.5;
 // Standby pack temperature control valve (FCOM 2.31 pack schematic): in
@@ -115,16 +130,36 @@ const STBY_TCV_LOOP: P[] = [
   [STBY_TCV.laneX, STBY_TCV.bottomY],
   [TCV_LANE_X, STBY_TCV.bottomY],
 ];
-// Vertical water separator on the HX2 outlet lane
-const WS_X = 398.2;
-const WS_Y = 209;
+// High pressure water extraction loop (737NG pack schematic). The condenser
+// sits on the turbine axis, between two water extractors; the reheater
+// outboard of it, above the HX plenum.
+const CONDENSER = { x: SHAFT_X, y: 208.4, w: 3.6, h: 3.6 };
+const WATER_EXTRACTOR = { w: 3.6, h: 1.5, topY: 205.4, bottomY: 211.4 };
+// The reheater spans both water extractors, so each one drains straight
+// across into its condenser-side face.
+const REHEATER = { x: 398.4, y: 208.4, w: 3.2, h: 7.2 };
+const REHEATER_EDGE = {
+  top: REHEATER.y - REHEATER.h / 2,
+  bottom: REHEATER.y + REHEATER.h / 2,
+  inboard: REHEATER.x - REHEATER.w / 2,
+};
+const CONDENSER_EDGE = { inboard: CONDENSER.x - CONDENSER.w / 2, outboard: CONDENSER.x + CONDENSER.w / 2 };
+// Condenser hot outlet lane, inboard, feeding both water extractors
+const WE_FEED_X = 391.3;
+// Reheater aft face: HX2 outlet in (leaving the HX2 through its inboard face)
+// and, beside it on the condenser side, the turbine supply out, which drops
+// into the side of the turbine.
+const REHEATER_HOT_IN_X = REHEATER.x + 0.6;
+const REHEATER_TURBINE_OUT_X = REHEATER.x - 1;
+const TURBINE_INLET_Y = TURBINE_Y - 1.3;
 // Pack overheat sensors, one per stage of the cooling cycle, each sticking out
-// of its duct: compressor → HX2, water separator → turbine, and the pack
-// discharge between the TCV bypass tee and the pack check valve.
+// of its duct (`angle` 0 = outboard): compressor → HX2 (forward, under the
+// turbine supply), the turbine supply (inboard, over the turbine), and the
+// pack discharge between the TCV bypass tee and the pack check valve.
 const PACK_TRIP_SENSOR_AT: Record<PackTripStage, { x: number; y: number; angle: number }> = {
-  compressorDischarge: { x: 396.4, y: HX2_Y + 1.2, angle: -90 },
-  turbineInlet: { x: 397.3, y: TURBINE_Y - 1, angle: -90 },
-  packDischarge: { x: SHAFT_X, y: 199.6, angle: 0 },
+  compressorDischarge: { x: 397.2, y: HX2_Y + 1.2, angle: -90 },
+  turbineInlet: { x: REHEATER_TURBINE_OUT_X, y: 213.7, angle: 180 },
+  packDischarge: { x: SHAFT_X, y: 200.7, angle: 0 },
 };
 // Airplane centerline (the fuselage walls are at x = 355 and 405); the left
 // pack and everything mirrored is drawn about it.
@@ -141,9 +176,11 @@ const PACK_VALVE_Y = 241;
 const RAM_EXHAUST = { y: PACK_VALVE_Y, length: 4.2 };
 
 // Pack supply → HX1, hot TCV bypass to the turbine outlet, turbine → mix manifold
-const BLEED_IN: P[] = [[SUPPLY_X, PACK_VALVE_Y], [SUPPLY_X, HX1_Y + 1.2], [400, HX1_Y + 1.2]];
-const TCV_TEE_Y = 233.5;
-const TCV_BYPASS: P[] = [[SUPPLY_X, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LANE_X, 202], [SHAFT_X, 202]];
+const BLEED_IN: P[] = [[SUPPLY_X, PACK_VALVE_Y], [SUPPLY_X, HX1_Y + 1.2], [HX_PORT_X, HX1_Y + 1.2]];
+const TCV_TEE_Y = 234.3;
+// The TCV bypass joins the pack discharge forward of the condenser
+const TCV_JOIN_Y = 203.1;
+const TCV_BYPASS: P[] = [[SUPPLY_X, TCV_TEE_Y], [TCV_LANE_X, TCV_TEE_Y], [TCV_LANE_X, TCV_JOIN_Y], [SHAFT_X, TCV_JOIN_Y]];
 // Trim air supply: tapped off each pack supply downstream of the pack valve,
 // through a check valve, joining the other side on the airplane centerline.
 const TRIM_TAP_Y = 236.5;
@@ -165,16 +202,17 @@ function mixRayAtY([cx, cy]: P, deg: number, y: number): P {
 // Pack inlets (aft) and aft riser outlets (forward) meet the manifold on a
 // narrow X, this many degrees from the horizontal; the sides stay free.
 const MIX_X_DEG = 68;
-// Turbine outlet: aft of the manifold, then into it on the X diagonal. Far
-// enough forward to leave room on the run up from the turbine for the pack
+// Pack outlet: aft of the manifold, then into it on the X diagonal. Its tee
+// (and the flight deck trim join just forward of it) stays aft of the pack
+// bay line, leaving room on the run up from the condenser for the pack
 // discharge sensor and the pack check valve.
-const TURBINE_OUT_Y = 193.5;
-const PACK_CHECK_Y = 196.4;
+const TURBINE_OUT_Y = 194.6;
+const PACK_CHECK_Y = 197.5;
 // Split at the corner, where the left side tees off the flight deck supply:
 // with the left pack off, mix manifold air still reaches the flight deck
 // through the downstream part.
 const TURBINE_OUT_UPSTREAM: P[] = [
-  [SHAFT_X, 204.5],
+  [SHAFT_X, TCV_JOIN_Y],
   [SHAFT_X, TURBINE_OUT_Y],
 ];
 const TURBINE_OUT_DOWNSTREAM: P[] = [
@@ -233,7 +271,7 @@ function Junction({ x, y, temp, inactive }: { x: number; y: number; temp: number
 function HeatExchanger({ x, y, title }: { x: number; y: number; title: string }) {
   // Rotated 90° and sized so two ducts fit side by side on its inboard face.
   return (
-    <g transform={`translate(${x} ${y}) rotate(90) scale(0.66 0.85)`}>
+    <g transform={`translate(${x} ${y}) rotate(90) scale(${HX_SCALE.along} ${HX_SCALE.across})`}>
       <title>{title}</title>
       <rect
         x="-3.8"
@@ -339,21 +377,50 @@ function Fan({
   );
 }
 
-function WaterSeparator({ x, y, inactive }: { x: number; y: number; inactive: boolean }) {
+/**
+ * Compact air-to-air heat exchanger of the water extraction loop (condenser,
+ * reheater): hatched core like the HX symbol, `w` across and `h` along.
+ */
+function LoopHeatExchanger({ x, y, w, h, title }: { x: number; y: number; w: number; h: number; title: string }) {
+  const clipId = `loop-hx-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const hatch: [number, number, number, number][] = [];
+  for (let c = -h; c < w + h; c += 1.2) {
+    hatch.push([c, 0, c + h, h], [c, 0, c - h, h]);
+  }
   return (
-    <g transform={`translate(${x} ${y}) rotate(90)`}>
-      <title>Separador de agua de alta presión</title>
-      <rect x="-2.2" y="-1.4" width="4.4" height="2.8" rx="1.2" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
+    <g transform={`translate(${x - w / 2} ${y - h / 2})`}>
+      <title>{title}</title>
+      <clipPath id={clipId}>
+        <rect width={w} height={h} rx="0.4" />
+      </clipPath>
+      <rect width={w} height={h} rx="0.4" className="fill-sim-surface" />
+      <g clipPath={`url(#${clipId})`} className="stroke-zinc-300" opacity={0.85} strokeWidth="0.22" strokeLinecap="round">
+        {hatch.map(([x1, y1, x2, y2], i) => (
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />
+        ))}
+      </g>
+      <rect width={w} height={h} rx="0.4" className="fill-none stroke-white" strokeWidth="0.45" />
+    </g>
+  );
+}
+
+/** Water extractor on the condenser hot outlet, flat across the turbine axis. */
+function WaterExtractor({ y, inactive, title }: { y: number; inactive: boolean; title: string }) {
+  const { w, h } = WATER_EXTRACTOR;
+  return (
+    <g transform={`translate(${SHAFT_X} ${y})`}>
+      <title>{title}</title>
+      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={h / 2} className="fill-sim-surface stroke-white" strokeWidth="0.45" />
       {!inactive && (
         <rect
-          x="-1.65"
-          y="-0.85"
-          width="3.3"
-          height="1.7"
-          rx="0.7"
+          x={-w / 2 + 0.45}
+          y={-h / 2 + 0.4}
+          width={w - 0.9}
+          height={h - 0.8}
+          rx={(h - 0.8) / 2}
           fill="none"
-          stroke={getTemperatureColor(T.hx2Out)}
-          strokeWidth="0.32"
+          stroke={getTemperatureColor(T.condenserHotOut)}
+          strokeWidth="0.28"
         />
       )}
     </g>
@@ -498,8 +565,9 @@ function CheckValve({ x, y, angle = 0, title }: { x: number; y: number; angle?: 
 }
 
 /**
- * Pack overheat sensor: a probe sticking out of its duct at `angle` (0 =
- * outboard). Click toggles an overheat, which trips the pack off.
+ * Pack overheat sensor: the same probe as the network's sensors, sticking out
+ * of its duct at `angle` (0 = outboard). Click toggles an overheat, which
+ * trips the pack off.
  */
 function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage }) {
   const { packTripSensors, togglePackTripSensor } = usePneumatic();
@@ -514,7 +582,7 @@ function PackTripSensor({ side, stage }: { side: "L" | "R"; stage: PackTripStage
 
   return (
     <g
-      transform={`translate(${x} ${y}) rotate(${angle})`}
+      transform={`translate(${x} ${y}) rotate(${angle - 90})`}
       role="button"
       tabIndex={0}
       aria-pressed={tripped}
@@ -535,24 +603,8 @@ Luz de cabina asociada: PACK (${side === "L" ? "IZQUIERDA" : "DERECHA"})
 Estado: ${tripped ? "SOBRETEMPERATURA · pack valve cerrada" : "NORMAL"}
 (Clic para ${tripped ? "enfriar; la luz se apaga con TRIP RESET" : "simular una sobretemperatura y disparar el pack"})`}
       </title>
-      <rect x="0" y="-1.3" width="2.6" height="2.6" fill="transparent" />
-      <rect
-        x="0.15"
-        y="-1.15"
-        width="2.3"
-        height="2.3"
-        rx="0.4"
-        className="fill-none stroke-white opacity-0 group-hover:opacity-60 group-focus-visible:opacity-60"
-        strokeWidth="0.12"
-        strokeDasharray="0.35 0.25"
-      />
-      <path
-        d="M 0.45 0 H 1.9 M 1.9 -0.7 V 0.7"
-        className={`fill-none [stroke-linecap:round] ${
-          tripped ? "stroke-[#ffb300] drop-shadow-[0_0_0.4px_#ffb300]" : "stroke-zinc-200"
-        }`}
-        strokeWidth={tripped ? "0.42" : "0.34"}
-      />
+      <rect x="-1.6" y="-0.3" width="3.2" height="3.4" fill="transparent" />
+      <ProbeGlyph isTripped={tripped} />
     </g>
   );
 }
@@ -682,7 +734,7 @@ function RightPack({ side }: { side: "L" | "R" }) {
   const ramOff = packOff || !doorOpen;
   // Left side: the flight deck tee keeps the duct to the manifold flowing
   const outletOff = side === "L" ? manifoldOff : packOff;
-  const outletTemp = packOff ? T.mix : T.turbineOut;
+  const outletTemp = packOff ? T.mix : T.packOut;
 
   return (
     <g>
@@ -707,7 +759,8 @@ function RightPack({ side }: { side: "L" | "R" }) {
           <Duct points={TRIM_TAP} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={TCV_BYPASS} temp={bleedTemp} inactive={packOff} part={part} />
           <Duct points={STBY_TCV_LOOP} temp={bleedTemp} inactive={packOff} part={part} />
-          <Duct points={TURBINE_OUT_UPSTREAM} temp={T.turbineOut} inactive={packOff} part={part} />
+          <Duct points={[[SHAFT_X, CONDENSER.y], [SHAFT_X, TCV_JOIN_Y]]} temp={T.packOut} inactive={packOff} part={part} />
+          <Duct points={TURBINE_OUT_UPSTREAM} temp={T.packOut} inactive={packOff} part={part} />
           <Duct points={TURBINE_OUT_DOWNSTREAM} temp={outletTemp} inactive={outletOff} part={part} />
         </g>
       ))}
@@ -716,14 +769,62 @@ function RightPack({ side }: { side: "L" | "R" }) {
       <Junction x={TCV_LANE_X} y={STBY_TCV.bottomY} temp={bleedTemp} inactive={packOff} />
       <Junction x={SUPPLY_X} y={TRIM_TAP_Y} temp={bleedTemp} inactive={packOff} />
       <CheckValve x={TRIM_CHECK_X} y={TRIM_TAP_Y} angle={180} title="Check valve de suministro de trim air" />
-      <Junction x={SHAFT_X} y={202} temp={T.turbineOut} inactive={packOff} />
+      <Junction x={SHAFT_X} y={TCV_JOIN_Y} temp={T.packOut} inactive={packOff} />
       <CheckValve x={SHAFT_X} y={PACK_CHECK_Y} angle={-90} title={`Check valve de salida del pack ${side} al mix manifold`} />
       {/* HX1 → compressor and compressor → HX2, straight across at the compressor level */}
-      <Duct points={[[400, HX1_Y - 1.2], [SHAFT_X + 2.1, HX1_Y - 1.2]]} temp={T.hx1Out} inactive={packOff} />
-      <Duct points={[[SHAFT_X + 1.2, HX2_Y + 1.2], [400, HX2_Y + 1.2]]} temp={T.compOut} inactive={packOff} />
-      {/* HX2 → water separator (vertical) → turbine */}
-      <Duct points={[[400, HX2_Y - 1.2], [WS_X, HX2_Y - 1.2], [WS_X, WS_Y + 2]]} temp={T.hx2Out} inactive={packOff} />
-      <Duct points={[[WS_X, WS_Y - 2], [WS_X, TURBINE_Y - 1], [SHAFT_X + 1.5, TURBINE_Y - 1]]} temp={T.hx2Out - 5} inactive={packOff} />
+      <Duct points={[[HX_PORT_X, HX1_Y - 1.2], [SHAFT_X + 2.1, HX1_Y - 1.2]]} temp={T.hx1Out} inactive={packOff} />
+      <Duct points={[[SHAFT_X + 0.9, HX2_Y + 1.2], [HX_PORT_X, HX2_Y + 1.2]]} temp={T.compOut} inactive={packOff} />
+
+      {/* Water extraction loop, hot side: HX2 → reheater → condenser → both water extractors */}
+      <Duct
+        points={[[HX_PORT_X, HX2_Y - 1.2], [REHEATER_HOT_IN_X, HX2_Y - 1.2], [REHEATER_HOT_IN_X, REHEATER_EDGE.bottom - 0.3]]}
+        temp={T.hx2Out}
+        inactive={packOff}
+      />
+      <Duct
+        points={[[REHEATER_EDGE.inboard + 0.3, CONDENSER.y], [CONDENSER_EDGE.outboard - 0.3, CONDENSER.y]]}
+        temp={T.reheaterHotOut}
+        inactive={packOff}
+      />
+      {(["casing", "core"] as const).map((part) => (
+        <g key={part}>
+          <Duct
+            points={[[CONDENSER_EDGE.inboard + 0.3, CONDENSER.y], [WE_FEED_X, CONDENSER.y]]}
+            temp={T.condenserHotOut}
+            inactive={packOff}
+            part={part}
+          />
+          <Duct
+            points={[
+              [SHAFT_X, WATER_EXTRACTOR.topY],
+              [WE_FEED_X, WATER_EXTRACTOR.topY],
+              [WE_FEED_X, WATER_EXTRACTOR.bottomY],
+              [SHAFT_X, WATER_EXTRACTOR.bottomY],
+            ]}
+            temp={T.condenserHotOut}
+            inactive={packOff}
+            part={part}
+          />
+        </g>
+      ))}
+      <Junction x={WE_FEED_X} y={CONDENSER.y} temp={T.condenserHotOut} inactive={packOff} />
+      {/* Reheater cold pass → turbine */}
+      <Duct
+        points={[
+          [REHEATER_TURBINE_OUT_X, REHEATER_EDGE.bottom - 0.3],
+          [REHEATER_TURBINE_OUT_X, TURBINE_INLET_Y],
+          [SHAFT_X + 1.6, TURBINE_INLET_Y],
+        ]}
+        temp={T.turbineIn}
+        inactive={packOff}
+      />
+      {/* Both water extractors drain straight across into the reheater cold pass */}
+      {[WATER_EXTRACTOR.topY, WATER_EXTRACTOR.bottomY].map((y) => (
+        <Duct key={y} points={[[SHAFT_X, y], [REHEATER_EDGE.inboard + 0.3, y]]} temp={T.condenserHotOut} inactive={packOff} />
+      ))}
+      {/* Cold side: turbine exhaust straight forward into the condenser, which
+          discharges forward to the TCV bypass tee (drawn with the tees above) */}
+      <Duct points={[[SHAFT_X, TURBINE_Y - 2], [SHAFT_X, CONDENSER.y]]} temp={T.turbineExhaust} inactive={packOff} />
 
       {/* Ram plenum with both heat exchangers stacked inside */}
       <RamPlenum ramOff={ramOff} />
@@ -740,11 +841,14 @@ function RightPack({ side }: { side: "L" | "R" }) {
         strokeWidth="0.6"
         strokeLinecap="round"
       />
-      <Wheel y={TURBINE_Y} wideAt="top" temp={T.turbineOut} inactive={packOff} title="Turbina de la ACM" />
+      <Wheel y={TURBINE_Y} wideAt="top" temp={T.turbineExhaust} inactive={packOff} title="Turbina de la ACM" />
       <Wheel y={COMPRESSOR_Y} wideAt="bottom" temp={T.compOut} inactive={packOff} title="Compresor de la ACM" />
       <Fan x={SHAFT_X} y={FAN_Y} />
 
-      <WaterSeparator x={WS_X} y={WS_Y} inactive={packOff} />
+      <LoopHeatExchanger {...CONDENSER} title="Condenser (paso caliente: aire del reheater · paso frío: escape de la turbina)" />
+      <LoopHeatExchanger {...REHEATER} title="Reheater (paso caliente: aire del HX2 · paso frío: aire seco hacia la turbina)" />
+      <WaterExtractor y={WATER_EXTRACTOR.topY} inactive={packOff} title="Water extractor delantero" />
+      <WaterExtractor y={WATER_EXTRACTOR.bottomY} inactive={packOff} title="Water extractor trasero" />
       {PACK_TRIP_STAGES.map((stage) => (
         <PackTripSensor key={stage} side={side} stage={stage} />
       ))}
@@ -1085,7 +1189,7 @@ function useMixManifoldSupply() {
 
 function ForwardDistribution() {
   const { left, fans, manifoldOff } = useMixManifoldSupply();
-  const fdTemp = left.packOff ? T.mix : T.turbineOut;
+  const fdTemp = left.packOff ? T.mix : T.packOut;
 
   return (
     <g>
@@ -1283,7 +1387,7 @@ const TRIM = {
     aftCab: MIX_ABS[0],
     fwdCab: MIX_ABS[0] + TRIM_VALVE_SPACING,
   },
-  flightDeckJoinY: 221.5,
+  flightDeckJoinY: 222.6,
   // FWD CAB crosses forward of the mix manifold, then drops into the forward riser feed
   fwdCabCrossY: 206,
   fwdCabJoinX: 368.5,
@@ -1389,7 +1493,7 @@ function TrimAir() {
  */
 export function OverheadDuctLayer() {
   const { left, manifoldOff } = useMixManifoldSupply();
-  const fdTemp = left.packOff ? T.mix : T.turbineOut;
+  const fdTemp = left.packOff ? T.mix : T.packOut;
   return (
     <g>
       {/* Flight deck: each wall duct to its ceiling grille */}
@@ -1478,7 +1582,7 @@ export function PackMockupLayer() {
       <Junction
         x={FD_TEE[0]}
         y={FD_TEE[1]}
-        temp={left.packOff ? T.mix : T.turbineOut}
+        temp={left.packOff ? T.mix : T.packOut}
         inactive={manifoldOff}
       />
       <TrimAirJoins />
