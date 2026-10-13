@@ -57,13 +57,11 @@ export function EquipmentCoolingPanel() {
         />
       </div>
       <div className="cooling-alt">ALTN</div>
+      {/* OFF lights: no airflow from the selected fan (FCOM 2.10.11). Fan
+          failures are not simulated yet, so they stay dark. */}
       <div className="cooling-lights">
-        <Placard color={supplyPos === "ALTN" ? "amber" : undefined}>
-          OFF
-        </Placard>
-        <Placard color={exhaustPos === "ALTN" ? "amber" : undefined}>
-          OFF
-        </Placard>
+        <Placard lit={false}>OFF</Placard>
+        <Placard lit={false}>OFF</Placard>
       </div>
       <div className="ap-rule bottom-rule" />
       <Screw className="s1" />
