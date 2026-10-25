@@ -7,9 +7,12 @@ import { PanelExportButton } from "./panel-export-button";
 import { PneumaticSchematic } from "./pneumatic-schematic";
 import { useSystemTab } from "./system-tab-context";
 
+import { useFire } from "../simulation/fire/fire-context";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 
 type SystemView = "main" | "side";
+
+const FUEL_CUT_TITLE = " · combustible cortado por la fire switch (empujala para poder arrancar)";
 
 export function SystemPanel() {
   const panelRef = useRef<HTMLElement>(null);
@@ -17,6 +20,14 @@ export function SystemPanel() {
   const { sourcesState, toggleEng1, toggleEng2, toggleApu, toggleGndAir } =
     usePneumatic();
   const { isActive } = useSystemTab();
+  // A pulled fire switch (or the APU's own fire shutdown) cuts the fuel: the
+  // engine or APU cannot be started until it is cleared.
+  const { indications: fire } = useFire();
+  const apuFuelCutTitle = fire.apuShutoff
+    ? FUEL_CUT_TITLE
+    : fire.apuAutoShutdown
+      ? " · apagada por fuego detectado (no arranca mientras siga el fuego)"
+      : "";
   const [groundCartConnected, toggleGroundCart] = useGroundCart();
 
   return (
@@ -78,7 +89,7 @@ export function SystemPanel() {
             title={
               sourcesState.eng1Running
                 ? "Motor 1 encendido (Click para apagar)"
-                : "Motor 1 apagado (Click para encender)"
+                : `Motor 1 apagado${fire.engineShutoff.eng1 ? FUEL_CUT_TITLE : " (Click para encender)"}`
             }
             className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
               sourcesState.eng1Running
@@ -103,7 +114,7 @@ export function SystemPanel() {
             title={
               sourcesState.eng2Running
                 ? "Motor 2 encendido (Click para apagar)"
-                : "Motor 2 apagado (Click para encender)"
+                : `Motor 2 apagado${fire.engineShutoff.eng2 ? FUEL_CUT_TITLE : " (Click para encender)"}`
             }
             className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
               sourcesState.eng2Running
@@ -128,7 +139,7 @@ export function SystemPanel() {
             title={
               sourcesState.apuRunning
                 ? "APU encendida (Click para apagar)"
-                : "APU apagada (Click para encender)"
+                : `APU apagada${apuFuelCutTitle || " (Click para encender)"}`
             }
             className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
               sourcesState.apuRunning

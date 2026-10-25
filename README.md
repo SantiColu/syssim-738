@@ -18,6 +18,7 @@ El comportamiento se basa en el FCOM del 737 NG. Las referencias están en [docs
 | **Presurización** | Panel de altitud de cabina y panel de control de presurización |
 | **Anti-ice** | Wing y engine (cowl) anti-ice, sensores de sobrecalentamiento, WING-BODY OVERHEAT |
 | **Rain** | Window heat (incl. tests OVHT / PWR TEST), probe heat, limpiaparabrisas |
+| **Fire protection** | Detección de overheat/fire de motores (doble lazo, OVHT DET), APU y wheel well; humo en bodegas (doble lazo, DET SELECT); botellas de motor, APU y cargo con squibs; fire switches (corte de combustible, bleed, hidráulico); tests FAULT/INOP, OVHT/FIRE, EXT y cargo; FIRE WARN / BELL CUTOUT; APU ground control panel; lavatorios |
 
 ## Puesta en marcha
 
@@ -49,6 +50,7 @@ src/app/
 │   ├── aircraft-panels.tsx       # Re-exporta los paneles
 │   ├── pneumatic-network-layer.tsx  # Render de la red neumática
 │   └── …                         # Capas del esquema (sensores, sondas, ventanas, wipers)
+├── simulation/fire/              # Protección contra incendios: reducer puro + contexto
 └── simulation/pneumatic/
     ├── main-network.ts           # Definición de la red: dibujo + nombres + semántica
     ├── migrate-legacy-network.ts # Construye y valida el grafo a partir del dibujo

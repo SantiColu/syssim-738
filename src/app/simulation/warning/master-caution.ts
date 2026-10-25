@@ -22,7 +22,7 @@ export type CautionSource = { id: string; annunciator: SystemAnnunciator };
  */
 export function pruneAcknowledged(
   acknowledged: readonly string[],
-  active: readonly CautionSource[],
+  active: readonly Pick<CautionSource, "id">[],
 ): string[] {
   return acknowledged.filter((id) => active.some((source) => source.id === id));
 }

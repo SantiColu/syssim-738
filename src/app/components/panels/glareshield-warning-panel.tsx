@@ -15,6 +15,7 @@ export function GlareshieldWarningPanel({ side }: { side: "capt" | "fo" }) {
     isMasterCautionLit,
     isAnnunciatorLit,
     isFireWarnLit,
+    pushFireWarn,
     pushMasterCaution,
     pressAnnunciatorPanel,
     releaseAnnunciatorPanel,
@@ -30,11 +31,12 @@ export function GlareshieldWarningPanel({ side }: { side: "capt" | "fo" }) {
       className={`glareshield-warning-panel ${side}`}
       aria-label={`${side === "capt" ? "Captain" : "First officer"} master warning and caution lights`}
     >
-      {/* Pushing resets the fire warning system; no fire detection yet */}
+      {/* Pushing resets the fire warning system for additional warnings */}
       <button
         type="button"
         className={`gw-light gw-fire-warn${isFireWarnLit ? " lit" : ""}`}
         aria-label="FIRE WARN, push for bell cutout"
+        onClick={pushFireWarn}
       >
         <span className="gw-legend">
           FIRE

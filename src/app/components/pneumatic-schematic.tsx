@@ -25,6 +25,13 @@ import { WindshieldWipersLayer } from "./windshield-wipers-layer";
 import { AirDataProbesLayer } from "./air-data-probes-layer";
 import { useSystemTab } from "./system-tab-context";
 import { LowerLobeLayer } from "./lower-lobe-layer";
+import {
+  ApuGroundPanelPopover,
+  FIRE_LEGEND,
+  FireLegendIcon,
+  FireProtectionLayer,
+  FireProtectionUnderLayer,
+} from "./fire-protection-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -107,6 +114,10 @@ export function PneumaticSchematic() {
   const { isActive } = useSystemTab();
   const showPneumatic = isActive("pneumatic");
   const showEcs = isActive("ecs");
+  const showFire = isActive("fire");
+  const [apuGroundPanelOpen, setApuGroundPanelOpen] = useState(false);
+  const openApuGroundPanel = useCallback(() => setApuGroundPanelOpen(true), []);
+  const closeApuGroundPanel = useCallback(() => setApuGroundPanelOpen(false), []);
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);
@@ -382,6 +393,7 @@ export function PneumaticSchematic() {
             aria-hidden="true"
           />
           <LowerLobeLayer />
+          {showFire && <FireProtectionUnderLayer />}
           {showEcs && <OverheadDuctLayer />}
           {showPneumatic && (
             <>
@@ -404,9 +416,14 @@ export function PneumaticSchematic() {
             href="#boeing-737-800-outline"
           />
           {showEcs && <RamDoorsLayer />}
+          {showFire && <FireProtectionLayer onOpenApuGroundPanel={openApuGroundPanel} />}
           {showPneumatic && <AirDataProbesLayer />}
         </g>
       </svg>
+
+      {showFire && apuGroundPanelOpen && (
+        <ApuGroundPanelPopover svgRef={mainSvgRef} view={view} onClose={closeApuGroundPanel} />
+      )}
 
       <div
         data-export-exclude
@@ -482,7 +499,14 @@ export function PneumaticSchematic() {
         </div>
       </div>
 
-      <div className="absolute right-2.5 bottom-1.75 left-2.5 z-30 flex h-8 items-center overflow-x-auto border border-sim-border bg-sim-surface px-2 text-[7px] tracking-wider text-sim-text-muted whitespace-nowrap gap-x-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        // The legend outgrows the bar with the FIRE entries: the wheel scrolls it sideways
+        onWheel={(event) => {
+          if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            event.currentTarget.scrollLeft += event.deltaY;
+          }
+        }}
+        className="absolute right-2.5 bottom-1.75 left-2.5 z-30 flex h-8 items-center overflow-x-auto border border-sim-border bg-sim-surface px-2 text-[7px] tracking-wider text-sim-text-muted whitespace-nowrap gap-x-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex h-full shrink-0 items-center gap-1.5 border-r border-sim-border pr-2">
           <span className="text-[6.5px] tracking-[0.16em]">COLOR</span>
           <div
@@ -561,6 +585,18 @@ export function PneumaticSchematic() {
             <span>{item.label}</span>
           </span>
         ))}
+
+        {showFire && (
+          <>
+            <span className="h-4 shrink-0 border-l border-sim-border" aria-hidden="true" />
+            {FIRE_LEGEND.map((item) => (
+              <span key={item.kind} className="flex shrink-0 items-center gap-0.5">
+                <FireLegendIcon kind={item.kind} />
+                <span>{item.label}</span>
+              </span>
+            ))}
+          </>
+        )}
       </div>
     </section>
   );

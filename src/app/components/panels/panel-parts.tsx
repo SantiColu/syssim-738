@@ -12,7 +12,7 @@ export function Placard({
   lit = true,
 }: {
   children: ReactNode;
-  color?: "amber" | "green" | "blue";
+  color?: "amber" | "green" | "blue" | "red";
   /** Annunciator lights can go dark; plain placards stay lit. */
   lit?: boolean;
 }) {

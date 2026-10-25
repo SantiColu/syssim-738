@@ -4,7 +4,10 @@ import { useRef, type ComponentType } from "react";
 import {
   CabinAltitudeControlPanel,
   CabinAltitudePanel,
+  CargoFirePanel,
+  EngineStartLevers,
   EquipmentCoolingPanel,
+  FireProtectionPanel,
   GlareshieldWarningPanel,
   LeftWiperPanel,
   RightWiperPanel,
@@ -77,6 +80,12 @@ const COCKPIT_PANELS: CockpitPanelSlot[] = [
   // Master FIRE WARN / MASTER CAUTION and system annunciators on the glareshield wings
   { id: "warning-capt", Panel: CaptainWarningPanel, x: 482, y: 2540, width: 256, height: 77, panelWidth: 512, panelHeight: 154, scale: 0.5 },
   { id: "warning-fo", Panel: FirstOfficerWarningPanel, x: 2626, y: 2540, width: 256, height: 77, panelWidth: 512, panelHeight: 154, scale: 0.5 },
+  // Engine start levers below the thrust levers, between the parking brake and the stab trim cutout switches
+  { id: "start-levers", Panel: EngineStartLevers, x: 1624, y: 4250, width: 116, height: 164, panelWidth: 145, panelHeight: 205, scale: 0.8 },
+  // Overheat/fire protection panel at the top of the aft pedestal
+  { id: "fire-protection", Panel: FireProtectionPanel, x: 1375, y: 4417, width: 614, height: 164, panelWidth: 768, panelHeight: 205, scale: 0.8 },
+  // Cargo fire panel, center column of the aft pedestal
+  { id: "cargo-fire", Panel: CargoFirePanel, x: 1519, y: 4585, width: 326, height: 131, panelWidth: 408, panelHeight: 164, scale: 0.8 },
 ];
 
 export function CockpitView() {

@@ -97,12 +97,20 @@ export const INITIAL_BLEED_TRIP_SENSORS: Record<string, boolean> = {
   "eng2-downstream": false,
 };
 
+/** Bleed valves closed by a pulled fire switch (FCOM 8.10.2), whatever their BLEED switch says. */
+export interface FireSwitchShutoff {
+  eng1: boolean;
+  eng2: boolean;
+  apu: boolean;
+}
+
 export function computeRuntimeState(
   switches: PneumaticSwitchesState,
   sourcesState: PneumaticSourcesState,
   manualValves?: Record<string, boolean>,
   bleedTripSensors?: Record<string, boolean>,
   packTripSensors?: Record<string, boolean>,
+  fireShutoff?: FireSwitchShutoff,
 ): PneumaticRuntimeState {
   // Isolation valve logic per Boeing FCOM 2.10.2 & 2.20.2:
   // - CLOSE: closes isolation valve
@@ -195,13 +203,13 @@ export function computeRuntimeState(
     [PNEUMATIC_NODE.isolationValve]: { open: isIsoOpen },
     [PNEUMATIC_NODE.rPackValve]: { open: switches.rPack !== "OFF" && !isRightPackTripped },
     [PNEUMATIC_NODE.eng1BleedValve]: {
-      open: switches.eng1Bleed && !isLeftBleedTripped,
+      open: switches.eng1Bleed && !isLeftBleedTripped && !fireShutoff?.eng1,
     },
     [PNEUMATIC_NODE.apuBleedValve]: {
-      open: switches.apuBleed,
+      open: switches.apuBleed && !fireShutoff?.apu,
     },
     [PNEUMATIC_NODE.eng2BleedValve]: {
-      open: switches.eng2Bleed && !isRightBleedTripped,
+      open: switches.eng2Bleed && !isRightBleedTripped && !fireShutoff?.eng2,
     },
     // Manual interactive valves (Starter, Wing TAI, Cowl TAI, Fan Air, HP stage):
     [PNEUMATIC_NODE.eng1StarterValve]: { open: Boolean(manualValves?.[PNEUMATIC_NODE.eng1StarterValve]) },

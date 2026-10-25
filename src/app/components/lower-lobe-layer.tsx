@@ -56,12 +56,20 @@ function stationToInches(sta: Station): number {
 // Drawing scale: nose tip at y = 30, tail at y = 550.7 over the 39.47 m length
 const NOSE_Y = 30;
 const PX_PER_INCH = (550.7 - NOSE_Y) / (39.47 / 0.0254);
-const stationToY = (sta: Station) => NOSE_Y + stationToInches(sta) * PX_PER_INCH;
+/** Drawing y of a Boeing body station on the -800. */
+export const stationToY = (sta: Station) => NOSE_Y + stationToInches(sta) * PX_PER_INCH;
 
 /** Drawing y of the AC distribution bay limits, for systems laid out inside it. */
 export const AC_DIST_BAY_Y = { fwd: stationToY(STA.mixManifoldBay), aft: stationToY(STA.packBay) };
 /** Drawing y of the forward end of the aft cargo compartment. */
 export const AFT_CARGO_Y = stationToY(STA.aftCargo);
+
+/** Drawing y of the forward cargo compartment limits. */
+export const FWD_CARGO_BAY_Y = { fwd: stationToY(STA.fwdCargo), aft: stationToY(STA.mixManifoldBay) };
+/** Drawing y of the aft cargo compartment limits (the bulk compartment follows it). */
+export const AFT_CARGO_BAY_Y = { fwd: AFT_CARGO_Y, aft: stationToY(STA.bulkCargo) };
+/** Drawing y of the main wheel well limits. */
+export const MAIN_WHEEL_WELL_Y = { fwd: stationToY(STA.mainWheelWell), aft: AFT_CARGO_Y };
 
 /** Drawing y of the aft pressure bulkhead, where the cabin ends. */
 export const AFT_PRESSURE_BULKHEAD_Y = stationToY(STA.tailcone);
@@ -72,8 +80,9 @@ const COMPARTMENTS: { label: string; title: string; from: Station; to: Station; 
   { label: "RADOME", title: "Radome / weather radar", from: STA.radome, to: STA.fwdArea, labelX: 377 },
   // Forward of the windshield, clear of the defog nozzle
   { label: "FWD AREA", title: "Area forward of the nose wheel well", from: STA.fwdArea, to: STA.noseWheelWell, labelX: 371, labelY: 50.5 },
-  // Aft half of the well, clear of the flight deck wall duct above it
-  { label: "NLG WELL", title: "Nose wheel well", from: STA.noseWheelWell, to: STA.electronicsBay, labelX: 364, labelY: 86 },
+  // Aft half of the well, clear of the flight deck wall duct above it and of
+  // lavatory A on the left wall (fire layer), just left of the nose wheels
+  { label: "NLG WELL", title: "Nose wheel well", from: STA.noseWheelWell, to: STA.electronicsBay, labelX: 370.6, labelY: 86 },
   { label: "E/E BAY", title: "Electrical and electronics bay", from: STA.electronicsBay, to: STA.fwdCargo, labelX: 360 },
   { label: "FWD CARGO", title: "Forward cargo compartment", from: STA.fwdCargo, to: STA.mixManifoldBay },
   { label: "AC DIST", title: "Air distribution (mix manifold) bay, forward of the wing root", from: STA.mixManifoldBay, to: STA.packBay },
@@ -81,7 +90,8 @@ const COMPARTMENTS: { label: string; title: string; from: Station; to: Station; 
   { label: "MLG WELL", title: "Main wheel well, around the main wheels", from: STA.mainWheelWell, to: STA.aftCargo },
   { label: "AFT CARGO", title: "Aft cargo compartment", from: STA.aftCargo, to: STA.bulkCargo },
   { label: "BULK", title: "Bulk compartment / outflow valve, up to the aft pressure bulkhead", from: STA.bulkCargo, to: STA.tailcone, labelX: 363 },
-  { label: "TAILCONE", title: "Tailcone and APU bay", from: STA.tailcone, to: STA.tailEnd, labelX: 377 },
+  // Forward part of the tailcone, clear of the APU compartment (fire layer)
+  { label: "TAILCONE", title: "Tailcone and APU bay", from: STA.tailcone, to: STA.tailEnd, labelX: 377, labelY: 472 },
 ];
 
 const LABEL_X = 358.2;

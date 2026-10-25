@@ -135,11 +135,6 @@ const PEDESTAL_SLOTS: CockpitRect[] = [
   { id: "stab-trim-cutout", x: 1742, y: 4319, width: 143, height: 68 },
   { id: "parking-brake", x: 1483, y: 4337, width: 68, height: 37 },
 ];
-const FIRE_HANDLES: CockpitRect[] = [
-  { id: "fire-handle-1", x: 1509, y: 4448, width: 41, height: 109 },
-  { id: "fire-handle-apu", x: 1663, y: 4448, width: 38, height: 109 },
-  { id: "fire-handle-2", x: 1814, y: 4448, width: 41, height: 109 },
-];
 
 const AFT_PEDESTAL_PANELS: CockpitRect[] = [
   { id: "vhf-1", x: 1216, y: 4585, width: 299, height: 131 },
@@ -564,11 +559,6 @@ export function CockpitArtwork() {
       <CockpitRects
         rects={PEDESTAL_SLOTS}
         fill="var(--color-cockpit-fill-shadow)"
-        stroke="var(--color-cockpit-stroke-dark)"
-      />
-      <CockpitRects
-        rects={FIRE_HANDLES}
-        fill="var(--color-cockpit-fill-secondary)"
         stroke="var(--color-cockpit-stroke-dark)"
       />
 

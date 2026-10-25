@@ -2,11 +2,12 @@
 
 import { createContext, useContext, useState } from "react";
 
-export type SystemTab = "pneumatic" | "ecs";
+export type SystemTab = "pneumatic" | "ecs" | "fire";
 
 export const SYSTEM_TABS: { id: SystemTab; label: string }[] = [
   { id: "pneumatic", label: "PNEUMATIC" },
   { id: "ecs", label: "ECS" },
+  { id: "fire", label: "FIRE" },
 ];
 
 type SystemTabContextValue = {

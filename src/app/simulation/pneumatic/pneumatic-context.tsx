@@ -31,6 +31,7 @@ import type {
 } from "./types";
 import { INITIAL_PACK_TRIP_SENSORS, isPackTripped } from "../ecs/pack-trip";
 import { INITIAL_DUCT_OVERHEAT } from "../ecs/zone-temp";
+import { useFire } from "../fire/fire-context";
 
 export {
   INTERACTIVE_MANUAL_VALVES,
@@ -396,6 +397,31 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const isLeftPackTripOff = isPackTripped(packTripSensors, "L");
   const isRightPackTripOff = isPackTripped(packTripSensors, "R");
 
+  // Fire switches (FCOM 8.20.2-4): a pulled switch closes the bleed valve and
+  // the fuel shutoff valves, so the engine or APU stops and cannot be started
+  // until it is pushed back in. The APU also shuts itself down on a fire.
+  const { indications: fire } = useFire();
+  const fireEng1 = fire.engineShutoff.eng1;
+  const fireEng2 = fire.engineShutoff.eng2;
+  const fireApu = fire.apuShutoff;
+  const fireShutoff = useMemo(
+    () => ({ eng1: fireEng1, eng2: fireEng2, apu: fireApu }),
+    [fireEng1, fireEng2, fireApu],
+  );
+  const apuFuelCut = fireApu || fire.apuAutoShutdown;
+  if (
+    (sourcesState.eng1Running && fireEng1) ||
+    (sourcesState.eng2Running && fireEng2) ||
+    (sourcesState.apuRunning && apuFuelCut)
+  ) {
+    setSourcesState((s) => ({
+      ...s,
+      eng1Running: s.eng1Running && !fireEng1,
+      eng2Running: s.eng2Running && !fireEng2,
+      apuRunning: s.apuRunning && !apuFuelCut,
+    }));
+  }
+
   const runtimeState = useMemo(
     () =>
       computeRuntimeState(
@@ -404,8 +430,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
         manualValves,
         bleedTripSensors,
         packTripSensors,
+        fireShutoff,
       ),
-    [switches, sourcesState, manualValves, bleedTripSensors, packTripSensors],
+    [switches, sourcesState, manualValves, bleedTripSensors, packTripSensors, fireShutoff],
   );
 
   const solution = useMemo(
