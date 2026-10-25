@@ -26,7 +26,6 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [362, 275],
     [362, 278.5],
     [362, 297.5],
-    [362, 312.5],
     [362, 400],
     [362, 435],
     [368.7, 475, "check-valve-reverse"],
@@ -37,9 +36,13 @@ const legacyMainSchematic: LegacyPneumaticLine[] = [
     [362, 297.5],
     [380, 297.5],
   ]),
+  // NGS in the left pack bay, under the center tank (FAA SC 25-308-SC): bleed
+  // from the left duct through its shutoff valve
   legacyLine("legacy-ngs", [
-    [362, 312.5],
-    [380, 312.5],
+    [351, 253],
+    [351, 245],
+    [354.5, 245, "on-off"],
+    [369, 245],
   ]),
   legacyLine("legacy-water-tank", [
     [362, 400],
@@ -218,6 +221,7 @@ const NODE_POINTS = {
   apuBleedValve: { x: 372.3, y: 496 },
   lWingAntiIceValve: { x: 345, y: 268 },
   rWingAntiIceValve: { x: 415, y: 268 },
+  ngsShutoffValve: { x: 354.5, y: 245 },
   eng1CowlAntiIceValve: { x: 314, y: 245 },
   eng2CowlAntiIceValve: { x: 446, y: 245 },
 
@@ -250,7 +254,7 @@ const NODE_POINTS = {
   rPack: { x: 398, y: 261 },
   hydReservoirB: { x: 380, y: 286.5 },
   hydReservoirA: { x: 380, y: 297.5 },
-  nitrogenGeneration: { x: 380, y: 312.5 },
+  nitrogenGeneration: { x: 369, y: 245 },
   waterTank: { x: 392, y: 400 },
   eng1Cowl: { x: 303, y: 213 },
   eng2Cowl: { x: 457, y: 213 },

@@ -13,8 +13,12 @@ export type SystemAnnunciator =
   | (typeof SYSTEM_ANNUNCIATORS)["capt"][number]
   | (typeof SYSTEM_ANNUNCIATORS)["fo"][number];
 
-/** An illuminated amber light and the system annunciator it reports to. */
-export type CautionSource = { id: string; annunciator: SystemAnnunciator };
+/**
+ * An illuminated amber light and the system annunciator it reports to. A
+ * `recallOnly` light (one main tank fuel pump LOW PRESSURE, FCOM 12.10.3)
+ * lights MASTER CAUTION only on recall.
+ */
+export type CautionSource = { id: string; annunciator: SystemAnnunciator; recallOnly?: boolean };
 
 /**
  * Sources acknowledged with MASTER CAUTION stay dark only while their light
@@ -25,6 +29,22 @@ export function pruneAcknowledged(
   active: readonly Pick<CautionSource, "id">[],
 ): string[] {
   return acknowledged.filter((id) => active.some((source) => source.id === id));
+}
+
+/**
+ * Acknowledged cautions after the active set changes: the reset ones still
+ * lit, plus any recall-only light that has just come on, which stays dark
+ * until recall.
+ */
+export function updateAcknowledged(
+  acknowledged: readonly string[],
+  previousIds: readonly string[],
+  active: readonly CautionSource[],
+): string[] {
+  const appeared = active
+    .filter(({ id, recallOnly }) => recallOnly && !previousIds.includes(id) && !acknowledged.includes(id))
+    .map(({ id }) => id);
+  return [...pruneAcknowledged(acknowledged, active), ...appeared];
 }
 
 /**

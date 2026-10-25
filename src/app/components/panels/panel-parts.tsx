@@ -2,6 +2,12 @@
 
 import { type ReactNode } from "react";
 
+/**
+ * Gauge coordinate rounded to 0.01: server and client trig can differ in the
+ * last digit, which breaks hydration.
+ */
+export const gaugeCoord = (n: number) => Math.round(n * 100) / 100;
+
 export function Screw({ className = "" }: { className?: string }) {
   return <i className={`ap-screw ${className}`} />;
 }
@@ -29,12 +35,12 @@ export function ValvePositionIndicator({ position = 0 }: { position?: number }) 
   const ticks = Array.from({ length: 15 }, (_, index) => {
     const radians = ((-VALVE_INDICATOR_HALF_SWEEP_DEG + index * 10) * Math.PI) / 180;
     return {
-      x1: 75 + Math.sin(radians) * 43,
-      y1: 76 - Math.cos(radians) * 43,
-      x2: 75 + Math.sin(radians) * 57,
-      y2: 76 - Math.cos(radians) * 57,
-      dx: 75 + Math.sin(radians) * 39,
-      dy: 76 - Math.cos(radians) * 39,
+      x1: gaugeCoord(75 + Math.sin(radians) * 43),
+      y1: gaugeCoord(76 - Math.cos(radians) * 43),
+      x2: gaugeCoord(75 + Math.sin(radians) * 57),
+      y2: gaugeCoord(76 - Math.cos(radians) * 57),
+      dx: gaugeCoord(75 + Math.sin(radians) * 39),
+      dy: gaugeCoord(76 - Math.cos(radians) * 39),
     };
   });
   return (

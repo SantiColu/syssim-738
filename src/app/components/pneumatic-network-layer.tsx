@@ -601,6 +601,8 @@ function ConsumerNode({
   const isPack = node.id === PNEUMATIC_NODE.lPack || node.id === PNEUMATIC_NODE.rPack;
   const isCowl = node.id === PNEUMATIC_NODE.eng1Cowl || node.id === PNEUMATIC_NODE.eng2Cowl;
   const isWing = node.id === PNEUMATIC_NODE.lWing || node.id === PNEUMATIC_NODE.rWing;
+  // Narrower: it sits beside the PACK BAY label, above Pack L
+  const isNgs = node.id === PNEUMATIC_NODE.nitrogenGeneration;
 
   const offsetX =
     node.id === PNEUMATIC_NODE.lPack
@@ -622,7 +624,7 @@ function ConsumerNode({
         ? 28.2
         : 0;
 
-  const width = isPack ? 18 : isCowl || isWing ? 16 : 22;
+  const width = isPack ? 18 : isCowl || isWing || isNgs ? 16 : 22;
   const height = isCowl || isWing ? 5.5 : 8.5;
   const rx = isCowl || isWing ? 1.4 : 1.8;
 
@@ -771,7 +773,7 @@ export function PneumaticNetworkLayer({
       {network.nodes
         .filter(
           (node): node is Extract<PneumaticNode, { kind: "accessory" }> =>
-            node.kind === "accessory",
+            node.kind === "accessory" && !hiddenNodes?.has(node.id),
         )
         .map((node) => {
           const point = layout.nodePositions[node.id];

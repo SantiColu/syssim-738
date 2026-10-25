@@ -20,7 +20,7 @@
 // Tubing routes between documented ends are drawn plausibly; they are not
 // documented. Everything here reads and writes the fire context only.
 
-import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { useFire } from "../simulation/fire/fire-context";
 import {
   CARGO_DETECTOR_PAIRS,
@@ -37,6 +37,7 @@ import {
   type LavatoryId,
   type SmokeDetectorState,
 } from "../simulation/fire/fire-protection";
+import { useFuel } from "../simulation/fuel/fuel-context";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 import {
   AC_DIST_BAY_Y,
@@ -45,50 +46,36 @@ import {
   MAIN_WHEEL_WELL_Y,
   stationToY,
 } from "./lower-lobe-layer";
-import { VALVE_SCALE } from "./pneumatic-network-layer";
+import {
+  AMBER,
+  controlProps,
+  mirrorX,
+  RED,
+  ShutoffValve,
+  StatusTag,
+  TinyLabel,
+  toPath,
+  type P,
+} from "./plan-view-glyphs";
 import { ApuGroundControlPanel, APU_GROUND_CONTROL_PANEL_SIZE } from "./aircraft-panels";
+import { PlanViewPopover, type PlanView } from "./plan-view-popover";
+import {
+  APU_FUEL_LINE,
+  APU_FUEL_SHUTOFF_VALVE_AT,
+  engineFuelLine,
+  engineFuelValveAt,
+  sparValveAt,
+} from "./fuel-system-layer";
 
-type P = [number, number];
-
-// Alert colours shared with the overheat sensors and the network
-const AMBER = "#ffb300";
-const RED = "#ef4444";
 const DETECTOR_COLOR = "#d4d4d8";
 const FAILED_COLOR = "#71717a";
 // Extinguishing agent: the palette accent, outside both air colour scales
 const AGENT = "var(--color-sim-accent)";
 
-const CENTERLINE_X = 380;
-const mirrorX = (x: number) => 2 * CENTERLINE_X - x;
 /** Left side geometry, mirrored onto the right side for ENG 2. */
 const onSide = (engine: EngineId, [x, y]: P): P => (engine === "eng1" ? [x, y] : [mirrorX(x), y]);
-const toPath = (points: P[], close = false) =>
-  points.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ") + (close ? " Z" : "");
 
 const ENGINE_NUMBER: Record<EngineId, 1 | 2> = { eng1: 1, eng2: 2 };
-
-/** Props that make an SVG group a clickable control, like the overheat sensors. */
-function controlProps(label: string, onActivate: () => void) {
-  const activate = (event: React.SyntheticEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onActivate();
-  };
-  return {
-    role: "button",
-    tabIndex: 0,
-    "aria-label": label,
-    "data-interactive": "true",
-    className: "group cursor-pointer focus:outline-none",
-    onPointerDown: (event: React.PointerEvent) => event.stopPropagation(),
-    onMouseDown: (event: React.MouseEvent) => event.stopPropagation(),
-    onPointerUp: (event: React.PointerEvent) => event.stopPropagation(),
-    onClick: activate,
-    onKeyDown: (event: React.KeyboardEvent) => {
-      if (event.key === "Enter" || event.key === " ") activate(event);
-    },
-  } as const;
-}
 
 // ---------------------------------------------------------------------------
 // Shared glyphs
@@ -247,43 +234,6 @@ Estado: ${burning ? "FUEGO" : "sin fuego"}
   );
 }
 
-/** Network on/off valve symbol, closed with the bar across. */
-function ShutoffValve({
-  x,
-  y,
-  angle = -90,
-  open,
-  title,
-}: {
-  x: number;
-  y: number;
-  angle?: number;
-  open: boolean;
-  title: string;
-}) {
-  return (
-    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${VALVE_SCALE})`}>
-      <title>{title}</title>
-      <circle r="2.2" className="fill-sim-surface stroke-white" strokeWidth="0.55" />
-      <line
-        x1="-2.1"
-        y1="0"
-        x2="2.1"
-        y2="0"
-        className={open ? "stroke-white" : "stroke-zinc-400"}
-        strokeWidth="0.85"
-        strokeLinecap="round"
-        style={{
-          transform: open ? "rotate(0deg)" : "rotate(90deg)",
-          transformOrigin: "0 0",
-          transition: "transform 0.25s ease-in-out",
-        }}
-      />
-      <circle r="0.5" className="fill-sim-surface stroke-white" strokeWidth="0.35" />
-    </g>
-  );
-}
-
 /** Thin service line (fuel, hydraulic) a fire shutoff valve sits on. */
 function ServiceLine({ points }: { points: P[] }) {
   return (
@@ -293,80 +243,6 @@ function ServiceLine({ points }: { points: P[] }) {
       strokeWidth="0.35"
       strokeLinecap="round"
     />
-  );
-}
-
-function TinyLabel({
-  x,
-  y,
-  anchor = "middle",
-  children,
-  className = "fill-zinc-400",
-}: {
-  x: number;
-  y: number;
-  anchor?: "start" | "middle" | "end";
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <text
-      x={x}
-      y={y}
-      textAnchor={anchor}
-      dominantBaseline="middle"
-      fontSize="1.05"
-      className={`${className} pointer-events-none font-sim-sans tracking-wide`}
-    >
-      {children}
-    </text>
-  );
-}
-
-/** Status tag (generator trip, reverser disabled, APU auto shutdown). */
-function StatusTag({
-  x,
-  y,
-  anchor,
-  tone = "neutral",
-  title,
-  children,
-}: {
-  x: number;
-  y: number;
-  anchor: "start" | "middle" | "end";
-  tone?: "neutral" | "alert";
-  title: string;
-  children: string;
-}) {
-  const width = children.length * 0.78 + 1.2;
-  const left = anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2;
-  return (
-    <g>
-      <title>{title}</title>
-      <rect
-        x={left}
-        y={y - 0.85}
-        width={width}
-        height="1.7"
-        rx="0.4"
-        className="fill-sim-surface"
-        stroke={tone === "alert" ? RED : "#a1a1aa"}
-        strokeWidth="0.22"
-      />
-      <text
-        x={left + width / 2}
-        y={y + 0.05}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize="1.05"
-        fontWeight="bold"
-        fill={tone === "alert" ? "#fca5a5" : "#e4e4e7"}
-        className="font-sim-sans tracking-wide"
-      >
-        {children}
-      </text>
-    </g>
   );
 }
 
@@ -552,13 +428,9 @@ const ENGINE_ASSEMBLIES: { name: string; at: P; vertical: boolean; hidden?: bool
 const NACELLE_GLOW = { x: 299, y: 207, width: 32, height: 37.2 };
 const ENGINE_FLAME: P = [315.5, 230];
 const ENGINE_PORT: P = [317, 239.4];
-// Fire switch shutoffs (FCOM 8.20.2): the spar fuel shutoff valve at the
-// engine mounting wing station (FCOM 12.20), the engine fuel shutoff valve
-// on the engine (HMU, fan case) and the hydraulic shutoff valve on the
-// engine driven pump supply, through the strut.
-const FUEL_LINE_X = 309;
-const SPAR_VALVE: P = [FUEL_LINE_X, 262.6];
-const ENGINE_FUEL_VALVE: P = [FUEL_LINE_X, 221.8];
+// Fire switch shutoffs (FCOM 8.20.2): the spar and engine fuel shutoff
+// valves where the fuel layer draws them (fuel-system-layer), and the
+// hydraulic shutoff valve on the engine driven pump supply, through the strut.
 const HYD_LINE_X = 312;
 const HYD_VALVE: P = [HYD_LINE_X, 260.2];
 const ENGINE_TAGS: P = [315, 204.4];
@@ -618,24 +490,27 @@ function EngineZoneGlow({ engine }: { engine: EngineId }) {
   return <ZoneGlow {...NACELLE_GLOW} x={x} level={zoneLevel([loops.A, loops.B])} />;
 }
 
-function EngineServiceLines({ engine }: { engine: EngineId }) {
-  const fuel: P[] = [[FUEL_LINE_X, 265], [FUEL_LINE_X, ENGINE_FUEL_VALVE[1]]];
+function EngineServiceLines({ engine, fuelShown }: { engine: EngineId; fuelShown: boolean }) {
   const hyd: P[] = [[HYD_LINE_X, 263.2], [HYD_LINE_X, 242.6]];
   return (
     <g>
-      <ServiceLine points={fuel.map((p) => onSide(engine, p))} />
+      {/* The fuel layer draws the fuel line itself when it is on */}
+      {!fuelShown && <ServiceLine points={engineFuelLine(engine)} />}
       <ServiceLine points={hyd.map((p) => onSide(engine, p))} />
     </g>
   );
 }
 
-function EngineFireProtection({ engine }: { engine: EngineId }) {
+function EngineFireProtection({ engine, fuelShown }: { engine: EngineId; fuelShown: boolean }) {
   const { state, indications, dispatch } = useFire();
-  const { sourcesState } = usePneumatic();
+  const { state: fuel, indications: fuelLights } = useFuel();
   const n = ENGINE_NUMBER[engine];
   const loops = state.engineLoops[engine];
   const shutoff = indications.engineShutoff[engine];
-  const running = engine === "eng1" ? sourcesState.eng1Running : sourcesState.eng2Running;
+  const sparOpen = fuel.valveOpen[engine === "eng1" ? "spar1" : "spar2"];
+  const engineValveOpen = fuelLights.engines[engine].engineValveOpen;
+  const [sparX, sparY] = sparValveAt(engine);
+  const [valveX, valveY] = engineFuelValveAt(engine);
   const side = (p: P) => onSide(engine, p);
   const outboard = engine === "eng1" ? "end" : "start";
   const inboard = engine === "eng1" ? "start" : "end";
@@ -648,9 +523,9 @@ function EngineFireProtection({ engine }: { engine: EngineId }) {
     }
   };
 
-  const fuelValveTitle = (name: string) =>
+  const fuelValveTitle = (name: string, open: boolean) =>
     `${name} · motor ${n} · ${
-      shutoff ? "CERRADA (fire switch tirado)" : running ? "ABIERTA" : "CERRADA (motor detenido / start lever en CUTOFF)"
+      open ? "ABIERTA" : shutoff ? "CERRADA (fire switch tirado)" : "CERRADA (start lever en CUTOFF o motor detenido)"
     }`;
   const flowInto = (bottle: "left" | "right") => tubeFlow(state.bottles[bottle], engine);
   const spraying = flowInto("left").flowing || flowInto("right").flowing;
@@ -705,19 +580,29 @@ Estado: ${LOOP_STATE_TEXT[current]}
         title={`Puerto de descarga del agente extintor · motor ${n}`}
       />
 
-      {/* Fire switch shutoff valves */}
-      <ShutoffValve
-        x={side(SPAR_VALVE)[0]}
-        y={SPAR_VALVE[1]}
-        open={running && !shutoff}
-        title={fuelValveTitle("Spar fuel shutoff valve (borde de ataque, estación de montaje del motor)")}
-      />
-      <ShutoffValve
-        x={side(ENGINE_FUEL_VALVE)[0]}
-        y={ENGINE_FUEL_VALVE[1]}
-        open={running && !shutoff}
-        title={fuelValveTitle("Engine fuel shutoff valve (en el motor)")}
-      />
+      {/* Fire switch shutoff valves (the fuel ones, unless the fuel layer draws them) */}
+      {!fuelShown && (
+        <g>
+          <ShutoffValve
+            x={sparX}
+            y={sparY}
+            open={sparOpen}
+            title={fuelValveTitle("Spar fuel shutoff valve (larguero delantero, estación de montaje del motor)", sparOpen)}
+          />
+          <ShutoffValve
+            x={valveX}
+            y={valveY}
+            open={engineValveOpen}
+            title={fuelValveTitle("Engine fuel shutoff valve (en el motor)", engineValveOpen)}
+          />
+          <TinyLabel x={sparX + (engine === "eng1" ? -1.6 : 1.6)} y={sparY - 1.7} anchor={outboard}>
+            SPAR
+          </TinyLabel>
+          <TinyLabel x={valveX + (engine === "eng1" ? -1.5 : 1.5)} y={valveY} anchor={outboard}>
+            FUEL
+          </TinyLabel>
+        </g>
+      )}
       <ShutoffValve
         x={side(HYD_VALVE)[0]}
         y={HYD_VALVE[1]}
@@ -726,12 +611,6 @@ Estado: ${LOOP_STATE_TEXT[current]}
           shutoff ? "CERRADA (fire switch tirado; luz LOW PRESSURE desactivada)" : "ABIERTA"
         }`}
       />
-      <TinyLabel x={side([FUEL_LINE_X - 1.5, 0])[0]} y={SPAR_VALVE[1]} anchor={outboard}>
-        SPAR
-      </TinyLabel>
-      <TinyLabel x={side([FUEL_LINE_X - 1.5, 0])[0]} y={ENGINE_FUEL_VALVE[1]} anchor={outboard}>
-        FUEL
-      </TinyLabel>
       <TinyLabel x={side([HYD_LINE_X + 1.5, 0])[0]} y={HYD_VALVE[1] + 1.6} anchor={inboard}>
         HYD
       </TinyLabel>
@@ -843,8 +722,6 @@ const APU_TUBE: P[] = [
   [APU_PORT[0], APU_PORT[1] + 0.45],
 ];
 // Left of the elevator pitot probes on the fin, right of the APU bleed duct
-const APU_FUEL_LINE_X = 375.6;
-const APU_FUEL_VALVE: P = [APU_FUEL_LINE_X, 498.3];
 // Air inlet door on the right side of the fuselage (FCOM 7.30), ahead of the
 // APU, hinged along the skin.
 const APU_INLET_DOOR = { x: 389.5, y: 507.6, angle: 103.8 };
@@ -895,9 +772,12 @@ function ApuInletDoor({ open }: { open: boolean }) {
   );
 }
 
-function ApuFireProtection() {
+function ApuFireProtection({ fuelShown }: { fuelShown: boolean }) {
   const { state, indications, dispatch } = useFire();
   const { sourcesState } = usePneumatic();
+  const { state: fuel } = useFuel();
+  const fuelValveOpen = fuel.valveOpen.apu;
+  const [sovX, sovY] = APU_FUEL_SHUTOFF_VALVE_AT;
   const current = state.apuLoop;
   const next = APU_LOOP_CYCLE[(APU_LOOP_CYCLE.indexOf(current) + 1) % APU_LOOP_CYCLE.length];
   const shutoff = indications.apuShutoff;
@@ -958,17 +838,22 @@ Estado: ${APU_LOOP_TEXT[current]}
         title="Squib de la botella del APU (fire switch del APU o manija del panel P28)"
       />
 
-      <ShutoffValve
-        x={APU_FUEL_VALVE[0]}
-        y={APU_FUEL_VALVE[1]}
-        open={running && !shutoff}
-        title={`APU fuel shutoff valve · ${
-          shutoffCause ? `CERRADA (${shutoffCause})` : running ? "ABIERTA" : "CERRADA (APU apagada)"
-        }`}
-      />
-      <TinyLabel x={APU_FUEL_LINE_X + 1.5} y={APU_FUEL_VALVE[1]} anchor="start">
-        FUEL
-      </TinyLabel>
+      {/* APU fuel shutoff valve on the rear spar, unless the fuel layer draws it */}
+      {!fuelShown && (
+        <g>
+          <ShutoffValve
+            x={sovX}
+            y={sovY}
+            open={fuelValveOpen}
+            title={`APU fuel shutoff valve (larguero trasero, hueco del tren izquierdo) · ${
+              fuelValveOpen ? "ABIERTA" : shutoffCause ? `CERRADA (${shutoffCause})` : "CERRADA (APU apagada)"
+            }`}
+          />
+          <TinyLabel x={sovX - 1.8} y={sovY} anchor="end">
+            APU FUEL
+          </TinyLabel>
+        </g>
+      )}
       <ApuInletDoor open={running && !shutoff} />
 
       {indications.apuAutoShutdown && (
@@ -996,11 +881,11 @@ Estado: ${APU_LOOP_TEXT[current]}
   );
 }
 
-function ApuTubing() {
+function ApuTubing({ fuelShown }: { fuelShown: boolean }) {
   const { state } = useFire();
   return (
     <g>
-      <ServiceLine points={[[APU_FUEL_LINE_X, 494.6], [APU_FUEL_LINE_X, APU_LOOP[0][1]]]} />
+      {!fuelShown && <ServiceLine points={APU_FUEL_LINE} />}
       <AgentTube
         points={APU_TUBE}
         {...tubeFlow(state.bottles.apu, "apu")}
@@ -1506,7 +1391,7 @@ Estado: ${lav.fire ? (lav.extinguisherDischarged ? "FUEGO (el extintor ya está 
 // Layers
 
 /** Zone glows, tubing and wiring: drawn under the pneumatic and ECS layers. */
-export function FireProtectionUnderLayer() {
+export function FireProtectionUnderLayer({ fuelShown }: { fuelShown: boolean }) {
   return (
     <g data-layer="fire-under" className="select-none">
       <EngineZoneGlow engine="eng1" />
@@ -1516,8 +1401,8 @@ export function FireProtectionUnderLayer() {
       <WheelWellGlow />
       <ApuZoneGlow />
       <ApuFirewall />
-      <EngineServiceLines engine="eng1" />
-      <EngineServiceLines engine="eng2" />
+      <EngineServiceLines engine="eng1" fuelShown={fuelShown} />
+      <EngineServiceLines engine="eng2" fuelShown={fuelShown} />
       <WheelWellLoop />
       <CargoLoopWiring compartment="fwd" loop="A" />
       <CargoLoopWiring compartment="fwd" loop="B" />
@@ -1525,7 +1410,7 @@ export function FireProtectionUnderLayer() {
       <CargoLoopWiring compartment="aft" loop="B" />
       <CargoTubing />
       <EngineTubing />
-      <ApuTubing />
+      <ApuTubing fuelShown={fuelShown} />
     </g>
   );
 }
@@ -1550,18 +1435,25 @@ function ApuZoneGlow() {
 }
 
 /** Detectors, bottles, valves and warnings: drawn on top of everything. */
-export function FireProtectionLayer({ onOpenApuGroundPanel }: { onOpenApuGroundPanel: () => void }) {
+export function FireProtectionLayer({
+  onOpenApuGroundPanel,
+  fuelShown,
+}: {
+  onOpenApuGroundPanel: () => void;
+  /** The fuel layer is on: it draws the fuel shutoff valves and lines. */
+  fuelShown: boolean;
+}) {
   return (
     <g data-layer="fire" className="select-none" aria-label="Protección contra incendios">
-      <EngineFireProtection engine="eng1" />
-      <EngineFireProtection engine="eng2" />
+      <EngineFireProtection engine="eng1" fuelShown={fuelShown} />
+      <EngineFireProtection engine="eng2" fuelShown={fuelShown} />
       <EngineBottles />
       <WheelWellFireSpot />
       <ApuGroundPanelMarker onOpen={onOpenApuGroundPanel} />
       <CargoCompartmentDevices compartment="fwd" />
       <CargoCompartmentDevices compartment="aft" />
       <CargoBottle />
-      <ApuFireProtection />
+      <ApuFireProtection fuelShown={fuelShown} />
       {LAVATORIES.map((id) => (
         <Lavatory key={id} id={id} />
       ))}
@@ -1573,9 +1465,6 @@ export function FireProtectionLayer({ onOpenApuGroundPanel }: { onOpenApuGroundP
 // ---------------------------------------------------------------------------
 // APU ground control panel popover
 
-const POPOVER_SCALE = 0.85;
-const POPOVER_GAP = 14;
-
 /**
  * The P28 panel, opened from its hatch in the right wheel well: an HTML
  * overlay kept beside the hatch as the plan view pans and zooms.
@@ -1586,88 +1475,24 @@ export function ApuGroundPanelPopover({
   onClose,
 }: {
   svgRef: RefObject<SVGSVGElement | null>;
-  view: { scale: number; x: number; y: number };
+  view: PlanView;
   onClose: () => void;
 }) {
-  const boxRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const place = () => {
-      const svg = svgRef.current;
-      const box = boxRef.current;
-      const host = box?.offsetParent;
-      const matrix = svg?.getScreenCTM();
-      if (!svg || !box || !host || !matrix) return;
-      // Hatch in the svg's user space, then on screen
-      const ux = view.x + (APU_GROUND_PANEL_AT[0] + 2.3) * view.scale;
-      const uy = view.y + APU_GROUND_PANEL_AT[1] * view.scale;
-      const sx = matrix.a * ux + matrix.c * uy + matrix.e;
-      const sy = matrix.b * ux + matrix.d * uy + matrix.f;
-      const hostRect = host.getBoundingClientRect();
-      const width = box.offsetWidth;
-      const height = box.offsetHeight;
-      let left = sx - hostRect.left + POPOVER_GAP;
-      // Not enough room on the right: open on the left of the hatch
-      if (left + width > hostRect.width - 8) left = sx - hostRect.left - POPOVER_GAP - width - 2.3 * 2 * view.scale;
-      const top = sy - hostRect.top - height / 2;
-      box.style.left = `${Math.max(8, Math.min(left, hostRect.width - width - 8))}px`;
-      box.style.top = `${Math.max(32, Math.min(top, hostRect.height - height - 48))}px`;
-      box.style.visibility = "visible";
-    };
-    place();
-    window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
-  }, [svgRef, view]);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      ref={boxRef}
-      data-export-exclude
-      role="dialog"
-      aria-label="APU ground control panel (P28)"
-      className="invisible absolute z-40 border border-sim-border bg-sim-surface shadow-2xl"
+    <PlanViewPopover
+      svgRef={svgRef}
+      view={view}
+      anchor={APU_GROUND_PANEL_AT}
+      anchorHalfWidth={2.3}
+      title="APU GROUND CONTROL · P28"
+      location="R MAIN WHEEL WELL"
+      ariaLabel="APU ground control panel (P28)"
+      closeLabel="Cerrar el panel P28"
+      size={APU_GROUND_CONTROL_PANEL_SIZE}
+      onClose={onClose}
     >
-      <div className="flex h-6 items-center justify-between gap-3 border-b border-sim-border pr-0.5 pl-2 text-[7px] tracking-[0.14em] text-sim-text-muted">
-        <span>
-          APU GROUND CONTROL · P28 <span className="text-sim-text-label">· R MAIN WHEEL WELL</span>
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex size-5 cursor-pointer items-center justify-center text-sm leading-none hover:bg-sim-bg hover:text-sim-text-strong"
-          aria-label="Cerrar el panel P28"
-          title="Cerrar (Esc)"
-        >
-          ×
-        </button>
-      </div>
-      <div
-        className="relative overflow-hidden"
-        style={{
-          width: APU_GROUND_CONTROL_PANEL_SIZE.width * POPOVER_SCALE,
-          height: APU_GROUND_CONTROL_PANEL_SIZE.height * POPOVER_SCALE,
-        }}
-      >
-        <div
-          className="absolute top-0 left-0 origin-top-left"
-          style={{
-            width: APU_GROUND_CONTROL_PANEL_SIZE.width,
-            height: APU_GROUND_CONTROL_PANEL_SIZE.height,
-            transform: `scale(${POPOVER_SCALE})`,
-          }}
-        >
-          <ApuGroundControlPanel />
-        </div>
-      </div>
-    </div>
+      <ApuGroundControlPanel />
+    </PlanViewPopover>
   );
 }
 

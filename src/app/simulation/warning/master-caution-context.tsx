@@ -4,6 +4,8 @@ import { createContext, useContext, useMemo, useState } from "react";
 import { DUCT_OVERHEAT_SENSORS } from "../ecs/zone-temp";
 import { useFire } from "../fire/fire-context";
 import { overheatDetectionCautions, type FireIndications } from "../fire/fire-protection";
+import { useFuel } from "../fuel/fuel-context";
+import { fuelCautions, type FuelCaution } from "../fuel/fuel-system";
 import {
   PROBE_SYSTEM_MAP,
   usePneumatic,
@@ -13,7 +15,7 @@ import {
 } from "../pneumatic/pneumatic-context";
 import {
   getMasterCautionLights,
-  pruneAcknowledged,
+  updateAcknowledged,
   type CautionSource,
   type SystemAnnunciator,
 } from "./master-caution";
@@ -29,6 +31,7 @@ const PROBES = Object.keys(PROBE_SYSTEM_MAP) as ProbeId[];
 function getActiveCautions(
   pneumatic: PneumaticContextValue,
   fire: FireIndications,
+  fuel: FuelCaution[],
 ): CautionSource[] {
   const lights: [string, SystemAnnunciator, boolean][] = [
     // AIR COND
@@ -74,9 +77,11 @@ function getActiveCautions(
     ),
   ];
 
-  return lights
-    .filter(([, , lit]) => lit)
-    .map(([id, annunciator]) => ({ id, annunciator }));
+  return [
+    ...lights.filter(([, , lit]) => lit).map(([id, annunciator]) => ({ id, annunciator })),
+    // FUEL: LOW PRESSURE and FILTER BYPASS (FCOM 12.10.2-3, 15.20.3)
+    ...fuel.map((caution): CautionSource => ({ ...caution, annunciator: "FUEL" })),
+  ];
 }
 
 type MasterCautionContextValue = {
@@ -98,15 +103,18 @@ const MasterCautionContext = createContext<MasterCautionContextValue | null>(nul
 export function MasterCautionProvider({ children }: { children: React.ReactNode }) {
   const pneumatic = usePneumatic();
   const { indications: fire, dispatch: dispatchFire } = useFire();
-  const active = useMemo(() => getActiveCautions(pneumatic, fire), [pneumatic, fire]);
+  const { state: fuelState } = useFuel();
+  const fuel = useMemo(() => fuelCautions(fuelState), [fuelState]);
+  const active = useMemo(() => getActiveCautions(pneumatic, fire, fuel), [pneumatic, fire, fuel]);
   const activeKey = active.map(({ id }) => id).join("|");
 
-  // Cautions reset with MASTER CAUTION, forgotten when their light goes out
-  const [acknowledged, setAcknowledged] = useState<string[]>([]);
+  // Cautions reset with MASTER CAUTION, forgotten when their light goes out;
+  // recall-only lights start out reset
+  const [acknowledged, setAcknowledged] = useState<string[]>(() => updateAcknowledged([], [], active));
   const [trackedKey, setTrackedKey] = useState(activeKey);
   if (trackedKey !== activeKey) {
     setTrackedKey(activeKey);
-    setAcknowledged(pruneAcknowledged(acknowledged, active));
+    setAcknowledged(updateAcknowledged(acknowledged, trackedKey.split("|"), active));
   }
 
   const [isAnnunciatorPanelPressed, setAnnunciatorPanelPressed] = useState(false);

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
+  gaugeCoord,
   Screw,
   Placard,
 } from "./panel-parts";
@@ -156,10 +157,10 @@ export function TempSourceLabels() {
           return (
             <line
               key={`in-${a}`}
-              x1={35 * Math.cos(rad)}
-              y1={35 * Math.sin(rad)}
-              x2={42 * Math.cos(rad)}
-              y2={42 * Math.sin(rad)}
+              x1={gaugeCoord(35 * Math.cos(rad))}
+              y1={gaugeCoord(35 * Math.sin(rad))}
+              x2={gaugeCoord(42 * Math.cos(rad))}
+              y2={gaugeCoord(42 * Math.sin(rad))}
             />
           );
         })}
@@ -170,10 +171,10 @@ export function TempSourceLabels() {
           return (
             <line
               key={`out-${a}`}
-              x1={76 * Math.cos(rad)}
-              y1={76 * Math.sin(rad)}
-              x2={88 * Math.cos(rad)}
-              y2={88 * Math.sin(rad)}
+              x1={gaugeCoord(76 * Math.cos(rad))}
+              y1={gaugeCoord(76 * Math.sin(rad))}
+              x2={gaugeCoord(88 * Math.cos(rad))}
+              y2={gaugeCoord(88 * Math.sin(rad))}
             />
           );
         })}
@@ -361,10 +362,10 @@ export function TemperatureGauge({ value = 24 }: { value?: number }) {
             return (
               <line
                 key={`t-${v}`}
-                x1={100 + innerR * Math.cos(rad)}
-                y1={100 + innerR * Math.sin(rad)}
-                x2={100 + outerR * Math.cos(rad)}
-                y2={100 + outerR * Math.sin(rad)}
+                x1={gaugeCoord(100 + innerR * Math.cos(rad))}
+                y1={gaugeCoord(100 + innerR * Math.sin(rad))}
+                x2={gaugeCoord(100 + outerR * Math.cos(rad))}
+                y2={gaugeCoord(100 + outerR * Math.sin(rad))}
                 strokeWidth={isMajor ? 2.5 : 1.2}
               />
             );
@@ -383,8 +384,8 @@ export function TemperatureGauge({ value = 24 }: { value?: number }) {
             const deg = 220 + (v / 100) * 255;
             const rad = ((deg - 90) * Math.PI) / 180;
             const r = 53;
-            const x = 100 + r * Math.cos(rad);
-            const y = 100 + r * Math.sin(rad) + 4;
+            const x = gaugeCoord(100 + r * Math.cos(rad));
+            const y = gaugeCoord(100 + r * Math.sin(rad) + 4);
             return (
               <text key={`num-${v}`} x={x} y={y}>
                 {v}
@@ -541,8 +542,8 @@ export function TemperatureSelector({
           {[-90, -45, 45, 90].map((a, i) => {
             const rad = ((a - 90) * Math.PI) / 180;
             const r = 40;
-            const x = 45 + r * Math.cos(rad);
-            const y = 45 + r * Math.sin(rad);
+            const x = gaugeCoord(45 + r * Math.cos(rad));
+            const y = gaugeCoord(45 + r * Math.sin(rad));
             return <circle key={i} cx={x} cy={y} r="2" fill="white" />;
           })}
 

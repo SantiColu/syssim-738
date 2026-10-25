@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import {
+  gaugeCoord,
   Screw,
 } from "./panel-parts";
 
@@ -18,8 +19,8 @@ export function PolarTick({
 }) {
   const radians = ((angle - 90) * Math.PI) / 180;
   const point = (radius: number) => ({
-    x: 100 + Math.cos(radians) * radius,
-    y: 100 + Math.sin(radians) * radius,
+    x: gaugeCoord(100 + Math.cos(radians) * radius),
+    y: gaugeCoord(100 + Math.sin(radians) * radius),
   });
   const a = point(inner);
   const b = point(outer);
@@ -49,8 +50,8 @@ export function PolarLabel({
   const radians = ((angle - 90) * Math.PI) / 180;
   return (
     <text
-      x={100 + Math.cos(radians) * radius}
-      y={103 + Math.sin(radians) * radius}
+      x={gaugeCoord(100 + Math.cos(radians) * radius)}
+      y={gaugeCoord(103 + Math.sin(radians) * radius)}
       fill="white"
       fontSize={size}
       textAnchor="middle"

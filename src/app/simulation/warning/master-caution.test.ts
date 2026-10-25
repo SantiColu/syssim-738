@@ -3,6 +3,7 @@ import {
   getMasterCautionLights,
   pruneAcknowledged,
   SYSTEM_ANNUNCIATORS,
+  updateAcknowledged,
   type CautionSource,
 } from "./master-caution";
 
@@ -44,5 +45,15 @@ describe("master caution", () => {
     // the PACK light coming back on is a new caution
     const lights = getMasterCautionLights([PACK_L, DUAL_BLEED], ["dual-bleed"]);
     expect(lights.masterCaution).toBe(true);
+  });
+
+  it("keeps a recall-only light dark until recall", () => {
+    const fwd2: CautionSource = { id: "fuel-low-pressure-fwd2", annunciator: "FUEL", recallOnly: true };
+    const acknowledged = updateAcknowledged([], [], [fwd2]);
+    expect(getMasterCautionLights([fwd2], acknowledged).masterCaution).toBe(false);
+    // Recall forgets every reset: the light comes on with MASTER CAUTION
+    expect(getMasterCautionLights([fwd2], []).masterCaution).toBe(true);
+    // Still on, and not new: it stays as the recall left it
+    expect(updateAcknowledged([], [fwd2.id], [fwd2])).toEqual([]);
   });
 });

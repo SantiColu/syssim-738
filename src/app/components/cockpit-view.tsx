@@ -8,10 +8,12 @@ import {
   EngineStartLevers,
   EquipmentCoolingPanel,
   FireProtectionPanel,
+  FuelPanel,
   GlareshieldWarningPanel,
   LeftWiperPanel,
   RightWiperPanel,
   TemperaturePanel,
+  UpperDisplayFuel,
   WindowHeatPanel,
   WingAntiIcePanel,
 } from "./aircraft-panels";
@@ -77,6 +79,10 @@ const COCKPIT_PANELS: CockpitPanelSlot[] = [
   { id: "left-wiper", Panel: LeftWiperPanel, x: 1472, y: 2066, width: 140, height: 152, panelWidth: 140, panelHeight: 152 },
   // Right Windshield Wiper Panel (Fitted into tall elongated panel svg_22)
   { id: "right-wiper", Panel: RightWiperPanel, x: 1616, y: 2066, width: 140, height: 152, panelWidth: 140, panelHeight: 152 },
+  // Fuel Panel in svg_18 (bottom of the left column)
+  { id: "fuel", Panel: FuelPanel, x: 948, y: 1706, width: 330, height: 512, panelWidth: 330, panelHeight: 512 },
+  // Upper display unit screen: fuel quantity only
+  { id: "upper-du", Panel: UpperDisplayFuel, x: 1544, y: 2917, width: 373, height: 369, panelWidth: 373, panelHeight: 369 },
   // Master FIRE WARN / MASTER CAUTION and system annunciators on the glareshield wings
   { id: "warning-capt", Panel: CaptainWarningPanel, x: 482, y: 2540, width: 256, height: 77, panelWidth: 512, panelHeight: 154, scale: 0.5 },
   { id: "warning-fo", Panel: FirstOfficerWarningPanel, x: 2626, y: 2540, width: 256, height: 77, panelWidth: 512, panelHeight: 154, scale: 0.5 },

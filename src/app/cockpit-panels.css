@@ -2322,7 +2322,15 @@
   top: 34px;
   width: 50px;
   height: 66px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
   filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.6));
+  transition: top 0.25s ease-in-out;
+}
+.esl-lever.cutoff {
+  top: 124px;
 }
 .esl-lever.eng1 {
   left: 9px;
@@ -2344,4 +2352,517 @@
 .esl-lever.lit .esl-light path {
   stroke: #ff2a2a;
   filter: drop-shadow(0 0 3px #ff3b30);
+}
+
+/* Fuel control panel (forward overhead), laid out at 330x512 */
+.fuel-panel {
+  width: 330px;
+  height: 512px;
+  background: #797e80;
+  user-select: none;
+}
+.fuel-light {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  border: 2px solid #3c4143;
+  border-radius: 2px;
+  background: #0a0b0d;
+  color: #484f52;
+  font: 700 8px/1.1 Arial, sans-serif;
+  letter-spacing: 0.03em;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 1px 1px rgba(255, 255, 255, 0.08);
+  transition: all 0.12s ease-out;
+}
+.fuel-light.blue.bright {
+  border-color: #38bdf8;
+  background: #031526;
+  color: #7dd3fc;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.85);
+  box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.45), 0 0 10px rgba(56, 189, 248, 0.5);
+}
+.fuel-light.blue.dim {
+  border-color: #1d4ed8;
+  background: #020b14;
+  color: #3b82f6;
+  text-shadow: 0 0 4px rgba(37, 99, 235, 0.6);
+  box-shadow: inset 0 0 6px rgba(37, 99, 235, 0.3), 0 0 6px rgba(37, 99, 235, 0.25);
+}
+.fuel-light.amber.bright {
+  border-color: #ffaa00;
+  background: #140d02;
+  color: #ffb81c;
+  text-shadow: 0 0 6px rgba(255, 170, 0, 0.7);
+  box-shadow: inset 0 0 8px rgba(255, 170, 0, 0.35), 0 0 8px rgba(255, 170, 0, 0.4);
+}
+.fuel-valve-lights {
+  position: absolute;
+  top: 24px;
+  width: 82px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fuel-valve-lights.eng1 {
+  left: 16px;
+}
+.fuel-valve-lights.eng2 {
+  right: 16px;
+}
+.fuel-temp {
+  position: absolute;
+  top: 12px;
+  left: 105px;
+  width: 120px;
+  height: 120px;
+}
+.fuel-temp-gauge {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fuel-filter-row {
+  position: absolute;
+  top: 148px;
+  left: 16px;
+  right: 16px;
+  display: grid;
+  grid-template-columns: 82px 82px 82px;
+  justify-content: space-between;
+}
+.fuel-mimic {
+  position: absolute;
+  top: 190px;
+  left: 15px;
+  width: 300px;
+  height: 310px;
+  border: 1.5px solid #8d9396;
+  border-radius: 10px;
+  background: #dcdfe1;
+  box-shadow: inset 0 1px 0 #fff, 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.fuel-mimic-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.fuel-word {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 1px 3px;
+  background: #2b2e30;
+  color: #f4f4f2;
+  font-size: 9px;
+}
+.fuel-word.cross {
+  left: 92px;
+  top: 32px;
+  font-size: 11px;
+}
+.fuel-word.feed {
+  left: 208px;
+  top: 32px;
+  font-size: 11px;
+}
+.fuel-word.ctr-title {
+  left: 150px;
+  top: 74px;
+}
+.fuel-word.ctr-l {
+  left: 52px;
+  top: 132px;
+}
+.fuel-word.ctr-r {
+  left: 248px;
+  top: 132px;
+}
+.fuel-word.ctr-off {
+  left: 150px;
+  top: 122px;
+}
+.fuel-word.ctr-on {
+  left: 150px;
+  top: 144px;
+}
+.fuel-word.ctr-ctr {
+  left: 150px;
+  top: 159px;
+}
+.fuel-word.aft1 {
+  left: 50px;
+  top: 259px;
+}
+.fuel-word.fwd1 {
+  left: 112px;
+  top: 259px;
+}
+.fuel-word.fwd2 {
+  left: 188px;
+  top: 259px;
+}
+.fuel-word.aft2 {
+  left: 250px;
+  top: 259px;
+}
+.fuel-word.main-off1,
+.fuel-word.main-on1 {
+  left: 81px;
+}
+.fuel-word.main-off2,
+.fuel-word.main-on2 {
+  left: 219px;
+}
+.fuel-word.main-off1,
+.fuel-word.main-off2 {
+  top: 273px;
+}
+.fuel-word.main-on1,
+.fuel-word.main-on2 {
+  top: 293px;
+}
+.fuel-word.main-title {
+  left: 150px;
+  top: 268px;
+  text-align: center;
+  line-height: 1.15;
+}
+.fuel-word.num1 {
+  left: 81px;
+  top: 219px;
+  font-size: 11px;
+}
+.fuel-word.num2 {
+  left: 219px;
+  top: 219px;
+  font-size: 11px;
+}
+.fuel-pump {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+.fuel-pump-ctrL,
+.fuel-pump-ctrR {
+  top: 92px;
+  width: 66px;
+  gap: 2px;
+}
+.fuel-pump-ctrL {
+  left: 96px;
+}
+.fuel-pump-ctrR {
+  left: 204px;
+}
+.fuel-pump-aft1,
+.fuel-pump-fwd1,
+.fuel-pump-fwd2,
+.fuel-pump-aft2 {
+  top: 230px;
+  width: 56px;
+  gap: 11px;
+}
+.fuel-pump .fuel-light {
+  width: 100%;
+  font-size: 7.5px;
+}
+.fuel-pump-aft1 {
+  left: 50px;
+}
+.fuel-pump-fwd1 {
+  left: 112px;
+}
+.fuel-pump-fwd2 {
+  left: 188px;
+}
+.fuel-pump-aft2 {
+  left: 250px;
+}
+.fuel-crossfeed {
+  position: absolute;
+  top: 12px;
+  left: 124px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 2px solid #5b6164;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #c9ced1 60%, #8f9599);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.fuel-crossfeed-bar {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 9px;
+  height: 42px;
+  margin-left: -4.5px;
+  border-radius: 2px;
+  background: #141414;
+  transition: transform 0.3s ease-in-out;
+}
+.fuel-crossfeed.open .fuel-crossfeed-bar {
+  transform: rotate(90deg);
+}
+
+/* Upper display unit screen (fuel quantity only), laid out at 373x369 */
+.upper-du {
+  position: relative;
+  width: 373px;
+  height: 369px;
+  overflow: hidden;
+  background: #050607;
+  font-family: Arial, sans-serif;
+  user-select: none;
+}
+.du-fuel {
+  position: absolute;
+  right: 14px;
+  bottom: 22px;
+  width: 136px;
+}
+.du-fuel-title {
+  display: block;
+  margin-bottom: 2px;
+  color: #6fd3f5;
+  font-size: 7.5px;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+.du-fuel-tanks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 3px 2px 1px;
+  border: 1px solid #6fd3f5;
+  border-radius: 4px;
+}
+.du-fuel-tank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #f4f4f2;
+}
+.du-fuel-tank.amber {
+  color: #ffb000;
+}
+.du-fuel-value {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.du-fuel-alert {
+  height: 9px;
+  font-size: 8px;
+  font-weight: 700;
+}
+.du-fuel-total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 3px;
+  padding-left: 4px;
+}
+.du-fuel-total-label {
+  color: #6fd3f5;
+  font-size: 8px;
+}
+.du-fuel-total-value {
+  color: #f4f4f2;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Test gages and fueling panel P15 (right wing leading edge), laid out at 400x210 */
+.fueling-panel {
+  width: 400px;
+  height: 210px;
+  background: #8c8f91;
+  user-select: none;
+}
+.fueling-title {
+  position: absolute;
+  top: 10px;
+  left: 96px;
+  right: 18px;
+  display: flex;
+  justify-content: center;
+  border-top: 1.5px solid #f4f4f2;
+}
+.fueling-title .fp-label {
+  margin-top: -7px;
+  padding: 0 6px;
+  background: #8c8f91;
+  font-size: 9px;
+}
+.fueling-small {
+  font-size: 7.5px;
+  line-height: 1.05;
+}
+.fueling-test {
+  position: absolute;
+  top: 34px;
+  left: 16px;
+  width: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.fueling-test-switch {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  margin: 3px 0;
+}
+.fueling-hit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.fueling-hit.top {
+  top: 0;
+}
+.fueling-hit.bottom {
+  bottom: 0;
+}
+.fueling-off {
+  position: absolute;
+  top: 12px;
+  left: 38px;
+  font-size: 7.5px;
+}
+.fueling-tanks {
+  position: absolute;
+  top: 18px;
+  left: 96px;
+  right: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.fueling-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.fueling-valve-light {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 2px;
+  border: 3px solid #3d4143;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #1b2c5a, #0b1430);
+  box-shadow: inset 0 1px 3px #000;
+}
+.fueling-valve-light.lit {
+  background: radial-gradient(circle at 40% 35%, #9fb4ff, #2f5bff 55%, #1035d9);
+  box-shadow: 0 0 10px rgba(60, 100, 255, 0.85);
+}
+.fueling-gage {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin-top: 4px;
+  border: 3px solid #2b2e30;
+  border-radius: 50%;
+  background: #070808;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #f4f4f2;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 0 0 2px #6f7477;
+}
+.fueling-gage-title {
+  font-size: 6px;
+}
+.fueling-gage-value {
+  min-width: 34px;
+  min-height: 13px;
+  margin: 1px 0;
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #f6f1d0;
+}
+.fueling-gage-unit {
+  position: absolute;
+  left: 12px;
+  top: 38px;
+  font-size: 6px;
+}
+.fueling-gage-mark {
+  font-size: 9px;
+  font-weight: 700;
+}
+.fueling-tank {
+  margin-top: 4px;
+  font-size: 8px;
+}
+
+/* NGS operability indicator (right main wheel well), laid out at 250x170 */
+.ngs-indicator {
+  width: 250px;
+  height: 170px;
+  padding: 12px 18px;
+  background: #2c3134;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  user-select: none;
+}
+.ngs-title {
+  text-align: center;
+  font-size: 10px;
+}
+.ngs-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ngs-light {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #555b5e;
+  border-radius: 50%;
+  background: #15181a;
+  box-shadow: inset 0 1px 3px #000;
+}
+.ngs-light.green.lit {
+  background: radial-gradient(circle at 40% 35%, #b5ffcb, #1fd65c 60%);
+  box-shadow: 0 0 10px rgba(40, 230, 100, 0.8);
+}
+.ngs-light.blue.lit {
+  background: radial-gradient(circle at 40% 35%, #b8c7ff, #3a63ff 60%);
+  box-shadow: 0 0 10px rgba(60, 100, 255, 0.8);
+}
+.ngs-light.amber.lit {
+  background: radial-gradient(circle at 40% 35%, #ffe2a0, #ffaa00 60%);
+  box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
+}
+.ngs-text {
+  display: flex;
+  flex-direction: column;
+  color: #f4f4f2;
+  font-family: Arial, sans-serif;
+  line-height: 1.15;
+}
+.ngs-text b {
+  font-size: 10px;
+}
+.ngs-text small {
+  font-size: 8px;
+  opacity: 0.85;
 }

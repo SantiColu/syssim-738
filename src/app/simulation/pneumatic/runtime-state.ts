@@ -226,6 +226,8 @@ export function computeRuntimeState(
     [PNEUMATIC_NODE.eng2CowlAntiIceValve]: {
       open: Boolean(switches.eng2AntiIce),
     },
+    // The NGS shuts down on the ground (FCOM 12.20.1): the simulator is always on the ground
+    [PNEUMATIC_NODE.ngsShutoffValve]: { open: false },
     [PNEUMATIC_NODE.eng1FanAirValve]: { open: Boolean(manualValves?.[PNEUMATIC_NODE.eng1FanAirValve]) },
     [PNEUMATIC_NODE.eng2FanAirValve]: { open: Boolean(manualValves?.[PNEUMATIC_NODE.eng2FanAirValve]) },
     [PNEUMATIC_NODE.eng1HighStageValve]: { open: Boolean(manualValves?.[PNEUMATIC_NODE.eng1HighStageValve]) },

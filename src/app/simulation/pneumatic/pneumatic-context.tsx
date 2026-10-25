@@ -32,6 +32,7 @@ import type {
 import { INITIAL_PACK_TRIP_SENSORS, isPackTripped } from "../ecs/pack-trip";
 import { INITIAL_DUCT_OVERHEAT } from "../ecs/zone-temp";
 import { useFire } from "../fire/fire-context";
+import { useFuel } from "../fuel/fuel-context";
 
 export {
   INTERACTIVE_MANUAL_VALVES,
@@ -157,7 +158,14 @@ const PneumaticContext = createContext<PneumaticContextValue | null>(null);
 
 export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const [switches, setSwitches] = useState<PneumaticSwitchesState>(INITIAL_SWITCHES);
-  const [sourcesState, setSourcesState] = useState<PneumaticSourcesState>(INITIAL_SOURCES);
+  const [airSources, setSourcesState] = useState<PneumaticSourcesState>(INITIAL_SOURCES);
+  // Engines and APU run while they get fuel: the fuel system owns that state
+  const { state: fuel, dispatch: dispatchFuel } = useFuel();
+  const { eng1: eng1Running, eng2: eng2Running, apu: apuRunning } = fuel.running;
+  const sourcesState = useMemo(
+    () => ({ ...airSources, eng1Running, eng2Running, apuRunning }),
+    [airSources, eng1Running, eng2Running, apuRunning],
+  );
   const [manualValves, setManualValves] =
     useState<Record<string, boolean>>(INITIAL_MANUAL_VALVES);
   const [overheatSensors, setOverheatSensors] =
@@ -322,21 +330,26 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     setSwitches((s) => ({ ...s, eng2AntiIce: on }));
   };
 
-  const setEng1Running = (running: boolean) =>
-    setSourcesState((s) => ({ ...s, eng1Running: running }));
-  const setEng2Running = (running: boolean) =>
-    setSourcesState((s) => ({ ...s, eng2Running: running }));
-  const setApuRunning = (running: boolean) =>
-    setSourcesState((s) => ({ ...s, apuRunning: running }));
+  // Starting runs the start sequence (start lever to IDLE) and shutting down
+  // moves the start lever to CUTOFF; neither happens without fuel.
+  const setEng1Running = useCallback(
+    (running: boolean) => dispatchFuel({ type: running ? "startEngine" : "stopEngine", engine: "eng1" }),
+    [dispatchFuel],
+  );
+  const setEng2Running = useCallback(
+    (running: boolean) => dispatchFuel({ type: running ? "startEngine" : "stopEngine", engine: "eng2" }),
+    [dispatchFuel],
+  );
+  const setApuRunning = useCallback(
+    (running: boolean) => dispatchFuel({ type: running ? "startApu" : "stopApu" }),
+    [dispatchFuel],
+  );
   const setGndAirConnected = (connected: boolean) =>
     setSourcesState((s) => ({ ...s, gndAirConnected: connected }));
 
-  const toggleEng1 = () =>
-    setSourcesState((s) => ({ ...s, eng1Running: !s.eng1Running }));
-  const toggleEng2 = () =>
-    setSourcesState((s) => ({ ...s, eng2Running: !s.eng2Running }));
-  const toggleApu = () =>
-    setSourcesState((s) => ({ ...s, apuRunning: !s.apuRunning }));
+  const toggleEng1 = useCallback(() => setEng1Running(!eng1Running), [setEng1Running, eng1Running]);
+  const toggleEng2 = useCallback(() => setEng2Running(!eng2Running), [setEng2Running, eng2Running]);
+  const toggleApu = useCallback(() => setApuRunning(!apuRunning), [setApuRunning, apuRunning]);
   const toggleGndAir = () =>
     setSourcesState((s) => ({ ...s, gndAirConnected: !s.gndAirConnected }));
 
@@ -397,9 +410,9 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
   const isLeftPackTripOff = isPackTripped(packTripSensors, "L");
   const isRightPackTripOff = isPackTripped(packTripSensors, "R");
 
-  // Fire switches (FCOM 8.20.2-4): a pulled switch closes the bleed valve and
-  // the fuel shutoff valves, so the engine or APU stops and cannot be started
-  // until it is pushed back in. The APU also shuts itself down on a fire.
+  // Fire switches (FCOM 8.20.2-4): a pulled switch closes the bleed valve. It
+  // also closes the fuel shutoff valves, which stops the engine or APU in the
+  // fuel system.
   const { indications: fire } = useFire();
   const fireEng1 = fire.engineShutoff.eng1;
   const fireEng2 = fire.engineShutoff.eng2;
@@ -408,19 +421,6 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
     () => ({ eng1: fireEng1, eng2: fireEng2, apu: fireApu }),
     [fireEng1, fireEng2, fireApu],
   );
-  const apuFuelCut = fireApu || fire.apuAutoShutdown;
-  if (
-    (sourcesState.eng1Running && fireEng1) ||
-    (sourcesState.eng2Running && fireEng2) ||
-    (sourcesState.apuRunning && apuFuelCut)
-  ) {
-    setSourcesState((s) => ({
-      ...s,
-      eng1Running: s.eng1Running && !fireEng1,
-      eng2Running: s.eng2Running && !fireEng2,
-      apuRunning: s.apuRunning && !apuFuelCut,
-    }));
-  }
 
   const runtimeState = useMemo(
     () =>
@@ -615,6 +615,12 @@ export function PneumaticProvider({ children }: { children: React.ReactNode }) {
       probeHeatSwitches,
       probeFailures,
       isProbeHeated,
+      setEng1Running,
+      setEng2Running,
+      setApuRunning,
+      toggleEng1,
+      toggleEng2,
+      toggleApu,
     ],
   );
 

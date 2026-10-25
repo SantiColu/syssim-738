@@ -5,7 +5,7 @@ Simulador interactivo de los sistemas del **Boeing 737-800 NG** (CFM56-7B), pens
 La aplicación muestra dos vistas sincronizadas:
 
 - **Cockpit:** el overhead panel con sus controles operables (switches, selectores, perillas e indicadores luminosos). Admite pan, zoom, pinch y navegación por minimapa.
-- **System:** el esquema del avión con la red neumática animada. Las líneas se colorean por temperatura o por presión según el estado de las fuentes y válvulas.
+- **System:** el esquema del avión en planta, por capas que se superponen desde las pestañas PNEUMATIC, ECS, FIRE y FUEL. La red neumática se colorea por temperatura o por presión según el estado de las fuentes y válvulas.
 
 El comportamiento se basa en el FCOM del 737 NG. Las referencias están en [docs/fcom/](docs/fcom/README.md).
 
@@ -19,6 +19,7 @@ El comportamiento se basa en el FCOM del 737 NG. Las referencias están en [docs
 | **Anti-ice** | Wing y engine (cowl) anti-ice, sensores de sobrecalentamiento, WING-BODY OVERHEAT |
 | **Rain** | Window heat (incl. tests OVHT / PWR TEST), probe heat, limpiaparabrisas |
 | **Fire protection** | Detección de overheat/fire de motores (doble lazo, OVHT DET), APU y wheel well; humo en bodegas (doble lazo, DET SELECT); botellas de motor, APU y cargo con squibs; fire switches (corte de combustible, bleed, hidráulico); tests FAULT/INOP, OVHT/FIRE, EXT y cargo; FIRE WARN / BELL CUTOUT; APU ground control panel; lavatorios |
+| **Fuel** | Tanques 1, central y 2 con su cantidad; seis bombas de CA (las del central con más presión y corte automático), succión, crossfeed, spar y engine fuel shutoff valves (start levers y fire switches), filtros, scavenge jet pump y alimentación del APU; panel FUEL con LOW PRESSURE, VALVE CLOSED y FILTER BYPASS; cantidad en el upper DU con alertas LOW, CONFIG e IMBAL; MASTER CAUTION FUEL; estación de carga (panel P15, camión, transferencia en tierra con la defueling valve); indicador del NGS |
 
 ## Puesta en marcha
 
@@ -51,6 +52,7 @@ src/app/
 │   ├── pneumatic-network-layer.tsx  # Render de la red neumática
 │   └── …                         # Capas del esquema (sensores, sondas, ventanas, wipers)
 ├── simulation/fire/              # Protección contra incendios: reducer puro + contexto
+├── simulation/fuel/              # Combustible: reducer puro + contexto (dueño de motores/APU andando)
 └── simulation/pneumatic/
     ├── main-network.ts           # Definición de la red: dibujo + nombres + semántica
     ├── migrate-legacy-network.ts # Construye y valida el grafo a partir del dibujo

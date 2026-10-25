@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { MAIN_PNEUMATIC_SYSTEM, PNEUMATIC_NODE } from "../simulation/pneumatic/main-network";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
@@ -32,6 +32,14 @@ import {
   FireProtectionLayer,
   FireProtectionUnderLayer,
 } from "./fire-protection-layer";
+import {
+  FUEL_LEGEND,
+  FuelingPanelPopover,
+  FuelLegendIcon,
+  FuelSystemLayer,
+  FuelSystemUnderLayer,
+  NgsIndicatorPopover,
+} from "./fuel-system-layer";
 
 const ARTBOARD_WIDTH = 760;
 const ARTBOARD_HEIGHT = 580;
@@ -51,6 +59,13 @@ const COLOR_SCALE_GRADIENTS: Record<PneumaticColorMode, string> = {
 const ECS_PACK_NODES: ReadonlySet<string> = new Set([
   PNEUMATIC_NODE.lPack,
   PNEUMATIC_NODE.rPack,
+]);
+// With the FUEL layer on, its NGS module replaces the network "NGS" block. The
+// ECS packs fill the left pack bay: with that layer on the NGS branch goes too.
+const FUEL_NGS_NODES: ReadonlySet<string> = new Set([PNEUMATIC_NODE.nitrogenGeneration]);
+const ECS_NGS_NODES: ReadonlySet<string> = new Set([
+  PNEUMATIC_NODE.nitrogenGeneration,
+  PNEUMATIC_NODE.ngsShutoffValve,
 ]);
 const MAIN_ACCESSORY_LEGEND: { kind: ValveKind; label: string }[] = [
   { kind: "on-off", label: "SHUTOFF" },
@@ -115,9 +130,22 @@ export function PneumaticSchematic() {
   const showPneumatic = isActive("pneumatic");
   const showEcs = isActive("ecs");
   const showFire = isActive("fire");
-  const [apuGroundPanelOpen, setApuGroundPanelOpen] = useState(false);
-  const openApuGroundPanel = useCallback(() => setApuGroundPanelOpen(true), []);
-  const closeApuGroundPanel = useCallback(() => setApuGroundPanelOpen(false), []);
+  const showFuel = isActive("fuel");
+  const showAirLegend = showPneumatic || showEcs;
+  const hiddenNetworkNodes = useMemo(
+    () =>
+      new Set([
+        ...(showEcs ? [...ECS_PACK_NODES, ...ECS_NGS_NODES] : []),
+        ...(showFuel ? FUEL_NGS_NODES : []),
+      ]),
+    [showEcs, showFuel],
+  );
+  // Panels opened from hatches in the plan view, one at a time
+  const [openPanel, setOpenPanel] = useState<"apu-ground" | "fueling" | "ngs" | null>(null);
+  const openApuGroundPanel = useCallback(() => setOpenPanel("apu-ground"), []);
+  const openFuelingPanel = useCallback(() => setOpenPanel("fueling"), []);
+  const openNgsIndicator = useCallback(() => setOpenPanel("ngs"), []);
+  const closePanel = useCallback(() => setOpenPanel(null), []);
   const mainSvgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const minimapPointerRef = useRef<number | null>(null);
@@ -393,7 +421,8 @@ export function PneumaticSchematic() {
             aria-hidden="true"
           />
           <LowerLobeLayer />
-          {showFire && <FireProtectionUnderLayer />}
+          {showFuel && <FuelSystemUnderLayer bleedShown={showPneumatic && !showEcs} />}
+          {showFire && <FireProtectionUnderLayer fuelShown={showFuel} />}
           {showEcs && <OverheadDuctLayer />}
           {showPneumatic && (
             <>
@@ -403,7 +432,7 @@ export function PneumaticSchematic() {
                 solution={solution}
                 runtimeState={runtimeState}
                 colorMode={colorMode}
-                hiddenNodes={showEcs ? ECS_PACK_NODES : undefined}
+                hiddenNodes={hiddenNetworkNodes}
               />
               <OverheatSensorsLayer />
               <FlightDeckWindowsLayer />
@@ -416,13 +445,22 @@ export function PneumaticSchematic() {
             href="#boeing-737-800-outline"
           />
           {showEcs && <RamDoorsLayer />}
-          {showFire && <FireProtectionLayer onOpenApuGroundPanel={openApuGroundPanel} />}
+          {showFuel && (
+            <FuelSystemLayer onOpenFuelingPanel={openFuelingPanel} onOpenNgsIndicator={openNgsIndicator} />
+          )}
+          {showFire && <FireProtectionLayer onOpenApuGroundPanel={openApuGroundPanel} fuelShown={showFuel} />}
           {showPneumatic && <AirDataProbesLayer />}
         </g>
       </svg>
 
-      {showFire && apuGroundPanelOpen && (
-        <ApuGroundPanelPopover svgRef={mainSvgRef} view={view} onClose={closeApuGroundPanel} />
+      {showFire && openPanel === "apu-ground" && (
+        <ApuGroundPanelPopover svgRef={mainSvgRef} view={view} onClose={closePanel} />
+      )}
+      {showFuel && openPanel === "fueling" && (
+        <FuelingPanelPopover svgRef={mainSvgRef} view={view} onClose={closePanel} />
+      )}
+      {showFuel && openPanel === "ngs" && (
+        <NgsIndicatorPopover svgRef={mainSvgRef} view={view} onClose={closePanel} />
       )}
 
       <div
@@ -500,91 +538,104 @@ export function PneumaticSchematic() {
       </div>
 
       <div
-        // The legend outgrows the bar with the FIRE entries: the wheel scrolls it sideways
+        // The legend outgrows the bar with the FIRE and FUEL entries: the wheel scrolls it sideways
         onWheel={(event) => {
           if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
             event.currentTarget.scrollLeft += event.deltaY;
           }
         }}
         className="absolute right-2.5 bottom-1.75 left-2.5 z-30 flex h-8 items-center overflow-x-auto border border-sim-border bg-sim-surface px-2 text-[7px] tracking-wider text-sim-text-muted whitespace-nowrap gap-x-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex h-full shrink-0 items-center gap-1.5 border-r border-sim-border pr-2">
-          <span className="text-[6.5px] tracking-[0.16em]">COLOR</span>
-          <div
-            className="flex"
-            role="group"
-            aria-label="Color de la red según variable"
-          >
-            {(["temperature", "pressure"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                className={`h-5 cursor-pointer border px-2 text-[6.5px] tracking-wider transition-colors ${
-                  colorMode === mode
-                    ? "border-sim-accent bg-sim-accent/15 text-sim-text-strong"
-                    : "border-sim-border bg-transparent text-sim-text-muted hover:bg-sim-bg hover:text-sim-text-strong"
-                }`}
-                onClick={() => setColorMode(mode)}
-                aria-pressed={colorMode === mode}
-              >
-                {mode === "temperature" ? "TEMP" : "PRESS"}
-              </button>
-            ))}
+        {/* Air colours and accessories: only with the air systems shown */}
+        {showAirLegend && (
+          <>
+          <div className="flex h-full shrink-0 items-center gap-1.5 border-r border-sim-border pr-2">
+            <span className="text-[6.5px] tracking-[0.16em]">COLOR</span>
+            <div
+              className="flex"
+              role="group"
+              aria-label="Color de la red según variable"
+            >
+              {(["temperature", "pressure"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`h-5 cursor-pointer border px-2 text-[6.5px] tracking-wider transition-colors ${
+                    colorMode === mode
+                      ? "border-sim-accent bg-sim-accent/15 text-sim-text-strong"
+                      : "border-sim-border bg-transparent text-sim-text-muted hover:bg-sim-bg hover:text-sim-text-strong"
+                  }`}
+                  onClick={() => setColorMode(mode)}
+                  aria-pressed={colorMode === mode}
+                >
+                  {mode === "temperature" ? "TEMP" : "PRESS"}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-36 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="h-2 flex-1 border border-white/15"
+                  style={{ backgroundImage: COLOR_SCALE_GRADIENTS[colorMode] }}
+                  aria-hidden="true"
+                />
+                <span className="w-4 text-[6px] text-sim-text-strong">
+                  {colorMode === "temperature" ? "°C" : "PSI"}
+                </span>
+              </div>
+              <div className="relative mt-0.5 mr-5 h-1.5 text-[5.5px] leading-none tabular-nums text-sim-text-muted">
+                {COLOR_SCALE_VALUES[colorMode].map((value, index, values) => {
+                  const maximum = values.at(-1) ?? 1;
+                  const position = (value / maximum) * 100;
+
+                  return (
+                    <span
+                      key={value}
+                      className={`absolute ${
+                        index === 0
+                          ? "translate-x-0"
+                          : index === values.length - 1
+                            ? "-translate-x-full"
+                            : "-translate-x-1/2"
+                      }`}
+                      style={{ left: `${position}%` }}
+                    >
+                      {value}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <span className="sr-only" aria-live="polite">
+              Colores según{" "}
+              {colorMode === "temperature" ? "temperatura" : "presión"}
+            </span>
           </div>
 
-          <div className="w-36 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <div
-                className="h-2 flex-1 border border-white/15"
-                style={{ backgroundImage: COLOR_SCALE_GRADIENTS[colorMode] }}
-                aria-hidden="true"
+          <span className="flex shrink-0 items-center gap-0.5">
+            <PneumaticSourceLegendIcon colorMode={colorMode} />
+            <span>AIR SOURCE</span>
+          </span>
+
+          {MAIN_ACCESSORY_LEGEND.map((item) => (
+            <span key={item.kind} className="flex shrink-0 items-center gap-0.5">
+              <PneumaticAccessoryLegendIcon
+                kind={item.kind}
+                colorMode={colorMode}
               />
-              <span className="w-4 text-[6px] text-sim-text-strong">
-                {colorMode === "temperature" ? "°C" : "PSI"}
-              </span>
-            </div>
-            <div className="relative mt-0.5 mr-5 h-1.5 text-[5.5px] leading-none tabular-nums text-sim-text-muted">
-              {COLOR_SCALE_VALUES[colorMode].map((value, index, values) => {
-                const maximum = values.at(-1) ?? 1;
-                const position = (value / maximum) * 100;
+              <span>{item.label}</span>
+            </span>
+          ))}
+          </>
+        )}
 
-                return (
-                  <span
-                    key={value}
-                    className={`absolute ${
-                      index === 0
-                        ? "translate-x-0"
-                        : index === values.length - 1
-                          ? "-translate-x-full"
-                          : "-translate-x-1/2"
-                    }`}
-                    style={{ left: `${position}%` }}
-                  >
-                    {value}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-          <span className="sr-only" aria-live="polite">
-            Colores según{" "}
-            {colorMode === "temperature" ? "temperatura" : "presión"}
+        {/* FIRE and FUEL draw their shutoff valves with the network symbol */}
+        {!showAirLegend && (
+          <span className="flex shrink-0 items-center gap-0.5">
+            <PneumaticAccessoryLegendIcon kind="on-off" colorMode={colorMode} />
+            <span>SHUTOFF</span>
           </span>
-        </div>
-
-        <span className="flex shrink-0 items-center gap-0.5">
-          <PneumaticSourceLegendIcon colorMode={colorMode} />
-          <span>AIR SOURCE</span>
-        </span>
-
-        {MAIN_ACCESSORY_LEGEND.map((item) => (
-          <span key={item.kind} className="flex shrink-0 items-center gap-0.5">
-            <PneumaticAccessoryLegendIcon
-              kind={item.kind}
-              colorMode={colorMode}
-            />
-            <span>{item.label}</span>
-          </span>
-        ))}
+        )}
 
         {showFire && (
           <>
@@ -592,6 +643,18 @@ export function PneumaticSchematic() {
             {FIRE_LEGEND.map((item) => (
               <span key={item.kind} className="flex shrink-0 items-center gap-0.5">
                 <FireLegendIcon kind={item.kind} />
+                <span>{item.label}</span>
+              </span>
+            ))}
+          </>
+        )}
+
+        {showFuel && (
+          <>
+            <span className="h-4 shrink-0 border-l border-sim-border" aria-hidden="true" />
+            {FUEL_LEGEND.map((item) => (
+              <span key={item.kind} className="flex shrink-0 items-center gap-0.5">
+                <FuelLegendIcon kind={item.kind} />
                 <span>{item.label}</span>
               </span>
             ))}

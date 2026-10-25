@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { gaugeCoord } from "./panel-parts";
 
 export function ScallopedKnob({
   ring = false,
@@ -38,8 +39,8 @@ export function ScallopedKnob({
   const scallops = Array.from({ length: numScallops }).map((_, i) => {
     const rad = i * ((2 * Math.PI) / numScallops);
     return {
-      cx: 27 + Math.sin(rad) * 19.5,
-      cy: 27 - Math.cos(rad) * 19.5,
+      cx: gaugeCoord(27 + Math.sin(rad) * 19.5),
+      cy: gaugeCoord(27 - Math.cos(rad) * 19.5),
     };
   });
 

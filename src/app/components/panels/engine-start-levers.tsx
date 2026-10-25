@@ -2,18 +2,29 @@
 
 import { useFire } from "../../simulation/fire/fire-context";
 import type { EngineId } from "../../simulation/fire/fire-protection";
+import { useFuel } from "../../simulation/fuel/fuel-context";
 
 /**
  * Engine start lever with the red fire light in its handle (-800 YW001-YW164,
- * FCOM 8.10.3). Engine start is not simulated, so it stays at IDLE.
+ * FCOM 8.10.3). IDLE opens the spar and engine fuel shutoff valves, CUTOFF
+ * closes them and stops the engine (FCOM 7.20.7). Moving it to IDLE does not
+ * start a stopped engine: the start sequence is the ENG button of the SYSTEM
+ * view.
  */
-function StartLever({ engine, lit }: { engine: 1 | 2; lit: boolean }) {
+function StartLever({ engine, lit }: { engine: EngineId; lit: boolean }) {
+  const { state, dispatch } = useFuel();
+  const n = engine === "eng1" ? 1 : 2;
+  const position = state.startLevers[engine];
+  const next = position === "IDLE" ? "CUTOFF" : "IDLE";
   return (
-    <div
-      className={`esl-lever eng${engine}${lit ? " lit" : ""}`}
-      role="img"
-      aria-label={`Engine ${engine} start lever, IDLE${lit ? ", fire light on" : ""}`}
-      title={`Palanca de arranque ${engine} (IDLE). Luz roja: fuego en el motor o test OVHT/FIRE`}
+    <button
+      type="button"
+      className={`esl-lever eng${n}${lit ? " lit" : ""}${position === "CUTOFF" ? " cutoff" : ""}`}
+      aria-label={`Engine ${n} start lever, ${position}${lit ? ", fire light on" : ""}. Click to move to ${next}`}
+      title={`Palanca de arranque ${n}: ${position}. Clic para pasarla a ${next}${
+        next === "CUTOFF" ? " (cierra spar y engine valves: el motor se apaga)" : " (abre la spar valve; no arranca el motor)"
+      }. Luz roja: fuego en el motor o test OVHT/FIRE`}
+      onClick={() => dispatch({ type: "setStartLever", engine, position: next })}
     >
       <svg viewBox="0 0 50 66" aria-hidden="true">
         {/* Grip loop */}
@@ -41,7 +52,7 @@ function StartLever({ engine, lit }: { engine: 1 | 2; lit: boolean }) {
           <path d="M35 56 L30 60" />
         </g>
       </svg>
-    </div>
+    </button>
   );
 }
 
@@ -58,8 +69,8 @@ export function EngineStartLevers() {
       <span className="fp-label esl-position cutoff">CUTOFF</span>
       <i className="esl-slot eng1" />
       <i className="esl-slot eng2" />
-      <StartLever engine={1} lit={isLit("eng1")} />
-      <StartLever engine={2} lit={isLit("eng2")} />
+      <StartLever engine="eng1" lit={isLit("eng1")} />
+      <StartLever engine="eng2" lit={isLit("eng2")} />
     </section>
   );
 }

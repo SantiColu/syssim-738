@@ -7,12 +7,11 @@ import { PanelExportButton } from "./panel-export-button";
 import { PneumaticSchematic } from "./pneumatic-schematic";
 import { useSystemTab } from "./system-tab-context";
 
-import { useFire } from "../simulation/fire/fire-context";
+import { FUEL_TIME_SCALES, useFuel } from "../simulation/fuel/fuel-context";
+import { engineStartBlocked } from "../simulation/fuel/fuel-system";
 import { usePneumatic } from "../simulation/pneumatic/pneumatic-context";
 
 type SystemView = "main" | "side";
-
-const FUEL_CUT_TITLE = " · combustible cortado por la fire switch (empujala para poder arrancar)";
 
 export function SystemPanel() {
   const panelRef = useRef<HTMLElement>(null);
@@ -20,14 +19,13 @@ export function SystemPanel() {
   const { sourcesState, toggleEng1, toggleEng2, toggleApu, toggleGndAir } =
     usePneumatic();
   const { isActive } = useSystemTab();
-  // A pulled fire switch (or the APU's own fire shutdown) cuts the fuel: the
-  // engine or APU cannot be started until it is cleared.
-  const { indications: fire } = useFire();
-  const apuFuelCutTitle = fire.apuShutoff
-    ? FUEL_CUT_TITLE
-    : fire.apuAutoShutdown
-      ? " · apagada por fuego detectado (no arranca mientras siga el fuego)"
-      : "";
+  // Starting needs fuel: a pulled fire switch, a stuck valve or an empty
+  // manifold keep the engine or APU from starting.
+  const { state: fuel, indications: fuelLights, dispatch: dispatchFuel, timeScale, setTimeScale } = useFuel();
+  const stoppedTitle = (name: string, blocked: string | null) =>
+    `${name} · ${blocked ? `no arranca: ${blocked}` : "Click para arrancar (start lever a IDLE)"}`;
+  const nextTimeScale =
+    FUEL_TIME_SCALES[(FUEL_TIME_SCALES.indexOf(timeScale) + 1) % FUEL_TIME_SCALES.length];
   const [groundCartConnected, toggleGroundCart] = useGroundCart();
 
   return (
@@ -88,8 +86,8 @@ export function SystemPanel() {
             onClick={toggleEng1}
             title={
               sourcesState.eng1Running
-                ? "Motor 1 encendido (Click para apagar)"
-                : `Motor 1 apagado${fire.engineShutoff.eng1 ? FUEL_CUT_TITLE : " (Click para encender)"}`
+                ? "Motor 1 encendido (Click para apagar: start lever a CUTOFF)"
+                : stoppedTitle("Motor 1 apagado", engineStartBlocked(fuel, "eng1"))
             }
             className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
               sourcesState.eng1Running
@@ -113,8 +111,8 @@ export function SystemPanel() {
             onClick={toggleEng2}
             title={
               sourcesState.eng2Running
-                ? "Motor 2 encendido (Click para apagar)"
-                : `Motor 2 apagado${fire.engineShutoff.eng2 ? FUEL_CUT_TITLE : " (Click para encender)"}`
+                ? "Motor 2 encendido (Click para apagar: start lever a CUTOFF)"
+                : stoppedTitle("Motor 2 apagado", engineStartBlocked(fuel, "eng2"))
             }
             className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
               sourcesState.eng2Running
@@ -139,7 +137,7 @@ export function SystemPanel() {
             title={
               sourcesState.apuRunning
                 ? "APU encendida (Click para apagar)"
-                : `APU apagada${apuFuelCutTitle || " (Click para encender)"}`
+                : stoppedTitle("APU apagada", fuelLights.apu.fuelCut)
             }
             className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
               sourcesState.apuRunning
@@ -206,6 +204,47 @@ export function SystemPanel() {
                 }`}
               />
               <span>GND COND</span>
+            </button>
+          )}
+
+          {/* FUEL TRUCK: pressurized hose on the fueling receptacle (FUEL view) */}
+          {isActive("fuel") && (
+            <button
+              type="button"
+              onClick={() => dispatchFuel({ type: "setFuelTruck", connected: !fuel.fuelTruckConnected })}
+              title={
+                fuel.fuelTruckConnected
+                  ? "Camión de combustible conectado a la estación de carga (Click para desconectar)"
+                  : "Camión de combustible desconectado (Click para conectar la manguera a la estación de carga del ala derecha)"
+              }
+              className={`flex h-7 items-center gap-1.5 px-2.5 cursor-pointer select-none transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 max-[560px]:gap-1 ${
+                fuel.fuelTruckConnected
+                  ? "text-sim-cyan bg-sim-cyan/15"
+                  : "text-sim-text-muted hover:text-sim-text"
+              }`}
+            >
+              <span
+                className={`size-1.5 rounded-full transition-all ${
+                  fuel.fuelTruckConnected
+                    ? "bg-sim-cyan shadow-[0_0_6px_var(--color-sim-cyan)]"
+                    : "bg-zinc-600"
+                }`}
+              />
+              <span>FUEL TRUCK</span>
+            </button>
+          )}
+
+          {/* Fuel flow time scale: idle burn is slow in real time (FUEL view) */}
+          {isActive("fuel") && (
+            <button
+              type="button"
+              onClick={() => setTimeScale(nextTimeScale)}
+              title={`Velocidad del flujo de combustible: ×${timeScale} (consumo, carga, transferencia y barrido). Click para pasar a ×${nextTimeScale}`}
+              className={`flex h-7 items-center gap-1 px-2.5 cursor-pointer select-none tabular-nums transition-all hover:bg-sim-bg active:scale-95 max-[560px]:px-1.5 ${
+                timeScale > 1 ? "text-sim-text-strong bg-sim-accent/15" : "text-sim-text-muted hover:text-sim-text"
+              }`}
+            >
+              <span>FUEL ×{timeScale}</span>
             </button>
           )}
         </div>
